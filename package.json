@@ -1,0 +1,26 @@
+{
+  "name": "grdr",
+  "version": "0.0.1",
+  "description": "A grading tool for the Austrian school system.",
+  "keywords": [
+    "grading;austria;school;teaching;teacher"
+  ],
+  "homepage": "https://github.com/mfreimueller/grdr#readme",
+  "bugs": {
+    "url": "https://github.com/mfreimueller/grdr/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+ssh://git@github.com/mfreimueller/grdr.git"
+  },
+  "license": "UNLICENSED",
+  "author": "Michael Freimüller",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "devDependencies": {
+    "electron": "^42.3.0"
+  }
+}
