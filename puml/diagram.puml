@@ -4,6 +4,12 @@
 hide empty attributes
 hide empty methods
 
+enum ParticipationSymbol {
+    PLUS <<P>>
+    MINUS <<M>>
+    WELLE <<W>>
+}
+
 entity Name <ValueObject> <<(V, bbFFcc)>> {
     - lastName: String {nn}
     - firstName: String {nn}
@@ -12,13 +18,14 @@ entity Name <ValueObject> <<(V, bbFFcc)>> {
 entity SchoolClass <Entity> {
     - name: String {nn}
     - schoolYear: String {nn}
+    - courses: List<Course>
 }
 
 entity Student <Entity> {
     - name: Name
     - schoolClass: SchoolClass
     - additionalInformation: List<AdditionalInformation>
-    - assessments: List<Assessment>
+    - performances: List<StudentPerformance>
 }
 
 entity AdditionalInformation <ValueObject> <<(V, bbFFcc)>> {
@@ -26,54 +33,107 @@ entity AdditionalInformation <ValueObject> <<(V, bbFFcc)>> {
     - value: String
 }
 
-entity Assessment <Abstract Entity> {
+entity StudentPerformance <Abstract Entity> {
     - date: DateTime {nn}
+    - student: Student {nn}
+    - assessment: Assessment {nn}
+    - findings: List<Finding>
+    - evaluation: Evaluation
+}
+
+entity Finding <AbstractEntity> {
+
+}
+
+entity Document <Entity> {
+    - filePath: String
+}
+
+entity Note <Entity> {
+    - text: String
+}
+
+entity RemoteDocument <Entity> {
+    - url: URL {nn}
+}
+
+entity ParticipationPerformance <Entity> {
+    - symbol: ParticipationSymbol {nn}
+}
+
+entity GradedPerformance <Entity> {
+    - value: Integer {0-5}
+}
+
+entity Assessment <Abstract Entity> {
+    - date: DateTime
     - title: String {nn}
+    - category: AssessmentCategory
     - course: Course
+    - performances: List<StudentPerformance>
 }
 
 entity Course <Entity> {
     - title: String {nn, unique}
     - schoolClass: SchoolClass {nn}
+    - gradeCompositions: List<GradeComposition>
+}
+
+entity GradeComposition <ValueObject> <<(V, bbFFcc)>> {
+    - category: AssessmentCategory
+    - weight: Float {gt: 0, lt: 100}
+}
+
+enum AssessmentCategory {
+    TEST <<T>>
+    PRACTICAL_ASSESSMENT <<PA>>
+    ORAL <<O>>
+    TRANSCRIPT <<TR>>
+    REVISION <<R>>
+    HAND_IN <<HI>>
+    PROJECT <<P>>
 }
 
 entity WrittenAssessment <Abstract Entity> {
-
+    - maxPoints: Integer {gt: 0}
 }
 
-entity Test {
-
-}
-
-entity PracticalAssessment {
-
-}
-
-entity ClassParticipation <Abstract Entity> {
-
-}
-
-entity OralParticipation {
-
-}
-
-entity TranscriptAssessment {
-
-}
-
-entity Revision {
-
-}
+entity Test {}
+entity PracticalAssessment {}
+entity ClassParticipation <Abstract Entity> {}
+entity OralParticipation {}
+entity TranscriptAssessment {}
+entity Revision {}
+entity HandIn {}
+entity Project {}
 
 ' Relationships
 
 Student --> Name
 Student "1" --* "0..*" AdditionalInformation
 
-Student "0..*" o-- "1" SchoolClass
-Student "1" --* "0..*" Assessment
+Student "0..*" *-- "1" SchoolClass
+Student "1" --* "0..*" StudentPerformance
+StudentPerformance "0..*" *-- "1" Assessment
 Assessment "0..*" *-- "1" Course
-Course "1" <-- "0..*" SchoolClass
+Assessment --> AssessmentCategory
+Course "0..*" *-- "1" SchoolClass
+Course "1" --* "1..*" GradeComposition
+
+StudentPerformance "1" --* "0..*" Finding
+
+ParticipationPerformance --> ParticipationSymbol
+
+' Inheritance
+
+StudentPerformance <|-- ParticipationPerformance
+StudentPerformance <|-- GradedPerformance
+
+
+Finding <|-- Document
+Finding <|-- Note
+Finding <|-- RemoteDocument
+
 
 Assessment <|-- WrittenAssessment
 Assessment <|-- ClassParticipation
@@ -82,5 +142,6 @@ WrittenAssessment <|-- PracticalAssessment
 ClassParticipation <|-- OralParticipation
 ClassParticipation <|-- TranscriptAssessment
 ClassParticipation <|-- Revision
+ClassParticipation <|-- HandIn
 
 @enduml
