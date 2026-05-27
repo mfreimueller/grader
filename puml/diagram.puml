@@ -1,0 +1,86 @@
+@startuml
+'https://plantuml.com/class-diagram
+
+hide empty attributes
+hide empty methods
+
+entity Name <ValueObject> <<(V, bbFFcc)>> {
+    - lastName: String {nn}
+    - firstName: String {nn}
+}
+
+entity SchoolClass <Entity> {
+    - name: String {nn}
+    - schoolYear: String {nn}
+}
+
+entity Student <Entity> {
+    - name: Name
+    - schoolClass: SchoolClass
+    - additionalInformation: List<AdditionalInformation>
+    - assessments: List<Assessment>
+}
+
+entity AdditionalInformation <ValueObject> <<(V, bbFFcc)>> {
+    - key: String {unique, nn}
+    - value: String
+}
+
+entity Assessment <Abstract Entity> {
+    - date: DateTime {nn}
+    - title: String {nn}
+    - course: Course
+}
+
+entity Course <Entity> {
+    - title: String {nn, unique}
+    - schoolClass: SchoolClass {nn}
+}
+
+entity WrittenAssessment <Abstract Entity> {
+
+}
+
+entity Test {
+
+}
+
+entity PracticalAssessment {
+
+}
+
+entity ClassParticipation <Abstract Entity> {
+
+}
+
+entity OralParticipation {
+
+}
+
+entity TranscriptAssessment {
+
+}
+
+entity Revision {
+
+}
+
+' Relationships
+
+Student --> Name
+Student "1" --* "0..*" AdditionalInformation
+
+Student "0..*" o-- "1" SchoolClass
+Student "1" --* "0..*" Assessment
+Assessment "0..*" *-- "1" Course
+Course "1" <-- "0..*" SchoolClass
+
+Assessment <|-- WrittenAssessment
+Assessment <|-- ClassParticipation
+WrittenAssessment <|-- Test
+WrittenAssessment <|-- PracticalAssessment
+ClassParticipation <|-- OralParticipation
+ClassParticipation <|-- TranscriptAssessment
+ClassParticipation <|-- Revision
+
+@enduml
