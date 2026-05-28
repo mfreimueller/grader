@@ -10,6 +10,11 @@ enum ParticipationSymbol {
     WELLE <<W>>
 }
 
+enum GradingType {
+    TERTIARY <<T>>
+    NUMERIC <<N>>
+}
+
 entity Name <ValueObject> <<(V, bbFFcc)>> {
     - lastName: String {nn}
     - firstName: String {nn}
@@ -33,12 +38,12 @@ entity AdditionalInformation <ValueObject> <<(V, bbFFcc)>> {
     - value: String
 }
 
-entity StudentPerformance <Abstract Entity> {
+entity StudentPerformance <Entity> {
     - date: DateTime {nn}
     - student: Student {nn}
     - assessment: Assessment {nn}
     - findings: List<Finding>
-    - evaluation: Evaluation
+    - score: Integer {gt: -1}
 }
 
 entity Finding <AbstractEntity> {
@@ -57,26 +62,39 @@ entity RemoteDocument <Entity> {
     - url: URL {nn}
 }
 
-entity ParticipationPerformance <Entity> {
-    - symbol: ParticipationSymbol {nn}
+entity AssessmentCategory <Entity> {
+    - title: String {nn}
+    - gradingType: GradingType {nn}
+    - displayAsGrade: boolean
 }
 
-entity GradedPerformance <Entity> {
-    - value: Integer {0-5}
-}
-
-entity Assessment <Abstract Entity> {
+entity Assessment <Entity> {
     - date: DateTime
     - title: String {nn}
-    - category: AssessmentCategory
-    - course: Course
+    - category: AssessmentCategory {nn}
+    - course: Course {nn}
     - performances: List<StudentPerformance>
+    - isImpromptu: boolean
+}
+
+entity GradedAssessment <Entity> {
+    - maxPoints: Integer {gt: 0}
 }
 
 entity Course <Entity> {
     - title: String {nn, unique}
     - schoolClass: SchoolClass {nn}
     - gradeCompositions: List<GradeComposition>
+    - assessmentCategories: List<AssessmentCategory>
+    - assessments: List<Assessment>
+    - sessions: List<Session>
+    - grades: List<Grade>
+}
+
+entity Session <Entity> {
+    - date: DateTime {nn}
+    - notes: String
+    - students: List<Student>
 }
 
 entity GradeComposition <ValueObject> <<(V, bbFFcc)>> {
@@ -84,28 +102,10 @@ entity GradeComposition <ValueObject> <<(V, bbFFcc)>> {
     - weight: Float {gt: 0, lt: 100}
 }
 
-enum AssessmentCategory {
-    TEST <<T>>
-    PRACTICAL_ASSESSMENT <<PA>>
-    ORAL <<O>>
-    TRANSCRIPT <<TR>>
-    REVISION <<R>>
-    HAND_IN <<HI>>
-    PROJECT <<P>>
+entity Grade <Entity> {
+    - student: Student {nn}
+    - score: Integer {nn, gt: 0, lt: 6}
 }
-
-entity WrittenAssessment <Abstract Entity> {
-    - maxPoints: Integer {gt: 0}
-}
-
-entity Test {}
-entity PracticalAssessment {}
-entity ClassParticipation <Abstract Entity> {}
-entity OralParticipation {}
-entity TranscriptAssessment {}
-entity Revision {}
-entity HandIn {}
-entity Project {}
 
 ' Relationships
 
@@ -116,32 +116,33 @@ Student "0..*" *-- "1" SchoolClass
 Student "1" --* "0..*" StudentPerformance
 StudentPerformance "0..*" *-- "1" Assessment
 Assessment "0..*" *-- "1" Course
-Assessment --> AssessmentCategory
+Assessment --> GradingType
 Course "0..*" *-- "1" SchoolClass
 Course "1" --* "1..*" GradeComposition
+
+Student "0..*" o-- "0..*" Session
+Assessment "0..*" o-- "1" Session
+Course "1" --* "0..*" Session
 
 StudentPerformance "1" --* "0..*" Finding
 
 ParticipationPerformance --> ParticipationSymbol
+
+Assessment --> AssessmentCategory
+Course "1" --* "0..*" AssessmentCategory
+
+Student <-- Grade
+Course "1" --* "0..*" Grade
 
 ' Inheritance
 
 StudentPerformance <|-- ParticipationPerformance
 StudentPerformance <|-- GradedPerformance
 
-
 Finding <|-- Document
 Finding <|-- Note
 Finding <|-- RemoteDocument
 
-
-Assessment <|-- WrittenAssessment
-Assessment <|-- ClassParticipation
-WrittenAssessment <|-- Test
-WrittenAssessment <|-- PracticalAssessment
-ClassParticipation <|-- OralParticipation
-ClassParticipation <|-- TranscriptAssessment
-ClassParticipation <|-- Revision
-ClassParticipation <|-- HandIn
+Assessment <|-- GradedAssessment
 
 @enduml
