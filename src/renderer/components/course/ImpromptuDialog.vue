@@ -90,7 +90,7 @@ const submitting = ref(false);
 const error = ref('');
 
 const selectedCat = computed(() =>
-  categories.value.find(c => c.id === categoryId.value) ?? null,
+  props.categories.find(c => c.id === categoryId.value) ?? null,
 );
 
 function onCategoryChange(): void {
