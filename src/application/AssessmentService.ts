@@ -31,6 +31,7 @@ export interface CreateAssessmentInput {
   date: string;
   categoryId: string;
   courseId: string;
+  isImpromptu: boolean;
   maxPoints?: number;
 }
 
@@ -63,7 +64,7 @@ export class AssessmentService {
         category,
         course,
         input.maxPoints,
-        false,
+        input.isImpromptu,
       );
       if (!result.ok) return Result.fail(result.error);
       assessment = result.value;
@@ -74,7 +75,7 @@ export class AssessmentService {
         new Date(input.date),
         category,
         course,
-        false,
+        input.isImpromptu,
       );
     }
 

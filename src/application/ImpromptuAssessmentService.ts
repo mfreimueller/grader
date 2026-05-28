@@ -36,6 +36,7 @@ export class ImpromptuAssessmentService {
           date: input.date,
           categoryId: input.categoryId,
           courseId: input.courseId,
+          isImpromptu: true,
           maxPoints: input.maxPoints,
         })
       : await this.assessmentService.create({
@@ -43,6 +44,7 @@ export class ImpromptuAssessmentService {
           date: input.date,
           categoryId: input.categoryId,
           courseId: input.courseId,
+          isImpromptu: true,
         });
 
     if (!assessed.ok) return Result.fail(assessed.error);
