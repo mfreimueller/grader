@@ -15,16 +15,13 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+ssh://git@github.com/mfreimueller/grdr.git"
+    "url": "https://github.com/mfreimueller/grdr.git"
   },
   "license": "UNLICENSED",
   "author": "Michael Freimüller",
   "main": "build/main/main/app.js",
   "scripts": {
-    "postinstall": "npx patch-package && npm rebuild better-sqlite3",
-    "prestart": "npx @electron/rebuild",
-    "predev": "npx @electron/rebuild",
-    "pretest": "npm rebuild better-sqlite3",
+    "postinstall": "npx patch-package",
     "dev": "npm run build && electron .",
     "build": "tsc -p tsconfig.main.json && vite build",
     "start": "electron .",
