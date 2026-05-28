@@ -3,6 +3,7 @@ import { SchoolClassRepository } from '../domain/student/SchoolClassRepository';
 import { StudentId } from '../domain/student/StudentId';
 import { Student } from '../domain/student/Student';
 import { Name } from '../domain/student/Name';
+import { AdditionalInformation } from '../domain/student/AdditionalInformation';
 import { Result } from '../domain/shared/Result';
 import { NotFoundError } from '../shared/errors';
 import { generateId } from '../domain/shared/IdGenerator';
@@ -13,17 +14,31 @@ export interface SchoolClassRefDto {
   schoolYear: string;
 }
 
+export interface AdditionalInfoEntry {
+  key: string;
+  value: string;
+}
+
 export interface StudentDto {
   id: string;
   firstName: string;
   lastName: string;
   schoolClass: SchoolClassRefDto;
+  additionalInfo: AdditionalInfoEntry[];
 }
 
 export interface CreateStudentInput {
   firstName: string;
   lastName: string;
   schoolClassId: string;
+  additionalInfo?: AdditionalInfoEntry[];
+}
+
+export interface UpdateStudentInput {
+  firstName?: string;
+  lastName?: string;
+  schoolClassId?: string;
+  additionalInfo?: AdditionalInfoEntry[];
 }
 
 export class StudentService {
@@ -57,11 +72,18 @@ export class StudentService {
     if (!sidResult.ok) return Result.fail(sidResult.error);
 
     const student = Student.create(sidResult.value, nameResult.value, schoolClass);
+
+    if (input.additionalInfo) {
+      for (const entry of input.additionalInfo) {
+        student.addInformation(new AdditionalInformation(entry.key, entry.value));
+      }
+    }
+
     await this.studentRepo.save(student);
     return Result.ok(toDto(student));
   }
 
-  async update(id: string, input: { firstName?: string; lastName?: string; schoolClassId?: string }): Promise<Result<StudentDto>> {
+  async update(id: string, input: UpdateStudentInput): Promise<Result<StudentDto>> {
     const sidResult = StudentId.create(id);
     if (!sidResult.ok) return Result.fail(sidResult.error);
 
@@ -81,6 +103,13 @@ export class StudentService {
     }
 
     const updated = Student.create(sidResult.value, nameResult.value, schoolClass);
+
+    if (input.additionalInfo) {
+      for (const entry of input.additionalInfo) {
+        updated.addInformation(new AdditionalInformation(entry.key, entry.value));
+      }
+    }
+
     await this.studentRepo.save(updated);
     return Result.ok(toDto(updated));
   }
@@ -107,5 +136,9 @@ function toDto(s: Student): StudentDto {
       name: s.schoolClass.name,
       schoolYear: s.schoolClass.schoolYear.toString(),
     },
+    additionalInfo: s.additionalInformation.map((info) => ({
+      key: info.key,
+      value: info.value,
+    })),
   };
 }

@@ -5,6 +5,7 @@ import { IPC } from '../shared/ipc-channels';
 const api: IpcApi = {
   student: {
     list: () => ipcRenderer.invoke(IPC.STUDENT_LIST),
+    get: (id) => ipcRenderer.invoke(IPC.STUDENT_GET, id),
     create: (data) => ipcRenderer.invoke(IPC.STUDENT_CREATE, data),
     update: (id, data) => ipcRenderer.invoke(IPC.STUDENT_UPDATE, id, data),
     delete: (id) => ipcRenderer.invoke(IPC.STUDENT_DELETE, id),

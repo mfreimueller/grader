@@ -2,16 +2,23 @@ import { z } from 'zod';
 
 export const studentIdParam = z.object({ id: z.string().min(1) });
 
+const additionalInfoEntrySchema = z.object({
+  key: z.string().min(1),
+  value: z.string(),
+});
+
 export const createStudentSchema = z.object({
   firstName: z.string().min(1),
   lastName: z.string().min(1),
   schoolClassId: z.string().min(1),
+  additionalInfo: z.array(additionalInfoEntrySchema).optional(),
 });
 
 export const updateStudentSchema = z.object({
   firstName: z.string().min(1).optional(),
   lastName: z.string().min(1).optional(),
   schoolClassId: z.string().min(1).optional(),
+  additionalInfo: z.array(additionalInfoEntrySchema).optional(),
 });
 
 export const createClassSchema = z.object({

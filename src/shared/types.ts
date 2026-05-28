@@ -8,23 +8,31 @@ export interface SchoolClassRefDto {
   schoolYear: string;
 }
 
+export interface AdditionalInfoEntry {
+  key: string;
+  value: string;
+}
+
 export interface StudentDto {
   id: string;
   firstName: string;
   lastName: string;
   schoolClass: SchoolClassRefDto;
+  additionalInfo: AdditionalInfoEntry[];
 }
 
 export interface CreateStudentInput {
   firstName: string;
   lastName: string;
   schoolClassId: string;
+  additionalInfo?: AdditionalInfoEntry[];
 }
 
 export interface UpdateStudentInput {
   firstName?: string;
   lastName?: string;
   schoolClassId?: string;
+  additionalInfo?: AdditionalInfoEntry[];
 }
 
 export interface SchoolClassDto {
@@ -192,6 +200,7 @@ export type ReportMode = 'full' | 'reduced';
 export interface IpcApi {
   student: {
     list: () => Promise<StudentDto[]>;
+    get: (id: string) => Promise<ResultDto<StudentDto>>;
     create: (data: CreateStudentInput) => Promise<ResultDto<StudentDto>>;
     update: (id: string, data: UpdateStudentInput) => Promise<ResultDto<StudentDto>>;
     delete: (id: string) => Promise<ResultDto<void>>;

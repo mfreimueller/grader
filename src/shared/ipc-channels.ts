@@ -1,5 +1,6 @@
 export const IPC = {
   STUDENT_LIST: 'student:list',
+  STUDENT_GET: 'student:get',
   STUDENT_CREATE: 'student:create',
   STUDENT_UPDATE: 'student:update',
   STUDENT_DELETE: 'student:delete',

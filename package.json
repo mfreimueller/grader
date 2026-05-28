@@ -21,6 +21,10 @@
   "author": "Michael Freimüller",
   "main": "build/main/main/app.js",
   "scripts": {
+    "postinstall": "npx patch-package && npm rebuild better-sqlite3",
+    "prestart": "npx @electron/rebuild",
+    "predev": "npx @electron/rebuild",
+    "pretest": "npm rebuild better-sqlite3",
     "dev": "npm run build && electron .",
     "build": "tsc -p tsconfig.main.json && vite build",
     "start": "electron .",
@@ -32,6 +36,7 @@
     "package": "electron-builder build"
   },
   "devDependencies": {
+    "@electron/rebuild": "^4.0.4",
     "@playwright/test": "^1.52.0",
     "@types/better-sqlite3": "^7.6.13",
     "@types/jest": "^29.5.14",
@@ -43,6 +48,7 @@
     "eslint-plugin-vue": "^10.1.0",
     "jest": "^29.7.0",
     "jest-util": "^29.7.0",
+    "patch-package": "^8.0.1",
     "ts-jest": "^29.3.2",
     "ts-node": "^10.9.2",
     "typescript": "^5.8.3",
