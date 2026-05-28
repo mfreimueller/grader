@@ -9,6 +9,13 @@ export function createInMemoryDb(): Db {
   return db;
 }
 
+export function createFileDb(filePath: string): Db {
+  const db = new Database(filePath);
+  db.pragma('journal_mode = WAL');
+  db.pragma('foreign_keys = ON');
+  return db;
+}
+
 export interface Migration {
   id: string;
   description: string;
