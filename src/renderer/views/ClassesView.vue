@@ -1,22 +1,291 @@
 <template>
-  <div class="view-placeholder">
-    <h2>Klassen</h2>
-    <p class="text-secondary">Klassenverwaltung (CRUD) — kommt in Phase 7-C</p>
+  <div class="classes-view">
+    <div class="toolbar">
+      <h2>Klassen</h2>
+      <div class="toolbar-actions">
+        <button class="btn btn-primary" @click="openCreate">+ Klasse anlegen</button>
+      </div>
+    </div>
+
+    <div v-if="loading" class="loading">Lade Klassen...</div>
+
+    <div v-else-if="classes.length === 0" class="empty">
+      Noch keine Klassen angelegt.
+    </div>
+
+    <div v-else class="grouped-list">
+      <div v-for="(group, schoolYear) in grouped" :key="schoolYear" class="year-group">
+        <h3 class="year-header">{{ schoolYear }}</h3>
+        <div class="class-card" v-for="klasse in group" :key="klasse.id">
+          <span class="class-name">{{ klasse.name }}</span>
+          <div class="class-actions">
+            <button class="btn-icon" title="Bearbeiten" @click="editClass(klasse)">✏️</button>
+            <button class="btn-icon btn-danger-icon" title="Löschen" @click="confirmDelete(klasse)">🗑️</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <ClassFormModal
+      v-if="showCreate"
+      :class-item="null"
+      @close="showCreate = false"
+      @saved="onSaved"
+    />
+    <ClassFormModal
+      v-if="showEdit && editingClass"
+      :class-item="editingClass"
+      @close="showEdit = false"
+      @saved="onSaved"
+    />
+
+    <Teleport to="body">
+      <div v-if="deleting" class="overlay" @click.self="deleting = null">
+        <div class="confirm-dialog">
+          <p>{{ deleting.name }} ({{ deleting.schoolYear }}) wirklich löschen?</p>
+          <p v-if="deleteError" class="delete-error">{{ deleteError }}</p>
+          <div class="modal-actions">
+            <button class="btn btn-secondary" @click="deleting = null">Abbrechen</button>
+            <button class="btn btn-danger" @click="doDelete" :disabled="deletingSubmitting">
+              {{ deletingSubmitting ? 'Lösche...' : 'Löschen' }}
+            </button>
+          </div>
+        </div>
+      </div>
+    </Teleport>
   </div>
 </template>
 
 <script setup lang="ts">
+import { ref, computed, onMounted } from 'vue';
+import type { SchoolClassDto } from '../../shared/types';
+import ClassFormModal from '../components/classes/ClassFormModal.vue';
+
+const classes = ref<SchoolClassDto[]>([]);
+const loading = ref(true);
+const showCreate = ref(false);
+const showEdit = ref(false);
+const editingClass = ref<SchoolClassDto | null>(null);
+const deleting = ref<SchoolClassDto | null>(null);
+const deleteError = ref('');
+const deletingSubmitting = ref(false);
+
+const grouped = computed(() => {
+  const groups: Record<string, SchoolClassDto[]> = {};
+  for (const c of classes.value) {
+    if (!groups[c.schoolYear]) groups[c.schoolYear] = [];
+    groups[c.schoolYear].push(c);
+  }
+  return groups;
+});
+
+onMounted(async () => {
+  await loadClasses();
+  loading.value = false;
+});
+
+async function loadClasses(): Promise<void> {
+  classes.value = await window.grdr.class.list();
+}
+
+function openCreate(): void {
+  showCreate.value = true;
+}
+
+function editClass(klasse: SchoolClassDto): void {
+  editingClass.value = klasse;
+  showEdit.value = true;
+}
+
+function confirmDelete(klasse: SchoolClassDto): void {
+  deleteError.value = '';
+  deleting.value = klasse;
+}
+
+async function doDelete(): Promise<void> {
+  if (!deleting.value) return;
+  deleteError.value = '';
+  deletingSubmitting.value = true;
+  try {
+    const result = await window.grdr.class.delete(deleting.value.id);
+    if (result.ok) {
+      deleting.value = null;
+      await loadClasses();
+    } else {
+      deleteError.value = result.error.message;
+    }
+  } catch (e: unknown) {
+    deleteError.value = (e as Error)?.message || 'Löschen fehlgeschlagen. Möglicherweise sind der Klasse noch Schüler zugeordnet.';
+  } finally {
+    deletingSubmitting.value = false;
+  }
+}
+
+async function onSaved(): Promise<void> {
+  showCreate.value = false;
+  showEdit.value = false;
+  editingClass.value = null;
+  await loadClasses();
+}
 </script>
 
 <style scoped>
-.view-placeholder {
+.classes-view {
+  max-width: 720px;
+}
+
+.toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 16px;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.toolbar-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.btn {
+  padding: 8px 16px;
+  border-radius: 6px;
+  border: 1px solid transparent;
+  font-size: 14px;
+  cursor: pointer;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.btn-primary {
+  background: var(--color-primary);
+  color: #fff;
+}
+
+.btn-primary:hover {
+  background: var(--color-primary-hover);
+}
+
+.btn-secondary {
+  background: transparent;
+  border-color: var(--color-border);
+  color: var(--color-text);
+}
+
+.btn-danger {
+  background: var(--color-danger);
+  color: #fff;
+}
+
+.btn-danger:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.btn-icon {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 16px;
+  padding: 4px 6px;
+  border-radius: 4px;
+}
+
+.btn-icon:hover {
+  background: #f3f4f6;
+}
+
+.btn-danger-icon:hover {
+  background: #fee2e2;
+}
+
+.loading, .empty {
   background: var(--color-surface);
   border-radius: 8px;
   padding: 32px;
   border: 1px solid var(--color-border);
-}
-.text-secondary {
   color: var(--color-text-secondary);
-  margin-top: 8px;
+  text-align: center;
+}
+
+.grouped-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.year-group {
+  background: var(--color-surface);
+  border-radius: 8px;
+  border: 1px solid var(--color-border);
+  overflow: hidden;
+}
+
+.year-header {
+  font-size: 13px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--color-text-secondary);
+  padding: 10px 14px;
+  background: #f9fafb;
+  border-bottom: 1px solid var(--color-border);
+  margin: 0;
+}
+
+.class-card {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 14px;
+  border-top: 1px solid var(--color-border);
+}
+
+.class-card:hover {
+  background: #f9fafb;
+}
+
+.class-name {
+  font-weight: 500;
+}
+
+.class-actions {
+  display: flex;
+  gap: 4px;
+}
+
+.overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.confirm-dialog {
+  background: var(--color-surface);
+  border-radius: 8px;
+  padding: 24px;
+  width: 360px;
+  box-shadow: 0 8px 30px rgba(0,0,0,0.15);
+}
+
+.confirm-dialog p {
+  margin-bottom: 16px;
+  font-size: 15px;
+}
+
+.delete-error {
+  color: var(--color-danger);
+  font-size: 13px;
+}
+
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
 }
 </style>
