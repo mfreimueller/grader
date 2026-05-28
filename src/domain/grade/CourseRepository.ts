@@ -7,4 +7,5 @@ export interface CourseRepository {
   findBySchoolYear(schoolYear: SchoolYear): Promise<Course[]>;
   save(course: Course): Promise<void>;
   delete(id: string): Promise<void>;
+  deleteCategory(courseId: string, categoryId: string): Promise<void>;
 }

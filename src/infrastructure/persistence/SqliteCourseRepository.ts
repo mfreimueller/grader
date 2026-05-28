@@ -78,20 +78,22 @@ export class SqliteCourseRepository implements CourseRepository {
     const schoolClass = course.schoolClass;
 
     this.db
+      .prepare('DELETE FROM grade_compositions WHERE course_id = ?')
+      .run(course.id);
+
+    this.db
       .prepare(
         'INSERT OR REPLACE INTO school_classes (id, name, school_year) VALUES (?, ?, ?)',
       )
       .run(schoolClass.id, schoolClass.name, schoolClass.schoolYear.toString());
+    console.log(`Ensured school class ${schoolClass.id} exists for course ${course.id}`);
 
     this.db
       .prepare(
         'INSERT OR REPLACE INTO courses (id, title, school_class_id) VALUES (?, ?, ?)',
       )
       .run(course.id, course.title, schoolClass.id);
-
-    this.db
-      .prepare('DELETE FROM assessment_categories WHERE course_id = ?')
-      .run(course.id);
+    console.log(`Saved course ${course.id} to repository`);
 
     const insertCategory = this.db.prepare(
       'INSERT OR REPLACE INTO assessment_categories (id, title, grading_type, display_as_grade, course_id) VALUES (?, ?, ?, ?, ?)',
@@ -105,11 +107,8 @@ export class SqliteCourseRepository implements CourseRepository {
         cat.displayAsGrade ? 1 : 0,
         course.id,
       );
+      console.log(`Saved assessment category ${cat.id} for course ${course.id}`);
     }
-
-    this.db
-      .prepare('DELETE FROM grade_compositions WHERE course_id = ?')
-      .run(course.id);
 
     const insertComposition = this.db.prepare(
       'INSERT OR REPLACE INTO grade_compositions (category_id, course_id, weight) VALUES (?, ?, ?)',
@@ -117,7 +116,28 @@ export class SqliteCourseRepository implements CourseRepository {
 
     for (const comp of course.gradeCompositions) {
       insertComposition.run(comp.assessmentCategory.id, course.id, comp.weight);
+      console.log(`Saved grade composition for category ${comp.assessmentCategory.id} and course ${course.id}`);
     }
+  }
+
+  async deleteCategory(courseId: string, categoryId: string): Promise<void> {
+    const refCount = this.db
+      .prepare(
+        `SELECT COUNT(*) as count
+         FROM student_performances sp
+         JOIN assessments a ON sp.assessment_id = a.id
+         WHERE a.category_id = ? AND sp.deleted_at IS NULL`,
+      )
+      .get(categoryId) as { count: number };
+
+    if (refCount.count > 0) {
+      throw new Error(
+        `Kategorie kann nicht gelöscht werden: Es gibt ${refCount.count} Leistungsfeststellung(en), die auf diese Kategorie verweisen.`
+      );
+    }
+
+    this.db.prepare('DELETE FROM grade_compositions WHERE category_id = ?').run(categoryId);
+    this.db.prepare('DELETE FROM assessment_categories WHERE id = ?').run(categoryId);
   }
 
   async delete(id: string): Promise<void> {

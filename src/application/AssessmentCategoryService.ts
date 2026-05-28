@@ -38,11 +38,15 @@ export class AssessmentCategoryService {
   }
 
   async create(input: CreateAssessmentCategoryInput): Promise<Result<AssessmentCategoryDto>> {
+    console.log("Creating assessment category with input:", input);
+
     const course = await this.courseRepo.findById(input.courseId);
     if (!course) return Result.fail(new NotFoundError('Course', input.courseId));
+    console.log("Found course for new category:", course.title);
 
     const gradingResult = gradingTypeFromString(input.gradingType);
     if (!gradingResult.ok) return Result.fail(gradingResult.error);
+    console.log("Parsed grading type:", gradingResult.value);
 
     const category = new AssessmentCategory(
       generateId(),
@@ -50,6 +54,7 @@ export class AssessmentCategoryService {
       gradingResult.value,
       input.displayAsGrade,
     );
+    console.log("Created category entity:", category);
 
     const reconstituted = Course.reconstitute(
       course.id,
@@ -58,8 +63,11 @@ export class AssessmentCategoryService {
       [...course.assessmentCategories, category],
       [...course.gradeCompositions],
     );
+    console.log("Reconstituted course with new category:", reconstituted);
 
     await this.courseRepo.save(reconstituted);
+    console.log("Saved course with new category to repository");
+    
     return Result.ok({
       id: category.id,
       title: category.title,
@@ -119,19 +127,12 @@ export class AssessmentCategoryService {
       return Result.fail(new ValidationError('Cannot delete default "Mitarbeit" category'));
     }
 
-    const categories = course.assessmentCategories.filter(c => c.id !== id);
-    const compositions = course.gradeCompositions.filter(gc => gc.assessmentCategory.id !== id);
-
-    const reconstituted = Course.reconstitute(
-      course.id,
-      course.title,
-      course.schoolClass,
-      categories,
-      compositions,
-    );
-
-    await this.courseRepo.save(reconstituted);
-    return Result.ok(undefined as void);
+    try {
+      await this.courseRepo.deleteCategory(course.id, id);
+      return Result.ok(undefined as void);
+    } catch (err) {
+      return Result.fail(new ValidationError((err as Error).message));
+    }
   }
 
   private async findCourseByCategoryId(categoryId: string): Promise<Course | null> {

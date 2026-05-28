@@ -51,6 +51,10 @@ export class SqliteStudentRepository implements StudentRepository {
       .run(schoolClass.id, schoolClass.name, schoolClass.schoolYear.toString());
 
     this.db
+      .prepare('DELETE FROM student_additional_information WHERE student_id = ?')
+      .run(student.id.value);
+
+    this.db
       .prepare(
         `INSERT OR REPLACE INTO students (id, first_name, last_name, school_class_id)
          VALUES (?, ?, ?, ?)`,
@@ -61,10 +65,6 @@ export class SqliteStudentRepository implements StudentRepository {
         student.name.lastName,
         schoolClass.id,
       );
-
-    this.db
-      .prepare('DELETE FROM student_additional_information WHERE student_id = ?')
-      .run(student.id.value);
 
     const insertInfo = this.db.prepare(
       'INSERT INTO student_additional_information (id, student_id, key, value) VALUES (?, ?, ?, ?)',

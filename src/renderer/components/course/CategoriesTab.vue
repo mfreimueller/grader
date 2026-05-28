@@ -150,6 +150,7 @@ async function handleSave(): Promise<void> {
         return;
       }
     } else {
+      console.log(props.course.id, form.title, form.gradingType, form.displayAsGrade);
       const result = await window.grdr.assessmentCategory.create({
         courseId: props.course.id,
         title: form.title,
@@ -179,7 +180,9 @@ async function doDelete(): Promise<void> {
     deleting.value = null;
     await loadCategories();
   } else {
+    const errMsg = result.error.message;
     deleting.value = null;
+    formError.value = errMsg;
   }
 }
 </script>

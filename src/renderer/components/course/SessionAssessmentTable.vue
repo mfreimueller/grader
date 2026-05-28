@@ -181,7 +181,7 @@ function getPerf(studentId: string, assessmentId: string): PerformanceDto | unde
 
 function getScore(studentId: string, assessmentId: string): string {
   const p = getPerf(studentId, assessmentId);
-  return p?.score !== null ? String(p.score) : '';
+  return p && p?.score !== null ? String(p.score) : '';
 }
 
 function getSymbol(studentId: string, assessmentId: string): string | null {

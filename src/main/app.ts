@@ -73,6 +73,7 @@ app.on('ready', () => {
   const win = createMainWindow();
   win.webContents.openDevTools();
   win.loadFile('build/renderer/index.html');
+  console.log(app.getPath('userData'));
 });
 
 app.on('window-all-closed', () => {
