@@ -1,6 +1,5 @@
-import type { Config } from 'jest';
-
-const config: Config = {
+/** @type {import('jest').Config} */
+const config = {
   passWithNoTests: true,
   projects: [
     {
@@ -18,4 +17,4 @@ const config: Config = {
   ],
 };
 
-export default config;
+module.exports = config;
