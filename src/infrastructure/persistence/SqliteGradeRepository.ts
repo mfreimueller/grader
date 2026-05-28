@@ -1,5 +1,6 @@
 import type { Db } from './db';
 import { GradeRepository } from '../../domain/grade/GradeRepository';
+import { StudentPerformanceRepository } from '../../domain/grade/StudentPerformanceRepository';
 import { Grade } from '../../domain/grade/Grade';
 import { StudentId } from '../../domain/student/StudentId';
 import { StudentPerformance } from '../../domain/grade/StudentPerformance';
@@ -49,7 +50,7 @@ interface GradeRow extends Record<string, unknown> {
   score: number;
 }
 
-export class SqliteGradeRepository implements GradeRepository {
+export class SqliteGradeRepository implements GradeRepository, StudentPerformanceRepository {
   constructor(private readonly db: Db) {}
 
   async findByStudent(studentId: StudentId): Promise<Grade[]> {
@@ -57,7 +58,7 @@ export class SqliteGradeRepository implements GradeRepository {
       .prepare(
         `SELECT g.id, g.student_id, g.course_id, g.score
          FROM grades g
-         WHERE g.student_id = ?`,
+         WHERE g.student_id = ? AND g.deleted_at IS NULL`,
       )
       .all(studentId.value) as GradeRow[];
 
@@ -72,7 +73,7 @@ export class SqliteGradeRepository implements GradeRepository {
       .prepare(
         `SELECT g.id, g.student_id, g.course_id, g.score
          FROM grades g
-         WHERE g.course_id = ? AND g.student_id = ?`,
+         WHERE g.course_id = ? AND g.student_id = ? AND g.deleted_at IS NULL`,
       )
       .get(courseId, studentId.value) as GradeRow | undefined;
 
@@ -95,7 +96,7 @@ export class SqliteGradeRepository implements GradeRepository {
   }
 
   async delete(id: string): Promise<void> {
-    this.db.prepare('DELETE FROM grades WHERE id = ?').run(id);
+    this.db.prepare('UPDATE grades SET deleted_at = datetime(\'now\') WHERE id = ?').run(id);
   }
 
   async savePerformance(performance: StudentPerformance): Promise<void> {
@@ -136,7 +137,7 @@ export class SqliteGradeRepository implements GradeRepository {
     assessmentId: string,
   ): Promise<StudentPerformance[]> {
     const rows = this.db
-      .prepare(performanceQuery + 'WHERE sp.assessment_id = ?')
+      .prepare(performanceQuery + 'AND sp.assessment_id = ?')
       .all(assessmentId) as PerformanceRow[];
 
     return rows.map(r => this.rowToPerformance(r));
@@ -146,7 +147,7 @@ export class SqliteGradeRepository implements GradeRepository {
     studentId: StudentId,
   ): Promise<StudentPerformance[]> {
     const rows = this.db
-      .prepare(performanceQuery + 'WHERE sp.student_id = ?')
+      .prepare(performanceQuery + 'AND sp.student_id = ?')
       .all(studentId.value) as PerformanceRow[];
 
     return rows.map(r => this.rowToPerformance(r));
@@ -279,4 +280,5 @@ const performanceQuery = `
   JOIN assessment_categories cat ON a.category_id = cat.id
   JOIN students s ON sp.student_id = s.id
   JOIN school_classes sc ON s.school_class_id = sc.id
+  WHERE sp.deleted_at IS NULL
 `;

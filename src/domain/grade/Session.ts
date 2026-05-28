@@ -39,6 +39,17 @@ export class Session extends Entity<string> {
     return new Session(id, date, notes, course, [], [muendlich]);
   }
 
+  static reconstitute(
+    id: string,
+    date: Date,
+    notes: string,
+    course: Course,
+    students: Student[],
+    assessments: Assessment[],
+  ): Session {
+    return new Session(id, date, notes, course, students, assessments);
+  }
+
   get date(): Date {
     return this._date;
   }

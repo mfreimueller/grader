@@ -34,6 +34,16 @@ export class Course extends Entity<string> {
     return new Course(id, title, schoolClass, [mitarbeit], []);
   }
 
+  static reconstitute(
+    id: string,
+    title: string,
+    schoolClass: SchoolClass,
+    assessmentCategories: AssessmentCategory[],
+    gradeCompositions: GradeComposition[],
+  ): Course {
+    return new Course(id, title, schoolClass, assessmentCategories, gradeCompositions);
+  }
+
   get title(): string {
     return this._title;
   }

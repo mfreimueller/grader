@@ -17,7 +17,7 @@ export class SqliteStudentRepository implements StudentRepository {
                 sc.name AS class_name, sc.school_year
          FROM students s
          JOIN school_classes sc ON s.school_class_id = sc.id
-         WHERE s.id = ?`,
+         WHERE s.id = ? AND s.deleted_at IS NULL`,
       )
       .get(id.value) as Record<string, unknown> | undefined;
 
@@ -32,7 +32,8 @@ export class SqliteStudentRepository implements StudentRepository {
         `SELECT s.id, s.first_name, s.last_name, s.school_class_id,
                 sc.name AS class_name, sc.school_year
          FROM students s
-         JOIN school_classes sc ON s.school_class_id = sc.id`,
+         JOIN school_classes sc ON s.school_class_id = sc.id
+         WHERE s.deleted_at IS NULL`,
       )
       .all() as Record<string, unknown>[];
 
@@ -81,9 +82,8 @@ export class SqliteStudentRepository implements StudentRepository {
 
   async delete(id: StudentId): Promise<void> {
     this.db
-      .prepare('DELETE FROM student_additional_information WHERE student_id = ?')
+      .prepare('UPDATE students SET deleted_at = datetime(\'now\') WHERE id = ?')
       .run(id.value);
-    this.db.prepare('DELETE FROM students WHERE id = ?').run(id.value);
   }
 
   private rowToStudent(row: Record<string, unknown>): Student {

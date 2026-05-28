@@ -102,7 +102,7 @@ describe('SqliteStudentRepository', () => {
   });
 
   describe('delete', () => {
-    it('removes a student from the database', async () => {
+    it('soft-deletes a student (record stays in DB but excluded from queries)', async () => {
       const id = StudentId.create('s-001');
       const name = Name.create('Max', 'Mustermann');
       if (!id.ok || !name.ok) throw new Error('creation failed');
@@ -114,6 +114,13 @@ describe('SqliteStudentRepository', () => {
 
       const found = await repo.findById(id.value);
       expect(found).toBeNull();
+
+      const raw = db.prepare('SELECT id, deleted_at FROM students WHERE id = ?').get('s-001') as {
+        id: string;
+        deleted_at: string | null;
+      };
+      expect(raw).not.toBeUndefined();
+      expect(raw.deleted_at).not.toBeNull();
     });
 
     it('does nothing when deleting a non-existent student', async () => {

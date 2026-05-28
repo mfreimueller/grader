@@ -105,7 +105,31 @@ const MIGRATION_001: Migration = {
   `,
 };
 
-const ALL_MIGRATIONS: Migration[] = [MIGRATION_001];
+const MIGRATION_002: Migration = {
+  id: '002',
+  description: 'Add deleted_at columns for soft delete',
+  sql: `
+    ALTER TABLE students ADD COLUMN deleted_at TEXT;
+    ALTER TABLE student_performances ADD COLUMN deleted_at TEXT;
+    ALTER TABLE findings ADD COLUMN deleted_at TEXT;
+    ALTER TABLE grades ADD COLUMN deleted_at TEXT;
+  `,
+};
+
+const MIGRATION_003: Migration = {
+  id: '003',
+  description: 'Add session_id to assessments, add session_students table',
+  sql: `
+    ALTER TABLE assessments ADD COLUMN session_id TEXT REFERENCES sessions(id);
+    CREATE TABLE IF NOT EXISTS session_students (
+      session_id TEXT NOT NULL REFERENCES sessions(id),
+      student_id TEXT NOT NULL REFERENCES students(id),
+      PRIMARY KEY (session_id, student_id)
+    );
+  `,
+};
+
+const ALL_MIGRATIONS: Migration[] = [MIGRATION_001, MIGRATION_002, MIGRATION_003];
 
 export function runMigrations(db: Db): void {
   db.exec(`

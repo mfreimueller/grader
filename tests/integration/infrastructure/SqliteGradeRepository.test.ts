@@ -99,7 +99,7 @@ describe('SqliteGradeRepository', () => {
       expect(found).toBeNull();
     });
 
-    it('deletes a grade', async () => {
+    it('soft-deletes a grade (record stays in DB but excluded from queries)', async () => {
       const grade = Grade.create('g-001', student, course, 2);
       if (!grade.ok) throw new Error('Grade create failed');
       await repo.save(grade.value);
@@ -107,6 +107,13 @@ describe('SqliteGradeRepository', () => {
       await repo.delete('g-001');
       const found = await repo.findByStudent(student.id);
       expect(found).toHaveLength(0);
+
+      const raw = db.prepare('SELECT id, deleted_at FROM grades WHERE id = ?').get('g-001') as {
+        id: string;
+        deleted_at: string | null;
+      };
+      expect(raw).not.toBeUndefined();
+      expect(raw.deleted_at).not.toBeNull();
     });
 
     it('updates an existing grade on save', async () => {
