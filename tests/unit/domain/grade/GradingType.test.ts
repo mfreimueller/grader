@@ -1,4 +1,4 @@
-import { GradingType } from '../../../../src/domain/grade/GradingType';
+import { GradingType, gradingTypeFromString } from '../../../../src/domain/grade/GradingType';
 
 describe('GradingType', () => {
   it('has NUMERIC value', () => {
@@ -10,7 +10,7 @@ describe('GradingType', () => {
   });
 
   it('converts from string "NUMERIC"', () => {
-    const result = GradingType.fromString('NUMERIC');
+    const result = gradingTypeFromString('NUMERIC');
     expect(result.ok).toBe(true);
     if (result.ok) {
       expect(result.value).toBe(GradingType.NUMERIC);
@@ -18,7 +18,7 @@ describe('GradingType', () => {
   });
 
   it('converts from string "TERTIARY"', () => {
-    const result = GradingType.fromString('TERTIARY');
+    const result = gradingTypeFromString('TERTIARY');
     expect(result.ok).toBe(true);
     if (result.ok) {
       expect(result.value).toBe(GradingType.TERTIARY);
@@ -26,17 +26,17 @@ describe('GradingType', () => {
   });
 
   it('returns error for invalid string', () => {
-    const result = GradingType.fromString('INVALID');
+    const result = gradingTypeFromString('INVALID');
     expect(result.ok).toBe(false);
   });
 
   it('returns error for empty string', () => {
-    const result = GradingType.fromString('');
+    const result = gradingTypeFromString('');
     expect(result.ok).toBe(false);
   });
 
   it('is case-sensitive', () => {
-    const result = GradingType.fromString('numeric');
+    const result = gradingTypeFromString('numeric');
     expect(result.ok).toBe(false);
   });
 });
