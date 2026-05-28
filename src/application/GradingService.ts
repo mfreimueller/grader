@@ -65,12 +65,16 @@ export class GradingService {
 
     const date = input.date ? new Date(input.date) : new Date();
 
+    const existing = (await this.perfRepo.findPerformancesByAssessment(input.assessmentId))
+      .find(p => p.student.id.value === input.studentId);
+    const id = existing?.id ?? generateId();
+
     if (assessment instanceof GradedAssessment) {
       if (input.score === undefined) {
         return Result.fail(new ValidationError('Graded assessments require a score'));
       }
       const perfResult = GradedPerformance.create(
-        generateId(), date, student, assessment, input.score,
+        id, date, student, assessment, input.score,
       );
       if (!perfResult.ok) return Result.fail(perfResult.error);
       await this.perfRepo.savePerformance(perfResult.value);
@@ -81,7 +85,7 @@ export class GradingService {
     if (!symbolResult.ok) return Result.fail(symbolResult.error);
 
     const perfResult = ParticipationPerformance.create(
-      generateId(), date, student, assessment, symbolResult.value,
+      id, date, student, assessment, symbolResult.value,
     );
     if (!perfResult.ok) return Result.fail(perfResult.error);
     await this.perfRepo.savePerformance(perfResult.value);
