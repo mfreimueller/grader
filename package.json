@@ -3,7 +3,11 @@
   "version": "0.0.1",
   "description": "A grading tool for the Austrian school system.",
   "keywords": [
-    "grading;austria;school;teaching;teacher"
+    "grading",
+    "austria",
+    "school",
+    "teaching",
+    "teacher"
   ],
   "homepage": "https://github.com/mfreimueller/grdr#readme",
   "bugs": {
@@ -15,12 +19,29 @@
   },
   "license": "UNLICENSED",
   "author": "Michael Freimüller",
-  "main": "main.js",
+  "main": "build/main/main/app.js",
   "scripts": {
+    "dev": "npm run build && electron .",
+    "build": "tsc -p tsconfig.main.json && tsc -p tsconfig.renderer.json",
     "start": "electron .",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "test:e2e": "playwright test",
+    "lint": "eslint .",
+    "typecheck": "tsc -p tsconfig.main.json --noEmit && tsc -p tsconfig.renderer.json --noEmit",
+    "package": "electron-builder build"
   },
   "devDependencies": {
-    "electron": "^42.3.0"
+    "@playwright/test": "^1.52.0",
+    "@types/jest": "^29.5.14",
+    "@types/node": "^22.15.17",
+    "electron": "^42.3.0",
+    "electron-builder": "^26.0.12",
+    "eslint": "^9.28.0",
+    "eslint-plugin-vue": "^10.1.0",
+    "jest": "^29.7.0",
+    "ts-jest": "^29.3.2",
+    "typescript": "^5.8.3",
+    "typescript-eslint": "^8.33.0"
   }
 }

@@ -1,0 +1,10 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "module": "Node16",
+    "moduleResolution": "Node16",
+    "outDir": "build/main",
+    "rootDir": "src"
+  },
+  "include": ["src/main/**/*", "src/application/**/*", "src/domain/**/*", "src/infrastructure/**/*", "src/shared/**/*", "src/preload/**/*"]
+}

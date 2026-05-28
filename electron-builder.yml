@@ -1,0 +1,20 @@
+appId: at.mfreimueller.grdr
+productName: grdr
+directories:
+  buildResources: assets
+  output: dist
+files:
+  - build/**/*
+  - assets/**/*
+  - package.json
+mac:
+  target:
+    - dmg
+    - zip
+win:
+  target:
+    - nsis
+linux:
+  target:
+    - deb
+    - AppImage
