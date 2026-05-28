@@ -25,9 +25,7 @@
         <SessionsTab v-if="activeTab === 'sessions'" :course="course" />
         <GradingTab v-else-if="activeTab === 'grading'" :course="course" />
         <StudentsTab v-else-if="activeTab === 'students'" :course="course" />
-        <div v-else-if="activeTab === 'categories'" class="placeholder-tab">
-          <p>Kategorienverwaltung — folgt in Phase 7-E (7.21)</p>
-        </div>
+        <CategoriesTab v-else-if="activeTab === 'categories'" :course="course" />
       </div>
     </template>
   </div>
@@ -40,6 +38,7 @@ import type { CourseDto } from '../../shared/types';
 import SessionsTab from '../components/course/SessionsTab.vue';
 import GradingTab from '../components/course/GradingTab.vue';
 import StudentsTab from '../components/course/StudentsTab.vue';
+import CategoriesTab from '../components/course/CategoriesTab.vue';
 
 const route = useRoute();
 const course = ref<CourseDto | null>(null);
@@ -146,12 +145,4 @@ onMounted(async () => {
   min-height: 200px;
 }
 
-.placeholder-tab {
-  background: var(--color-surface);
-  border-radius: 8px;
-  padding: 32px;
-  border: 1px solid var(--color-border);
-  color: var(--color-text-secondary);
-  text-align: center;
-}
 </style>
