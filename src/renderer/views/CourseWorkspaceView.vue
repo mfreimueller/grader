@@ -23,12 +23,8 @@
 
       <div class="tab-content">
         <SessionsTab v-if="activeTab === 'sessions'" :course="course" />
-        <div v-else-if="activeTab === 'grading'" class="placeholder-tab">
-          <p>Benotungsansicht — folgt in Phase 7-E (7.18)</p>
-        </div>
-        <div v-else-if="activeTab === 'students'" class="placeholder-tab">
-          <p>Schüleransicht — folgt in Phase 7-E (7.19–7.20)</p>
-        </div>
+        <GradingTab v-else-if="activeTab === 'grading'" :course="course" />
+        <StudentsTab v-else-if="activeTab === 'students'" :course="course" />
         <div v-else-if="activeTab === 'categories'" class="placeholder-tab">
           <p>Kategorienverwaltung — folgt in Phase 7-E (7.21)</p>
         </div>
@@ -42,6 +38,8 @@ import { ref, onMounted } from 'vue';
 import { useRoute } from 'vue-router';
 import type { CourseDto } from '../../shared/types';
 import SessionsTab from '../components/course/SessionsTab.vue';
+import GradingTab from '../components/course/GradingTab.vue';
+import StudentsTab from '../components/course/StudentsTab.vue';
 
 const route = useRoute();
 const course = ref<CourseDto | null>(null);

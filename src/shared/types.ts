@@ -239,6 +239,7 @@ export interface IpcApi {
     recordPerformance: (data: RecordPerformanceInput) => Promise<ResultDto<PerformanceDto>>;
     getPerformancesByAssessment: (assessmentId: string) => Promise<PerformanceDto[]>;
     listByStudent: (studentId: string) => Promise<ResultDto<PerformanceDto[]>>;
+    get: (courseId: string, studentId: string) => Promise<ResultDto<GradeDto | null>>;
     calculateFinal: (courseId: string, studentId: string) => Promise<ResultDto<GradeCalculationResultDto>>;
     saveManualGrade: (data: SaveGradeInput) => Promise<ResultDto<GradeDto>>;
     recordImpromptu: (data: CreateImpromptuInput) => Promise<ResultDto<{ assessmentId: string; performance: { id: string; type: string; score: number | null; symbol: string | null } }>>;

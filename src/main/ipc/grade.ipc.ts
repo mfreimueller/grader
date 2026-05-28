@@ -55,6 +55,12 @@ export function registerGradeHandlers(
     return await gradingService.getPerformancesByStudent(studentId);
   });
 
+  ipcMain.handle(IPC.GRADE_GET, async (_event, courseId: string, studentId: string) => {
+    studentIdParam.parse({ id: courseId });
+    studentIdParam.parse({ id: studentId });
+    return await gradingService.getGrade(studentId, courseId);
+  });
+
   ipcMain.handle(IPC.GRADE_CALCULATE_FINAL, async (_event, courseId: string, studentId: string) => {
     studentIdParam.parse({ id: courseId });
     studentIdParam.parse({ id: studentId });

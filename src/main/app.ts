@@ -71,6 +71,7 @@ app.on('ready', () => {
   registerReportHandlers(reportService);
 
   const win = createMainWindow();
+  win.webContents.openDevTools();
   win.loadFile('build/renderer/index.html');
 });
 

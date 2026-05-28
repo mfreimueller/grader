@@ -33,6 +33,7 @@ export const IPC = {
   GRADE_RECORD_PERFORMANCE: 'grade:recordPerformance',
   GRADE_GET_PERFORMANCES_BY_ASSESSMENT: 'grade:getPerformancesByAssessment',
   GRADE_LIST_BY_STUDENT: 'grade:listByStudent',
+  GRADE_GET: 'grade:get',
   GRADE_CALCULATE_FINAL: 'grade:calculateFinal',
   GRADE_SAVE_MANUAL: 'grade:saveManualGrade',
   GRADE_RECORD_IMPROMPTU: 'grade:recordImpromptu',
