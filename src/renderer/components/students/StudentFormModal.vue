@@ -102,7 +102,7 @@ async function handleSubmit(): Promise<void> {
         firstName: form.firstName,
         lastName: form.lastName,
         schoolClassId: form.schoolClassId,
-        additionalInfo: form.additionalInfo,
+        additionalInfo: form.additionalInfo.map(e => ({ key: e.key, value: e.value })),
       };
       const result = await window.grdr.student.update(props.student!.id, input);
       if (!result.ok) {
@@ -114,7 +114,7 @@ async function handleSubmit(): Promise<void> {
         firstName: form.firstName,
         lastName: form.lastName,
         schoolClassId: form.schoolClassId,
-        additionalInfo: form.additionalInfo,
+        additionalInfo: form.additionalInfo.map(e => ({ key: e.key, value: e.value })),
       };
       const result = await window.grdr.student.create(input);
       if (!result.ok) {
