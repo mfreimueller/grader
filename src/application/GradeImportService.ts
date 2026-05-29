@@ -101,12 +101,14 @@ export class GradeImportService {
     const students = await this.studentRepo.findByName(row.firstname, row.lastname);
     if (students.length === 0) {
       result.warnings.push(`Schüler/in "${row.firstname} ${row.lastname}" nicht gefunden, überspringe`);
+      console.log('[GRADE]', `Import skip: student not found (${row.firstname} ${row.lastname})`);
       return;
     }
     if (students.length > 1) {
       result.warnings.push(
         `Mehrere Schüler/innen mit Namen "${row.firstname} ${row.lastname}" gefunden, überspringe`,
       );
+      console.log('[GRADE]', `Import skip: duplicate student name (${row.firstname} ${row.lastname})`);
       return;
     }
     const student = students[0]!;
@@ -116,6 +118,7 @@ export class GradeImportService {
       result.warnings.push(
         `Kategorie "${row.type}" im Kurs "${course.title}" nicht gefunden, überspringe`,
       );
+      console.log('[GRADE]', `Import skip: category not found (${row.type}) for ${row.firstname} ${row.lastname}`);
       return;
     }
 
@@ -131,6 +134,9 @@ export class GradeImportService {
       session = Session.create(generateId(), sessionDate, '', course);
       await this.sessionRepo.save(session);
       result.sessionsCreated++;
+      console.log('[GRADE]', `Import: created session for ${row.date}`);
+    } else {
+      console.log('[GRADE]', `Import: reused session for ${row.date}`);
     }
 
     const sessionAssessments = await this.assessmentRepo.findBySession(session.id);
@@ -145,9 +151,7 @@ export class GradeImportService {
           assessmentId, row.name, sessionDate, category, course, maxPoints, false,
         );
         if (!created.ok) {
-          result.warnings.push(
-            `${row.name}: ${created.error.message}`,
-          );
+          result.warnings.push(`${row.name}: ${created.error.message}`);
           return;
         }
         assessment = created.value;
@@ -166,6 +170,9 @@ export class GradeImportService {
       );
       await this.sessionRepo.save(reconstituted);
       result.assessmentsCreated++;
+      console.log('[GRADE]', `Import: created assessment ${row.name} (max=${row.max || 'none'})`);
+    } else {
+      console.log('[GRADE]', `Import: reused assessment ${row.name}`);
     }
 
     const existingPerformances = await this.perfRepo.findPerformancesByAssessment(assessment.id);
@@ -190,6 +197,11 @@ export class GradeImportService {
         }
         await this.perfRepo.savePerformance(created.value);
       }
+      console.log(
+        '[GRADE]',
+        `Import performance: student=${row.firstname} ${row.lastname}, assessment=${row.name}, ` +
+          `score=${scoreValue ?? 0}, action=${existing ? 'updated' : 'created'}`,
+      );
     } else {
       const symbolRaw = row.note.length > 0 ? (SYMBOL_MAP[row.note] ?? 'WELLE') : 'WELLE';
       const symbolResult = ParticipationSymbol.create(symbolRaw);
@@ -205,6 +217,11 @@ export class GradeImportService {
         return;
       }
       await this.perfRepo.savePerformance(created.value);
+      console.log(
+        '[GRADE]',
+        `Import performance: student=${row.firstname} ${row.lastname}, assessment=${row.name}, ` +
+          `symbol=${symbolRaw}, action=${existing ? 'updated' : 'created'}`,
+      );
     }
 
     if (existing) {

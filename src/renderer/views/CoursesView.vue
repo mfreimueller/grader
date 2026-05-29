@@ -5,7 +5,7 @@
       <div class="toolbar-actions">
         <label class="toggle-label">
           <input type="checkbox" v-model="showPast" @change="loadCourses" />
-          Vergangene Kurse anzeigen
+          Alle Kurse anzeigen
         </label>
         <button class="btn btn-primary" @click="openCreate">+ Kurs anlegen</button>
       </div>

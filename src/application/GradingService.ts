@@ -69,6 +69,13 @@ export class GradingService {
       .find(p => p.student.id.value === input.studentId);
     const id = existing?.id ?? generateId();
 
+    console.log(
+      '[GRADE]',
+      `Record: student=${student.name.firstName} ${student.name.lastName}, assessment=${assessment.title}, ` +
+        `category=${assessment.category.title}, existing=${existing ? 'yes' : 'no'}, ` +
+        `score=${input.score ?? '?'}, symbol=${input.symbol ?? '?'}`,
+    );
+
     if (assessment instanceof GradedAssessment) {
       if (input.score === undefined) {
         return Result.fail(new ValidationError('Graded assessments require a score'));
@@ -78,6 +85,7 @@ export class GradingService {
       );
       if (!perfResult.ok) return Result.fail(perfResult.error);
       await this.perfRepo.savePerformance(perfResult.value);
+      console.log('[GRADE]', `Saved graded performance: id=${perfResult.value.id}, score=${input.score}/${assessment.maxPoints}`);
       return Result.ok(toPerfDto(perfResult.value));
     }
 
@@ -89,6 +97,7 @@ export class GradingService {
     );
     if (!perfResult.ok) return Result.fail(perfResult.error);
     await this.perfRepo.savePerformance(perfResult.value);
+    console.log('[GRADE]', `Saved participation performance: id=${perfResult.value.id}, symbol=${symbolResult.value}`);
     return Result.ok(toPerfDto(perfResult.value));
   }
 
@@ -115,10 +124,16 @@ export class GradingService {
     const course = await this.courseRepo.findById(input.courseId);
     if (!course) return Result.fail(new NotFoundError('Course', input.courseId));
 
+    console.log(
+      '[GRADE]',
+      `Manual grade: student=${student.name.firstName} ${student.name.lastName}, course=${course.title}, score=${input.score}`,
+    );
+
     const gradeResult = Grade.create(generateId(), student, course, input.score);
     if (!gradeResult.ok) return Result.fail(gradeResult.error);
 
     await this.gradeRepo.save(gradeResult.value);
+    console.log('[GRADE]', `Saved manual grade: id=${gradeResult.value.id}, score=${input.score}`);
     return Result.ok({
       id: gradeResult.value.id,
       studentId: input.studentId,

@@ -29,10 +29,26 @@ export function performanceToValue(
 ): Result<number> {
   if (performance instanceof GradedPerformance) {
     const gradedAssessment = performance.assessment as GradedAssessment;
-    return normalizeScore(performance.score!, gradedAssessment.maxPoints);
+    const normalized = normalizeScore(performance.score!, gradedAssessment.maxPoints);
+    if (normalized.ok) {
+      console.log(
+        '[GRADE]',
+        `Normalize: student=${performance.student.name.firstName} ${performance.student.name.lastName}, ` +
+          `assessment=${performance.assessment.title}, category=${performance.assessment.category.title}, ` +
+          `score=${performance.score}, maxPoints=${gradedAssessment.maxPoints}, normalized=${normalized.value}`,
+      );
+    }
+    return normalized;
   }
   if (performance instanceof ParticipationPerformance) {
-    return Result.ok(performance.toScore());
+    const value = performance.toScore();
+    console.log(
+      '[GRADE]',
+      `Normalize: student=${performance.student.name.firstName} ${performance.student.name.lastName}, ` +
+        `assessment=${performance.assessment.title}, category=${performance.assessment.category.title}, ` +
+        `symbol=${performance.symbol.value}, toScore=${value}`,
+    );
+    return Result.ok(value);
   }
   return Result.fail(
     new ValidationError('Unknown performance type'),

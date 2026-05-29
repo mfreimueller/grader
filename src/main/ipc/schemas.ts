@@ -110,6 +110,7 @@ export const impromptuSchema = z.object({
   studentId: z.string().min(1),
   date: z.string().min(1),
   categoryId: z.string().min(1),
+  sessionId: z.string().min(1),
   title: z.string().optional(),
   score: z.number().int().min(0).optional(),
   symbol: z.string().optional(),

@@ -176,6 +176,7 @@ export interface CreateImpromptuInput {
   studentId: string;
   date: string;
   categoryId: string;
+  sessionId: string;
   title?: string;
   score?: number;
   symbol?: string;

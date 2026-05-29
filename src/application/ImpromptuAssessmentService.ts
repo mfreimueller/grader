@@ -17,6 +17,7 @@ export interface CreateImpromptuInput {
   studentId: string;
   date: string;
   categoryId: string;
+  sessionId: string;
   title?: string;
   score?: number;
   symbol?: string;
@@ -30,22 +31,17 @@ export class ImpromptuAssessmentService {
   ) {}
 
   async create(input: CreateImpromptuInput): Promise<Result<ImpromptuResultDto>> {
+    const common = {
+      title: input.title ?? `Impromptu ${new Date(input.date).toLocaleDateString()}`,
+      date: input.date,
+      categoryId: input.categoryId,
+      courseId: input.courseId,
+      sessionId: input.sessionId,
+      isImpromptu: true,
+    };
     const assessed = input.maxPoints !== undefined
-      ? await this.assessmentService.create({
-          title: input.title ?? `Impromptu ${new Date(input.date).toLocaleDateString()}`,
-          date: input.date,
-          categoryId: input.categoryId,
-          courseId: input.courseId,
-          isImpromptu: true,
-          maxPoints: input.maxPoints,
-        })
-      : await this.assessmentService.create({
-          title: input.title ?? `Impromptu ${new Date(input.date).toLocaleDateString()}`,
-          date: input.date,
-          categoryId: input.categoryId,
-          courseId: input.courseId,
-          isImpromptu: true,
-        });
+      ? await this.assessmentService.create({ ...common, maxPoints: input.maxPoints })
+      : await this.assessmentService.create(common);
 
     if (!assessed.ok) return Result.fail(assessed.error);
 

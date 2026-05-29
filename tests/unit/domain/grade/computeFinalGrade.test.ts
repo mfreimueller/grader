@@ -23,7 +23,7 @@ describe('computeFinalGrade', () => {
     expect(result).toBeCloseTo(1.0);
   });
 
-  it('applies recency weighting (old performances count less)', () => {
+  it('averages performances equally within a category (no recency bias)', () => {
     const performances: FinalGradePerformanceInput[] = [
       { date: new Date(2025, 9, 1), categoryId: 'cat-1', normalizedValue: 1.0 },
       { date: today, categoryId: 'cat-1', normalizedValue: 0.0 },
@@ -31,9 +31,8 @@ describe('computeFinalGrade', () => {
     const compositions: CategoryWeightInput[] = [
       { categoryId: 'cat-1', weight: 100 },
     ];
-    const oldResult = computeFinalGrade(performances, compositions, today);
-    expect(oldResult).toBeGreaterThan(0);
-    expect(oldResult).toBeLessThan(0.5);
+    const result = computeFinalGrade(performances, compositions, today);
+    expect(result).toBeCloseTo(0.5);
   });
 
   it('weights categories by their composition weight', () => {

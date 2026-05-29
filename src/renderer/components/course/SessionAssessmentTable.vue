@@ -59,11 +59,11 @@
           <tbody>
             <template v-for="student in sortedStudents" :key="student.id + '-group'">
               <tr
-                v-for="(assessment, aIdx) in assessments"
+                v-for="(assessment, aIdx) in visibleAssessments(student.id)"
                 :key="student.id + '-' + assessment.id"
                 :class="{ 'row-impromptu': assessment.isImpromptu }"
               >
-                <td v-if="aIdx === 0" :rowspan="assessments.length + 1" class="cell-student">
+                <td v-if="aIdx === 0" :rowspan="visibleAssessments(student.id).length + 1" class="cell-student">
                   <strong>{{ student.lastName }}, {{ student.firstName }}</strong>
                 </td>
                 <td>
@@ -132,6 +132,7 @@
       :student="impromptuStudent"
       :categories="categories"
       :course-id="courseId"
+      :session-id="sessionId"
       @close="impromptuStudent = null"
       @saved="onImpromptuSaved"
     />
@@ -184,6 +185,12 @@ const addForm = reactive({
 const selectedCategory = computed(() =>
   categories.value.find(c => c.id === addForm.categoryId) ?? null,
 );
+
+function visibleAssessments(studentId: string): AssessmentDto[] {
+  return assessments.value.filter(
+    a => !a.isImpromptu || getPerf(studentId, a.id),
+  );
+}
 
 function getPerf(studentId: string, assessmentId: string): PerformanceDto | undefined {
   return (performances.value.get(assessmentId) ?? []).find(p => p.studentId === studentId);

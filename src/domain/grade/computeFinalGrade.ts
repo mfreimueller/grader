@@ -1,5 +1,4 @@
 import { CategoryWeightInput } from './categoryWeightedMean';
-import { recencyWeight } from './recencyWeight';
 
 export interface FinalGradePerformanceInput {
   date: Date;
@@ -7,54 +6,63 @@ export interface FinalGradePerformanceInput {
   normalizedValue: number;
 }
 
-function daysBetween(a: Date, b: Date): number {
-  const msPerDay = 24 * 60 * 60 * 1000;
-  return Math.floor(Math.abs(a.getTime() - b.getTime()) / msPerDay);
-}
-
 export function computeFinalGrade(
   performances: FinalGradePerformanceInput[],
   compositions: CategoryWeightInput[],
-  referenceDate: Date,
+  _referenceDate: Date,
 ): number {
   const weightMap = new Map(compositions.map(c => [c.categoryId, c.weight]));
   const categoryGroups = new Map<string, { values: number[]; weights: number[] }>();
 
   for (const perf of performances) {
-    const days = daysBetween(perf.date, referenceDate);
-    const rw = recencyWeight(days);
     const group = categoryGroups.get(perf.categoryId);
     if (group) {
       group.values.push(perf.normalizedValue);
-      group.weights.push(rw);
+      group.weights.push(1);
     } else {
-      categoryGroups.set(perf.categoryId, { values: [perf.normalizedValue], weights: [rw] });
+      categoryGroups.set(perf.categoryId, { values: [perf.normalizedValue], weights: [1] });
     }
   }
+
+  console.log(
+    '[GRADE]',
+    `computeFinalGrade: ${performances.length} performances, ${compositions.length} compositions`,
+  );
 
   let totalWeightedSum = 0;
   let totalWeight = 0;
 
   for (const [categoryId, group] of categoryGroups) {
     const categoryWeight = weightMap.get(categoryId);
-    if (categoryWeight === undefined) continue;
+    if (categoryWeight === undefined) {
+      console.log('[GRADE]', `Category ${categoryId}: skipped (no weight configured)`);
+      continue;
+    }
 
-    const weightedSum = group.values.reduce(
-      (sum, v, i) => sum + v * group.weights[i]!,
-      0,
+    const perfDates = performances
+      .filter(p => p.categoryId === categoryId)
+      .map(p => p.date.toISOString().slice(0, 10));
+    console.log(
+      '[GRADE]',
+      `Category ${categoryId}: ${group.values.length} performances, dates=${perfDates.join(', ')}, categoryWeight=${categoryWeight}`,
     );
-    console.log(`Calculated weighted sum for category ${categoryId}: ${weightedSum}`);
 
-    const weightSum = group.weights.reduce((a, b) => a + b, 0);
-    console.log(`Reduced group weights for category ${categoryId} to ${weightSum}`);
+    const sum = group.values.reduce((a, b) => a + b, 0);
+    const count = group.values.length;
+    console.log(`[GRADE] Category ${categoryId}: sum=${sum.toFixed(4)}, count=${count}`);
 
-    if (weightSum === 0) continue;
+    if (count === 0) {
+      console.log('[GRADE]', `Category ${categoryId}: skipped (no performances)`);
+      continue;
+    }
 
-    const recencyWeightedMean = weightedSum / weightSum;
-    totalWeightedSum += recencyWeightedMean * categoryWeight;
+    const mean = sum / count;
+    console.log(
+      '[GRADE]',
+      `Category ${categoryId}: mean=${mean.toFixed(4)}, contribution=${(mean * categoryWeight).toFixed(4)}`,
+    );
+    totalWeightedSum += mean * categoryWeight;
     totalWeight += categoryWeight;
-
-    console.log(`Calculated new total weight: ${totalWeight}`);
   }
 
   if (totalWeight === 0) return 0;

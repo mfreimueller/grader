@@ -12,45 +12,28 @@
           <th class="col-name-sortable" @click="sortAscending = !sortAscending">
             Name {{ sortAscending ? '▲' : '▼' }}
           </th>
-          <th class="col-actions">Aktionen</th>
         </tr>
       </thead>
       <tbody>
         <tr v-for="student in sortedStudents" :key="student.id">
           <td class="cell-name">{{ student.lastName }}, {{ student.firstName }}</td>
-          <td class="cell-actions">
-            <button class="btn btn-secondary btn-sm" @click="openImpromptu(student)">
-              + Spontane Leistung
-            </button>
-          </td>
         </tr>
       </tbody>
     </table>
 
-    <ImpromptuDialog
-      v-if="impromptuStudent"
-      :student="impromptuStudent"
-      :categories="categories"
-      :course-id="course.id"
-      @close="impromptuStudent = null"
-      @saved="impromptuStudent = null"
-    />
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue';
-import type { CourseDto, StudentDto, AssessmentCategoryDto } from '../../../shared/types';
-import ImpromptuDialog from './ImpromptuDialog.vue';
+import type { CourseDto, StudentDto } from '../../../shared/types';
 
 const props = defineProps<{
   course: CourseDto;
 }>();
 
 const students = ref<StudentDto[]>([]);
-const categories = ref<AssessmentCategoryDto[]>([]);
 const loading = ref(true);
-const impromptuStudent = ref<StudentDto | null>(null);
 const sortAscending = ref(true);
 
 const sortedStudents = computed(() =>
@@ -62,20 +45,11 @@ const sortedStudents = computed(() =>
 
 onMounted(async () => {
   try {
-    const [allStudents, cats] = await Promise.all([
-      window.grdr.student.list(props.course.schoolClass.id),
-      window.grdr.assessmentCategory.listByCourse(props.course.id),
-    ]);
-    students.value = allStudents;
-    categories.value = cats;
+    students.value = await window.grdr.student.list(props.course.schoolClass.id);
   } finally {
     loading.value = false;
   }
 });
-
-function openImpromptu(student: StudentDto): void {
-  impromptuStudent.value = student;
-}
 </script>
 
 <style scoped>
@@ -123,34 +97,4 @@ function openImpromptu(student: StudentDto): void {
 }
 
 .col-name-sortable { cursor: pointer; user-select: none; }
-.col-actions { width: 180px; }
-
-.cell-actions {
-  text-align: right;
-}
-
-.btn {
-  padding: 8px 16px;
-  border-radius: 6px;
-  border: 1px solid transparent;
-  font-size: 14px;
-  cursor: pointer;
-  font-weight: 500;
-  white-space: nowrap;
-}
-
-.btn-sm {
-  padding: 5px 10px;
-  font-size: 12px;
-}
-
-.btn-secondary {
-  background: transparent;
-  border-color: var(--color-border);
-  color: var(--color-text);
-}
-
-.btn-secondary:hover {
-  background: #f3f4f6;
-}
 </style>

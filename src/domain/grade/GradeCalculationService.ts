@@ -37,10 +37,21 @@ export class GradeCalculationService {
       });
     }
 
+    console.log(
+      '[GRADE]',
+      `Calculation: student=${performances.length > 0 ? performances[0]!.student.name.firstName + ' ' + performances[0]!.student.name.lastName : '?'}, ` +
+        `performances=${inputs.length}, course=${course.title}`,
+    );
+
     const compositions = course.gradeCompositions.map(gc => ({
       categoryId: gc.assessmentCategory.id,
       weight: gc.weight,
     }));
+
+    console.log(
+      '[GRADE]',
+      `Compositions: ${compositions.map(c => `${c.categoryId}=${c.weight}`).join(', ')}`,
+    );
 
     if (compositions.length === 0) {
       return Result.fail(
@@ -50,6 +61,11 @@ export class GradeCalculationService {
 
     const rawScore = computeFinalGrade(inputs, compositions, referenceDate);
     const displayGrade = normalizedToGrade(rawScore);
+
+    console.log(
+      '[GRADE]',
+      `Result: rawScore=${rawScore.toFixed(4)}, displayGrade=${displayGrade}`,
+    );
 
     return Result.ok({ rawScore, displayGrade });
   }
