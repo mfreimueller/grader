@@ -22,7 +22,6 @@
               :title="a.title"
             >
               {{ a.title }}
-              <span v-if="a.maxPoints !== null" class="perf-max">/{{ a.maxPoints }}</span>
             </th>
           </tr>
         </thead>
