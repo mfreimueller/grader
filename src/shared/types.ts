@@ -190,6 +190,14 @@ export interface AddFindingInput {
   performanceId: string;
 }
 
+export interface GradeImportResultDto {
+  sessionsCreated: number;
+  assessmentsCreated: number;
+  performancesCreated: number;
+  performancesUpdated: number;
+  warnings: string[];
+}
+
 export interface GradeCalculationResultDto {
   rawScore: number;
   displayGrade: number;
@@ -251,6 +259,7 @@ export interface IpcApi {
     calculateFinal: (courseId: string, studentId: string) => Promise<ResultDto<GradeCalculationResultDto>>;
     saveManualGrade: (data: SaveGradeInput) => Promise<ResultDto<GradeDto>>;
     recordImpromptu: (data: CreateImpromptuInput) => Promise<ResultDto<{ assessmentId: string; performance: { id: string; type: string; score: number | null; symbol: string | null } }>>;
+    importCsv: (courseId: string) => Promise<ResultDto<GradeImportResultDto>>;
   };
   finding: {
     add: (data: AddFindingInput & { text: string } | AddFindingInput & { filePath: string } | AddFindingInput & { url: string }) => Promise<ResultDto<FindingDto>>;

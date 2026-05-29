@@ -5,7 +5,7 @@ export default tseslint.config(
   eslint.configs.recommended,
   ...tseslint.configs.recommended,
   {
-    ignores: ['build/', 'dist/', 'node_modules/'],
+    ignores: ['build/', 'dist/', 'node_modules/', '.scratch/'],
   },
   {
     files: ['*.js', '*.mjs', '*.cjs'],

@@ -25,6 +25,7 @@ import { GradeCalculationAppService } from '../application/GradeCalculationAppSe
 import { ImpromptuAssessmentService } from '../application/ImpromptuAssessmentService';
 import { ReportService } from '../application/ReportService';
 
+import { GradeImportService } from '../application/GradeImportService';
 import { GradeCalculationService } from '../domain/grade/GradeCalculationService';
 import { PdfReportGenerator } from '../infrastructure/pdf/PdfReportGenerator';
 import { DataExportService } from '../infrastructure/fs/DataExportService';
@@ -66,11 +67,12 @@ app.on('ready', () => {
   const calcService = new GradeCalculationAppService(courseRepo, gradeRepo, gradeCalculationService);
   const impromptuService = new ImpromptuAssessmentService(assessmentService, gradingService);
   const reportService = new ReportService(reportRepo, pdfGenerator, dataExport, calcService);
+  const gradeImportService = new GradeImportService(sessionRepo, assessmentRepo, gradeRepo, studentRepo, courseRepo);
 
   registerStudentHandlers(studentService, csvImportService);
   registerCourseHandlers(classService, courseService, categoryService);
   registerSessionHandlers(sessionService);
-  registerGradeHandlers(assessmentService, gradingService, findingService, calcService, impromptuService);
+  registerGradeHandlers(assessmentService, gradingService, findingService, calcService, impromptuService, gradeImportService);
   registerReportHandlers(reportService);
 
   const win = createMainWindow();

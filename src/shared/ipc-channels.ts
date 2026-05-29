@@ -44,5 +44,7 @@ export const IPC = {
   FINDING_REMOVE: 'finding:remove',
   FINDING_GET: 'finding:getFindings',
 
+  GRADE_IMPORT_CSV: 'grade:importCsv',
+
   REPORT_GENERATE: 'report:generate',
 } as const;

@@ -2,9 +2,31 @@
   <div class="sessions-tab">
     <div class="section-header">
       <h3>Sitzungen</h3>
-      <button class="btn btn-primary" @click="showCreate = !showCreate">
-        {{ showCreate ? 'Schließen' : '+ Sitzung anlegen' }}
-      </button>
+      <div class="section-header-actions">
+        <button class="btn btn-secondary" @click="handleImportCsv" :disabled="importing">
+          {{ importing ? 'Importiere...' : 'Noten importieren (CSV)' }}
+        </button>
+        <button class="btn btn-primary" @click="showCreate = !showCreate">
+          {{ showCreate ? 'Schließen' : '+ Sitzung anlegen' }}
+        </button>
+      </div>
+    </div>
+
+    <div v-if="importResult" class="import-result-panel">
+      <div class="import-summary">
+        <strong>Import abgeschlossen:</strong>
+        {{ importResult.sessionsCreated }} Sitzung(en),
+        {{ importResult.assessmentsCreated }} Bewertung(en),
+        {{ importResult.performancesCreated }} Note(n) angelegt,
+        {{ importResult.performancesUpdated }} Note(n) aktualisiert
+      </div>
+      <div v-if="importResult.warnings.length > 0" class="import-warnings">
+        <div class="warning-count">{{ importResult.warnings.length }} Warnung(en):</div>
+        <ul>
+          <li v-for="(w, i) in importResult.warnings" :key="i">{{ w }}</li>
+        </ul>
+      </div>
+      <button class="btn btn-text" @click="importResult = null">Schließen</button>
     </div>
 
     <div v-if="showCreate" class="create-panel">
@@ -63,7 +85,7 @@
 
 <script setup lang="ts">
 import { ref, reactive, onMounted } from 'vue';
-import type { CourseDto, SessionDto } from '../../shared/types';
+import type { CourseDto, GradeImportResultDto, SessionDto } from '../../shared/types';
 import SessionAssessmentTable from './SessionAssessmentTable.vue';
 
 const props = defineProps<{
@@ -76,6 +98,9 @@ const expandedId = ref<string | null>(null);
 const showCreate = ref(false);
 const creating = ref(false);
 const sessionError = ref('');
+
+const importing = ref(false);
+const importResult = ref<GradeImportResultDto | null>(null);
 
 const sessionForm = reactive({
   date: new Date().toISOString().slice(0, 10),
@@ -90,6 +115,36 @@ async function loadSessions(): Promise<void> {
     sessions.value = await window.grdr.session.listByCourse(props.course.id);
   } finally {
     loadingSessions.value = false;
+  }
+}
+
+async function handleImportCsv(): Promise<void> {
+  importResult.value = null;
+  importing.value = true;
+  try {
+    const result = await window.grdr.grade.importCsv(props.course.id);
+    if (result.ok) {
+      importResult.value = result.value;
+      await loadSessions();
+    } else {
+      importResult.value = {
+        sessionsCreated: 0,
+        assessmentsCreated: 0,
+        performancesCreated: 0,
+        performancesUpdated: 0,
+        warnings: [result.error.message],
+      };
+    }
+  } catch (e) {
+    importResult.value = {
+      sessionsCreated: 0,
+      assessmentsCreated: 0,
+      performancesCreated: 0,
+      performancesUpdated: 0,
+      warnings: [(e as Error).message],
+    };
+  } finally {
+    importing.value = false;
   }
 }
 
@@ -145,6 +200,11 @@ function formatDate(iso: string): string {
   margin-bottom: 12px;
 }
 
+.section-header-actions {
+  display: flex;
+  gap: 8px;
+}
+
 .section-header h3 {
   font-size: 16px;
 }
@@ -171,6 +231,16 @@ function formatDate(iso: string): string {
 .btn-primary:disabled {
   opacity: 0.6;
   cursor: not-allowed;
+}
+
+.btn-secondary {
+  background: var(--color-surface);
+  color: var(--color-text);
+  border: 1px solid var(--color-border);
+}
+
+.btn-secondary:hover {
+  background: #f3f4f6;
 }
 
 .btn-icon {
@@ -308,5 +378,53 @@ input:focus {
   border-top: 1px solid var(--color-border);
   padding: 16px 14px;
   background: #fafbfc;
+}
+
+.import-result-panel {
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+  border-radius: 8px;
+  padding: 16px;
+  margin-bottom: 16px;
+  font-size: 13px;
+}
+
+.import-summary {
+  margin-bottom: 8px;
+}
+
+.import-warnings {
+  background: #fefce8;
+  border: 1px solid #fde68a;
+  border-radius: 6px;
+  padding: 10px 14px;
+  margin-bottom: 8px;
+}
+
+.warning-count {
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+
+.import-warnings ul {
+  margin: 0;
+  padding-left: 20px;
+}
+
+.import-warnings li {
+  margin-bottom: 2px;
+}
+
+.btn-text {
+  background: none;
+  border: none;
+  color: var(--color-primary);
+  cursor: pointer;
+  font-size: 13px;
+  padding: 4px 0;
+}
+
+.btn-text:hover {
+  text-decoration: underline;
 }
 </style>

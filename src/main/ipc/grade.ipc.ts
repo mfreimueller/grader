@@ -1,10 +1,12 @@
-import { ipcMain } from 'electron';
+import { ipcMain, dialog } from 'electron';
+import { readFileSync } from 'fs';
 import { IPC } from '../../shared/ipc-channels';
 import { AssessmentService } from '../../application/AssessmentService';
 import { GradingService } from '../../application/GradingService';
 import { FindingService } from '../../application/FindingService';
 import { GradeCalculationAppService } from '../../application/GradeCalculationAppService';
 import { ImpromptuAssessmentService } from '../../application/ImpromptuAssessmentService';
+import { GradeImportService } from '../../application/GradeImportService';
 import {
   createAssessmentSchema, recordPerformanceSchema, saveGradeSchema,
   impromptuSchema, addNoteSchema, addDocumentSchema, addRemoteDocumentSchema,
@@ -17,6 +19,7 @@ export function registerGradeHandlers(
   findingService: FindingService,
   calcService: GradeCalculationAppService,
   impromptuService: ImpromptuAssessmentService,
+  gradeImportService: GradeImportService,
 ): void {
   ipcMain.handle(IPC.ASSESSMENT_LIST_BY_SESSION, async (_event, sessionId: string) => {
     studentIdParam.parse({ id: sessionId });
@@ -75,6 +78,18 @@ export function registerGradeHandlers(
   ipcMain.handle(IPC.GRADE_RECORD_IMPROMPTU, async (_event, data: unknown) => {
     const input = impromptuSchema.parse(data);
     return await impromptuService.create(input as Parameters<ImpromptuAssessmentService['create']>[0]);
+  });
+
+  ipcMain.handle(IPC.GRADE_IMPORT_CSV, async (_event, courseId: string) => {
+    const result = await dialog.showOpenDialog({
+      filters: [{ name: 'CSV', extensions: ['csv'] }],
+      properties: ['openFile'],
+    });
+    if (result.canceled || result.filePaths.length === 0) {
+      return { ok: true, value: { sessionsCreated: 0, assessmentsCreated: 0, performancesCreated: 0, performancesUpdated: 0, warnings: [] } };
+    }
+    const content = readFileSync(result.filePaths[0]!, 'utf-8');
+    return { ok: true, value: await gradeImportService.importCsv(courseId, content) };
   });
 
   ipcMain.handle(IPC.FINDING_ADD, async (_event, data: unknown) => {

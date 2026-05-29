@@ -43,6 +43,8 @@ const IPC = {
 
   STUDENT_IMPORT_CSV: 'student:importCsv',
 
+  GRADE_IMPORT_CSV: 'grade:importCsv',
+
   FINDING_ADD: 'finding:add',
   FINDING_REMOVE: 'finding:remove',
   FINDING_GET: 'finding:getFindings',
@@ -97,6 +99,7 @@ const api: IpcApi = {
     calculateFinal: (courseId, studentId) => ipcRenderer.invoke(IPC.GRADE_CALCULATE_FINAL, courseId, studentId),
     saveManualGrade: (data) => ipcRenderer.invoke(IPC.GRADE_SAVE_MANUAL, data),
     recordImpromptu: (data) => ipcRenderer.invoke(IPC.GRADE_RECORD_IMPROMPTU, data),
+    importCsv: (courseId) => ipcRenderer.invoke(IPC.GRADE_IMPORT_CSV, courseId),
   },
   finding: {
     add: (data) => ipcRenderer.invoke(IPC.FINDING_ADD, data),
