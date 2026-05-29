@@ -71,14 +71,21 @@ describe('SqliteSchoolClassRepository', () => {
   });
 
   describe('delete', () => {
-    it('removes a school class', async () => {
+    it('soft-deletes a school class (sets deleted_at, row remains in DB)', async () => {
       const year = SchoolYear.create('2025/26');
       if (!year.ok) throw new Error('SchoolYear creation failed');
       await repo.save(new SchoolClass('class-1', '1A', year.value));
 
       await repo.delete('class-1');
+
       const found = await repo.findById('class-1');
       expect(found).toBeNull();
+
+      const raw = db
+        .prepare('SELECT id, deleted_at FROM school_classes WHERE id = ?')
+        .get('class-1') as { id: string; deleted_at: string | null };
+      expect(raw).not.toBeUndefined();
+      expect(raw!.deleted_at).not.toBeNull();
     });
   });
 });

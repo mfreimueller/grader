@@ -141,7 +141,7 @@ async function doDelete(): Promise<void> {
       deleteError.value = result.error.message;
     }
   } catch (e: unknown) {
-    deleteError.value = (e as Error)?.message || 'Löschen fehlgeschlagen. Möglicherweise sind der Klasse noch Schüler zugeordnet.';
+    deleteError.value = (e as Error)?.message || 'Löschen fehlgeschlagen.';
   } finally {
     deletingSubmitting.value = false;
   }

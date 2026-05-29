@@ -136,7 +136,15 @@ const MIGRATION_003: Migration = {
   `,
 };
 
-const ALL_MIGRATIONS: Migration[] = [MIGRATION_001, MIGRATION_002, MIGRATION_003];
+const MIGRATION_004: Migration = {
+  id: '004',
+  description: 'Add deleted_at to school_classes for soft delete',
+  sql: `
+    ALTER TABLE school_classes ADD COLUMN deleted_at TEXT;
+  `,
+};
+
+const ALL_MIGRATIONS: Migration[] = [MIGRATION_001, MIGRATION_002, MIGRATION_003, MIGRATION_004];
 
 export function runMigrations(db: Db): void {
   db.exec(`

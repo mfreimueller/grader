@@ -14,7 +14,9 @@ export class SqliteSchoolClassRepository implements SchoolClassRepository {
 
   async findAll(): Promise<SchoolClass[]> {
     const rows = this.db
-      .prepare('SELECT id, name, school_year FROM school_classes')
+      .prepare(
+        'SELECT id, name, school_year FROM school_classes WHERE deleted_at IS NULL',
+      )
       .all() as SchoolClassRow[];
 
     return rows.map(r => this.rowToSchoolClass(r));
@@ -22,7 +24,9 @@ export class SqliteSchoolClassRepository implements SchoolClassRepository {
 
   async findByNameAndYear(name: string, schoolYear: string): Promise<SchoolClass | null> {
     const row = this.db
-      .prepare('SELECT id, name, school_year FROM school_classes WHERE name = ? AND school_year = ?')
+      .prepare(
+        'SELECT id, name, school_year FROM school_classes WHERE name = ? AND school_year = ? AND deleted_at IS NULL',
+      )
       .get(name, schoolYear) as SchoolClassRow | undefined;
 
     if (!row) return null;
@@ -31,7 +35,9 @@ export class SqliteSchoolClassRepository implements SchoolClassRepository {
 
   async findById(id: string): Promise<SchoolClass | null> {
     const row = this.db
-      .prepare('SELECT id, name, school_year FROM school_classes WHERE id = ?')
+      .prepare(
+        'SELECT id, name, school_year FROM school_classes WHERE id = ? AND deleted_at IS NULL',
+      )
       .get(id) as SchoolClassRow | undefined;
 
     if (!row) return null;
@@ -47,7 +53,11 @@ export class SqliteSchoolClassRepository implements SchoolClassRepository {
   }
 
   async delete(id: string): Promise<void> {
-    this.db.prepare('DELETE FROM school_classes WHERE id = ?').run(id);
+    this.db
+      .prepare(
+        'UPDATE school_classes SET deleted_at = datetime(\'now\') WHERE id = ?',
+      )
+      .run(id);
   }
 
   private rowToSchoolClass(row: SchoolClassRow): SchoolClass {
