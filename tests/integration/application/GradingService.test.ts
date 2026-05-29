@@ -4,6 +4,7 @@ import { SqliteCourseRepository } from '../../../src/infrastructure/persistence/
 import { SqliteSchoolClassRepository } from '../../../src/infrastructure/persistence/SqliteSchoolClassRepository';
 import { SqliteStudentRepository } from '../../../src/infrastructure/persistence/SqliteStudentRepository';
 import { SqliteAssessmentRepository } from '../../../src/infrastructure/persistence/SqliteAssessmentRepository';
+import { SqliteSessionRepository } from '../../../src/infrastructure/persistence/SqliteSessionRepository';
 import { GradingService } from '../../../src/application/GradingService';
 import { SchoolClass } from '../../../src/domain/student/SchoolClass';
 import { SchoolYear } from '../../../src/domain/student/SchoolYear';
@@ -29,8 +30,9 @@ describe('GradingService', () => {
     const courseRepo = new SqliteCourseRepository(db);
     const studentRepo = new SqliteStudentRepository(db);
     const assessmentRepo = new SqliteAssessmentRepository(db);
+    const sessionRepo = new SqliteSessionRepository(db);
     const gradeRepo = new SqliteGradeRepository(db);
-    service = new GradingService(gradeRepo, courseRepo, gradeRepo, studentRepo, assessmentRepo);
+    service = new GradingService(gradeRepo, courseRepo, gradeRepo, studentRepo, assessmentRepo, sessionRepo);
 
     const year = SchoolYear.create('2025/26');
     if (!year.ok) throw year.error;
@@ -49,8 +51,12 @@ describe('GradingService', () => {
     studentRepo.save(student);
     studentId = 's-001';
 
+    db.prepare(
+      "INSERT INTO sessions (id, date, notes, course_id) VALUES ('session-1', '2025-10-01', '', 'course-1')",
+    ).run();
+
     const mitarbeit = course.assessmentCategories[0]!;
-    const assessment = new Assessment('a-001', 'Mündlich', new Date('2025-10-01'), mitarbeit, course);
+    const assessment = new Assessment('a-001', 'Mündlich', mitarbeit, course, 'session-1');
     assessmentRepo.save(assessment);
     assessmentId = 'a-001';
   });

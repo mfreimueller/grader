@@ -144,7 +144,16 @@ const MIGRATION_004: Migration = {
   `,
 };
 
-const ALL_MIGRATIONS: Migration[] = [MIGRATION_001, MIGRATION_002, MIGRATION_003, MIGRATION_004];
+const MIGRATION_005: Migration = {
+  id: '005',
+  description: 'Remove date columns from assessments and student_performances (session is source of truth)',
+  sql: `
+    ALTER TABLE assessments DROP COLUMN date;
+    ALTER TABLE student_performances DROP COLUMN date;
+  `,
+};
+
+const ALL_MIGRATIONS: Migration[] = [MIGRATION_001, MIGRATION_002, MIGRATION_003, MIGRATION_004, MIGRATION_005];
 
 export function runMigrations(db: Db): void {
   db.exec(`

@@ -26,9 +26,8 @@ export interface AssessmentDto {
 }
 
 export interface CreateAssessmentInput {
-  sessionId?: string;
+  sessionId: string;
   title: string;
-  date: string;
   categoryId: string;
   courseId: string;
   isImpromptu: boolean;
@@ -43,8 +42,11 @@ export class AssessmentService {
   ) {}
 
   async listBySession(sessionId: string): Promise<AssessmentDto[]> {
+    const session = await this.sessionRepo.findById(sessionId);
+    if (!session) return [];
+
     const assessments = await this.assessmentRepo.findBySession(sessionId);
-    return assessments.map(toDto);
+    return assessments.map(a => toDto(a, session.date));
   }
 
   async create(input: CreateAssessmentInput): Promise<Result<AssessmentDto>> {
@@ -54,15 +56,18 @@ export class AssessmentService {
     const category = course.assessmentCategories.find(c => c.id === input.categoryId);
     if (!category) return Result.fail(new NotFoundError('AssessmentCategory', input.categoryId));
 
+    const session = await this.sessionRepo.findById(input.sessionId);
+    if (!session) return Result.fail(new NotFoundError('Session', input.sessionId));
+
     let assessment: Assessment | GradedAssessment;
 
     if (input.maxPoints !== undefined && input.maxPoints > 0) {
       const result = GradedAssessment.create(
         generateId(),
         input.title,
-        new Date(input.date),
         category,
         course,
+        input.sessionId,
         input.maxPoints,
         input.isImpromptu,
       );
@@ -72,32 +77,25 @@ export class AssessmentService {
       assessment = new Assessment(
         generateId(),
         input.title,
-        new Date(input.date),
         category,
         course,
+        input.sessionId,
         input.isImpromptu,
       );
     }
 
-    if (input.sessionId) {
-      const session = await this.sessionRepo.findById(input.sessionId);
-      if (!session) return Result.fail(new NotFoundError('Session', input.sessionId));
+    const reconstituted = Session.reconstitute(
+      session.id,
+      session.date,
+      session.notes,
+      session.course,
+      [...session.students],
+      [...session.assessments, assessment],
+    );
 
-      const reconstituted = Session.reconstitute(
-        session.id,
-        session.date,
-        session.notes,
-        session.course,
-        [...session.students],
-        [...session.assessments, assessment],
-      );
+    await this.sessionRepo.save(reconstituted);
 
-      await this.sessionRepo.save(reconstituted);
-    } else {
-      await this.assessmentRepo.save(assessment);
-    }
-
-    return Result.ok(toDto(assessment));
+    return Result.ok(toDto(assessment, session.date));
   }
 
   async delete(id: string): Promise<Result<void>> {
@@ -108,11 +106,11 @@ export class AssessmentService {
   }
 }
 
-function toDto(a: Assessment | GradedAssessment): AssessmentDto {
+function toDto(a: Assessment | GradedAssessment, sessionDate: Date): AssessmentDto {
   return {
     id: a.id,
     title: a.title,
-    date: a.date.toISOString(),
+    date: sessionDate.toISOString(),
     category: {
       id: a.category.id,
       title: a.category.title,

@@ -14,14 +14,14 @@ import { Name } from '../../../../src/domain/student/Name';
 describe('normalizedToGrade', () => {
   it('maps 1.0 to grade 1', () => { expect(normalizedToGrade(1.0)).toBe(1); });
   it('maps 0.9 to grade 1', () => { expect(normalizedToGrade(0.9)).toBe(1); });
-  it('maps 0.85 to grade 1', () => { expect(normalizedToGrade(0.85)).toBe(1); });
-  it('maps 0.84 to grade 2', () => { expect(normalizedToGrade(0.84)).toBe(2); });
-  it('maps 0.65 to grade 2', () => { expect(normalizedToGrade(0.65)).toBe(2); });
-  it('maps 0.64 to grade 3', () => { expect(normalizedToGrade(0.64)).toBe(3); });
-  it('maps 0.45 to grade 3', () => { expect(normalizedToGrade(0.45)).toBe(3); });
-  it('maps 0.44 to grade 4', () => { expect(normalizedToGrade(0.44)).toBe(4); });
-  it('maps 0.2 to grade 4', () => { expect(normalizedToGrade(0.2)).toBe(4); });
-  it('maps 0.19 to grade 5', () => { expect(normalizedToGrade(0.19)).toBe(5); });
+  it('maps 0.875 to grade 1', () => { expect(normalizedToGrade(0.875)).toBe(1); });
+  it('maps 0.874 to grade 2', () => { expect(normalizedToGrade(0.874)).toBe(2); });
+  it('maps 0.75 to grade 2', () => { expect(normalizedToGrade(0.75)).toBe(2); });
+  it('maps 0.749 to grade 3', () => { expect(normalizedToGrade(0.749)).toBe(3); });
+  it('maps 0.625 to grade 3', () => { expect(normalizedToGrade(0.625)).toBe(3); });
+  it('maps 0.624 to grade 4', () => { expect(normalizedToGrade(0.624)).toBe(4); });
+  it('maps 0.5 to grade 4', () => { expect(normalizedToGrade(0.5)).toBe(4); });
+  it('maps 0.499 to grade 5', () => { expect(normalizedToGrade(0.499)).toBe(5); });
   it('maps 0.0 to grade 5', () => { expect(normalizedToGrade(0.0)).toBe(5); });
 });
 
@@ -30,7 +30,6 @@ describe('GradeCalculationService', () => {
   let student: Student;
   let course: Course;
   let schularbeitCategory: AssessmentCategory;
-  let referenceDate: Date;
 
   beforeAll(() => {
     const year = SchoolYear.create('2025/26');
@@ -51,21 +50,20 @@ describe('GradeCalculationService', () => {
     course.addGradeComposition(composition.value);
 
     service = new GradeCalculationService();
-    referenceDate = new Date(2025, 9, 15);
   });
 
   it('calculates a grade from graded performances', () => {
     const assessment = GradedAssessment.create(
-      'a-001', 'Test 1', referenceDate, schularbeitCategory, course, 30,
+      'a-001', 'Test 1', schularbeitCategory, course, 'session-1', 30,
     );
     if (!assessment.ok) throw new Error('Assessment creation failed');
 
     const perf = GradedPerformance.create(
-      'p-001', referenceDate, student, assessment.value, 27,
+      'p-001', student, assessment.value, 27,
     );
     if (!perf.ok) throw new Error('Performance creation failed');
 
-    const result = service.calculate([perf.value], course, referenceDate);
+    const result = service.calculate([perf.value], course);
     expect(result.ok).toBe(true);
     if (result.ok) {
       expect(result.value.rawScore).toBeCloseTo(0.9);
@@ -75,7 +73,7 @@ describe('GradeCalculationService', () => {
 
   it('returns error when course has no compositions', () => {
     const emptyCourse = Course.create('c-empty', 'Empty', course.schoolClass);
-    const result = service.calculate([], emptyCourse, referenceDate);
+    const result = service.calculate([], emptyCourse);
     expect(result.ok).toBe(false);
   });
 });

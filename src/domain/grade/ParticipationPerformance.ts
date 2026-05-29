@@ -9,23 +9,21 @@ export class ParticipationPerformance extends StudentPerformance {
 
   private constructor(
     id: string,
-    date: Date,
     student: Student,
     assessment: Assessment,
     symbol: ParticipationSymbol,
   ) {
-    super(id, date, student, assessment, null);
+    super(id, student, assessment, null);
     this._symbol = symbol;
   }
 
   static create(
     id: string,
-    date: Date,
     student: Student,
     assessment: Assessment,
     symbol: ParticipationSymbol,
   ): Result<ParticipationPerformance> {
-    return Result.ok(new ParticipationPerformance(id, date, student, assessment, symbol));
+    return Result.ok(new ParticipationPerformance(id, student, assessment, symbol));
   }
 
   get symbol(): ParticipationSymbol {

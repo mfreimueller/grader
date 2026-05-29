@@ -4,33 +4,29 @@ import { Course } from './Course';
 
 export class Assessment extends Entity<string> {
   private _title: string;
-  private _date: Date;
   private _category: AssessmentCategory;
   private _course: Course;
   private _isImpromptu: boolean;
+  private _sessionId: string;
 
   constructor(
     id: string,
     title: string,
-    date: Date,
     category: AssessmentCategory,
     course: Course,
+    sessionId: string,
     isImpromptu = false,
   ) {
     super(id);
     this._title = title;
-    this._date = date;
     this._category = category;
     this._course = course;
+    this._sessionId = sessionId;
     this._isImpromptu = isImpromptu;
   }
 
   get title(): string {
     return this._title;
-  }
-
-  get date(): Date {
-    return this._date;
   }
 
   get category(): AssessmentCategory {
@@ -39,6 +35,10 @@ export class Assessment extends Entity<string> {
 
   get course(): Course {
     return this._course;
+  }
+
+  get sessionId(): string {
+    return this._sessionId;
   }
 
   get isImpromptu(): boolean {

@@ -289,13 +289,12 @@ async function handleAddAssessment(): Promise<void> {
   addingAssessment.value = true;
   try {
     const payload: {
-      sessionId: string; title: string; categoryId: string; courseId: string; date: string; maxPoints?: number;
+      sessionId: string; title: string; categoryId: string; courseId: string; maxPoints?: number;
     } = {
       sessionId: props.sessionId,
       title: addForm.title,
       categoryId: addForm.categoryId,
       courseId: props.courseId,
-      date: new Date().toISOString(),
     };
     if (selectedCategory.value?.gradingType === 'NUMERIC' && addForm.maxPoints) {
       payload.maxPoints = addForm.maxPoints;

@@ -25,7 +25,7 @@ beforeAll(() => {
   student = Student.create(id.value, name.value, validClass);
 
   const assessment = GradedAssessment.create(
-    'ga-1', 'Test 1', new Date(2025, 9, 15), category, validCourse, 30,
+    'ga-1', 'Test 1', category, validCourse, 'session-1', 30,
   );
   if (!assessment.ok) throw new Error('Test setup failed');
   gradedAssessment = assessment.value;
@@ -35,7 +35,7 @@ describe('GradedPerformance', () => {
   describe('create', () => {
     it('creates with score within maxPoints', () => {
       const result = GradedPerformance.create(
-        'gp-1', new Date(2025, 10, 1), student, gradedAssessment, 24,
+        'gp-1', student, gradedAssessment, 24,
       );
       expect(result.ok).toBe(true);
       if (result.ok) {
@@ -46,14 +46,14 @@ describe('GradedPerformance', () => {
 
     it('accepts score of 0', () => {
       const result = GradedPerformance.create(
-        'gp-2', new Date(2025, 10, 1), student, gradedAssessment, 0,
+        'gp-2', student, gradedAssessment, 0,
       );
       expect(result.ok).toBe(true);
     });
 
     it('accepts score equal to maxPoints', () => {
       const result = GradedPerformance.create(
-        'gp-3', new Date(2025, 10, 1), student, gradedAssessment, 30,
+        'gp-3', student, gradedAssessment, 30,
       );
       expect(result.ok).toBe(true);
     });
@@ -62,14 +62,14 @@ describe('GradedPerformance', () => {
   describe('validation', () => {
     it('rejects negative score', () => {
       const result = GradedPerformance.create(
-        'gp-4', new Date(2025, 10, 1), student, gradedAssessment, -1,
+        'gp-4', student, gradedAssessment, -1,
       );
       expect(result.ok).toBe(false);
     });
 
     it('rejects score exceeding maxPoints', () => {
       const result = GradedPerformance.create(
-        'gp-4', new Date(2025, 10, 1), student, gradedAssessment, 31,
+        'gp-4', student, gradedAssessment, 31,
       );
       expect(result.ok).toBe(false);
     });

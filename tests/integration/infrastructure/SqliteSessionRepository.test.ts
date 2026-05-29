@@ -88,7 +88,7 @@ describe('SqliteSessionRepository', () => {
         "INSERT INTO assessment_categories (id, title, grading_type, display_as_grade, course_id) VALUES ('cat-1', 'Test', 'NUMERIC', 1, 'course-1')",
       ).run();
       db.prepare(
-        "INSERT INTO assessments (id, title, date, category_id, course_id, session_id) VALUES ('extra-001', 'Extra Test', '2025-10-01', 'cat-1', 'course-1', 'session-1')",
+        "INSERT INTO assessments (id, title, category_id, course_id, session_id) VALUES ('extra-001', 'Extra Test', 'cat-1', 'course-1', 'session-1')",
       ).run();
 
       const found = await repo.findById('session-1');

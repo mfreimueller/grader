@@ -19,10 +19,9 @@ beforeAll(() => {
 
 describe('GradedAssessment', () => {
   describe('create', () => {
-    it('creates with id, title, date, category, course, and maxPoints', () => {
-      const date = new Date(2025, 9, 15);
+    it('creates with id, title, category, course, sessionId, and maxPoints', () => {
       const result = GradedAssessment.create(
-        'ga-1', 'Test 1', date, validCategory, validCourse, 30,
+        'ga-1', 'Test 1', validCategory, validCourse, 'session-1', 30,
       );
       expect(result.ok).toBe(true);
       if (result.ok) {
@@ -34,9 +33,8 @@ describe('GradedAssessment', () => {
     });
 
     it('creates an impromptu GradedAssessment', () => {
-      const date = new Date(2025, 9, 15);
       const result = GradedAssessment.create(
-        'ga-2', 'Kurztest', date, validCategory, validCourse, 10, true,
+        'ga-2', 'Kurztest', validCategory, validCourse, 'session-1', 10, true,
       );
       expect(result.ok).toBe(true);
       if (result.ok) {
@@ -45,32 +43,30 @@ describe('GradedAssessment', () => {
     });
 
     it('rejects maxPoints of 0', () => {
-      const date = new Date(2025, 9, 15);
       const result = GradedAssessment.create(
-        'ga-3', 'Test', date, validCategory, validCourse, 0,
+        'ga-3', 'Test', validCategory, validCourse, 'session-1', 0,
       );
       expect(result.ok).toBe(false);
     });
 
     it('rejects negative maxPoints', () => {
-      const date = new Date(2025, 9, 15);
       const result = GradedAssessment.create(
-        'ga-3', 'Test', date, validCategory, validCourse, -5,
+        'ga-3', 'Test', validCategory, validCourse, 'session-1', -5,
       );
       expect(result.ok).toBe(false);
     });
   });
 
   describe('inherits Assessment', () => {
-    it('has category, course, and title from Assessment', () => {
-      const date = new Date(2025, 9, 15);
+    it('has category, course, title, and sessionId from Assessment', () => {
       const result = GradedAssessment.create(
-        'ga-1', 'Test 1', date, validCategory, validCourse, 30,
+        'ga-1', 'Test 1', validCategory, validCourse, 'session-1', 30,
       );
       expect(result.ok).toBe(true);
       if (result.ok) {
         expect(result.value.category.id).toBe('cat-1');
         expect(result.value.course.id).toBe('course-1');
+        expect(result.value.sessionId).toBe('session-1');
       }
     });
   });

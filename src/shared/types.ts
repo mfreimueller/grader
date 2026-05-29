@@ -132,9 +132,8 @@ export interface AssessmentDto {
 }
 
 export interface CreateAssessmentInput {
-  sessionId?: string;
+  sessionId: string;
   title: string;
-  date: string;
   categoryId: string;
   courseId: string;
   maxPoints?: number;
@@ -160,7 +159,6 @@ export interface GradeDto {
 export interface RecordPerformanceInput {
   studentId: string;
   assessmentId: string;
-  date?: string;
   score?: number;
   symbol?: string;
 }
@@ -174,7 +172,6 @@ export interface SaveGradeInput {
 export interface CreateImpromptuInput {
   courseId: string;
   studentId: string;
-  date: string;
   categoryId: string;
   sessionId: string;
   title?: string;

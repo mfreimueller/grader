@@ -19,23 +19,21 @@ beforeAll(() => {
 
 describe('Assessment', () => {
   describe('create', () => {
-    it('creates an assessment with id, title, date, category, course', () => {
-      const date = new Date(2025, 9, 15);
+    it('creates an assessment with id, title, category, course, and sessionId', () => {
       const assessment = new Assessment(
-        'ass-1', 'Test 1', date, validCategory, validCourse,
+        'ass-1', 'Test 1', validCategory, validCourse, 'session-1',
       );
       expect(assessment.id).toBe('ass-1');
       expect(assessment.title).toBe('Test 1');
-      expect(assessment.date).toBe(date);
       expect(assessment.category.id).toBe('cat-1');
       expect(assessment.course.id).toBe('course-1');
+      expect(assessment.sessionId).toBe('session-1');
       expect(assessment.isImpromptu).toBe(false);
     });
 
     it('creates an impromptu assessment', () => {
-      const date = new Date(2025, 9, 15);
       const assessment = new Assessment(
-        'ass-2', 'Kurztest', date, validCategory, validCourse, true,
+        'ass-2', 'Kurztest', validCategory, validCourse, 'session-1', true,
       );
       expect(assessment.isImpromptu).toBe(true);
     });
@@ -43,16 +41,14 @@ describe('Assessment', () => {
 
   describe('equals', () => {
     it('returns true for assessments with same id', () => {
-      const date = new Date(2025, 9, 15);
-      const a = new Assessment('ass-1', 'Test', date, validCategory, validCourse);
-      const b = new Assessment('ass-1', 'Other', date, validCategory, validCourse);
+      const a = new Assessment('ass-1', 'Test', validCategory, validCourse, 'session-1');
+      const b = new Assessment('ass-1', 'Other', validCategory, validCourse, 'session-1');
       expect(a.equals(b)).toBe(true);
     });
 
     it('returns false for assessments with different ids', () => {
-      const date = new Date(2025, 9, 15);
-      const a = new Assessment('ass-1', 'Test', date, validCategory, validCourse);
-      const b = new Assessment('ass-2', 'Test', date, validCategory, validCourse);
+      const a = new Assessment('ass-1', 'Test', validCategory, validCourse, 'session-1');
+      const b = new Assessment('ass-2', 'Test', validCategory, validCourse, 'session-1');
       expect(a.equals(b)).toBe(false);
     });
   });

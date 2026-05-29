@@ -15,6 +15,12 @@ describe('SqliteAssessmentRepository', () => {
   let course: Course;
   let category: AssessmentCategory;
 
+  function seedSession(): void {
+    db.prepare(
+      "INSERT INTO sessions (id, date, notes, course_id) VALUES ('session-1', '2025-10-01', '', 'course-1')",
+    ).run();
+  }
+
   beforeEach(() => {
     db = createInMemoryDb();
     runMigrations(db);
@@ -49,8 +55,9 @@ describe('SqliteAssessmentRepository', () => {
 
   describe('save and findById', () => {
     it('persists a plain assessment and retrieves it', async () => {
+      seedSession();
       const assessment = new Assessment(
-        'a-001', 'Mündlich', new Date('2025-10-01'), category, course,
+        'a-001', 'Mündlich', category, course, 'session-1',
       );
       await repo.save(assessment);
 
@@ -62,8 +69,9 @@ describe('SqliteAssessmentRepository', () => {
     });
 
     it('persists a GradedAssessment with maxPoints and retrieves it', async () => {
+      seedSession();
       const result = GradedAssessment.create(
-        'a-002', 'Test', new Date('2025-10-01'), category, course, 30,
+        'a-002', 'Test', category, course, 'session-1', 30,
       );
       if (!result.ok) throw new Error('GradedAssessment creation failed');
       await repo.save(result.value);
@@ -80,13 +88,14 @@ describe('SqliteAssessmentRepository', () => {
     });
 
     it('updates an existing assessment', async () => {
+      seedSession();
       const assessment = new Assessment(
-        'a-001', 'Mündlich', new Date('2025-10-01'), category, course,
+        'a-001', 'Mündlich', category, course, 'session-1',
       );
       await repo.save(assessment);
 
       const updated = new Assessment(
-        'a-001', 'Mündlich (2)', new Date('2025-10-02'), category, course,
+        'a-001', 'Mündlich (2)', category, course, 'session-1',
       );
       await repo.save(updated);
 
@@ -97,18 +106,11 @@ describe('SqliteAssessmentRepository', () => {
 
   describe('findBySession', () => {
     it('returns assessments linked to a session', async () => {
-      db.prepare(
-        "INSERT INTO sessions (id, date, notes, course_id) VALUES ('session-1', '2025-10-01', '', 'course-1')",
-      ).run();
-
+      seedSession();
       const assessment = new Assessment(
-        'a-001', 'Mündlich', new Date('2025-10-01'), category, course,
+        'a-001', 'Mündlich', category, course, 'session-1',
       );
       await repo.save(assessment);
-
-      db.prepare(
-        "UPDATE assessments SET session_id = 'session-1' WHERE id = 'a-001'",
-      ).run();
 
       const found = await repo.findBySession('session-1');
       expect(found).toHaveLength(1);
@@ -123,8 +125,9 @@ describe('SqliteAssessmentRepository', () => {
 
   describe('delete', () => {
     it('removes an assessment', async () => {
+      seedSession();
       const assessment = new Assessment(
-        'a-001', 'Mündlich', new Date('2025-10-01'), category, course,
+        'a-001', 'Mündlich', category, course, 'session-1',
       );
       await repo.save(assessment);
 
@@ -136,8 +139,9 @@ describe('SqliteAssessmentRepository', () => {
 
   describe('isImpromptu flag', () => {
     it('persists and loads the isImpromptu flag', async () => {
+      seedSession();
       const assessment = new Assessment(
-        'a-001', 'Spontan', new Date('2025-10-01'), category, course, true,
+        'a-001', 'Spontan', category, course, 'session-1', true,
       );
       await repo.save(assessment);
 
@@ -148,8 +152,9 @@ describe('SqliteAssessmentRepository', () => {
 
   describe('course reference', () => {
     it('persists and loads the course reference', async () => {
+      seedSession();
       const assessment = new Assessment(
-        'a-001', 'Mündlich', new Date('2025-10-01'), category, course,
+        'a-001', 'Mündlich', category, course, 'session-1',
       );
       await repo.save(assessment);
 

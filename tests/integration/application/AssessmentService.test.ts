@@ -15,6 +15,7 @@ describe('AssessmentService', () => {
   let service: AssessmentService;
   let courseId: string;
   let categoryId: string;
+  let sessionId: string;
 
   beforeEach(() => {
     db = createInMemoryDb();
@@ -35,6 +36,10 @@ describe('AssessmentService', () => {
     courseRepo.save(course);
     courseId = 'course-1';
     categoryId = course.assessmentCategories[0]!.id;
+
+    const s = Session.create('session-1', new Date('2025-10-01'), '', course);
+    sessionRepo.save(s);
+    sessionId = 'session-1';
   });
 
   afterEach(() => {
@@ -43,10 +48,11 @@ describe('AssessmentService', () => {
 
   it('creates an assessment', async () => {
     const result = await service.create({
+      sessionId,
       title: 'Test 1',
-      date: '2025-10-01T00:00:00.000Z',
       categoryId,
       courseId,
+      isImpromptu: false,
     });
     expect(result.ok).toBe(true);
     if (!result.ok) return;
@@ -56,11 +62,12 @@ describe('AssessmentService', () => {
 
   it('creates a graded assessment with maxPoints', async () => {
     const result = await service.create({
+      sessionId,
       title: 'Schularbeit',
-      date: '2025-10-01T00:00:00.000Z',
       categoryId,
       courseId,
       maxPoints: 100,
+      isImpromptu: false,
     });
     expect(result.ok).toBe(true);
     if (!result.ok) return;
@@ -69,33 +76,28 @@ describe('AssessmentService', () => {
 
   it('fails with invalid category', async () => {
     const result = await service.create({
+      sessionId,
       title: 'Test',
-      date: '2025-10-01T00:00:00.000Z',
       categoryId: 'nonexistent',
       courseId,
+      isImpromptu: false,
     });
     expect(result.ok).toBe(false);
   });
 
   it('creates assessment linked to a session', async () => {
-    const courseRepo2 = new SqliteCourseRepository(db);
-    const course = await courseRepo2.findById(courseId);
-    const s = Session.create('session-1', new Date('2025-10-01'), '', course!);
-    const sessionRepo2 = new SqliteSessionRepository(db);
-    await sessionRepo2.save(s);
-
     const result = await service.create({
-      sessionId: 'session-1',
+      sessionId,
       title: 'Session Test',
-      date: '2025-10-01T00:00:00.000Z',
       categoryId,
       courseId,
+      isImpromptu: false,
     });
     expect(result.ok).toBe(true);
   });
 
   it('deletes an assessment', async () => {
-    const created = await service.create({ title: 'Test', date: '2025-10-01T00:00:00.000Z', categoryId, courseId });
+    const created = await service.create({ sessionId, title: 'Test', categoryId, courseId, isImpromptu: false });
     if (!created.ok) return;
     const deleted = await service.delete(created.value.id);
     expect(deleted.ok).toBe(true);

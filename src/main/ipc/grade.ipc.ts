@@ -33,9 +33,7 @@ export function registerGradeHandlers(
 
   ipcMain.handle(IPC.ASSESSMENT_CREATE_IMPROMPTU, async (_event, data: unknown) => {
     const input = createAssessmentSchema.parse(data);
-    const { sessionId: _sid, ...rest } = input;
-    void _sid;
-    return await assessmentService.create(rest as Parameters<AssessmentService['create']>[0]);
+    return await assessmentService.create(input as Parameters<AssessmentService['create']>[0]);
   });
 
   ipcMain.handle(IPC.ASSESSMENT_DELETE, async (_event, id: string) => {

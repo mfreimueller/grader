@@ -76,13 +76,12 @@ export class SqliteSessionRepository implements SessionRepository {
       this.db
         .prepare(
           `INSERT OR REPLACE INTO assessments
-           (id, title, date, category_id, course_id, is_impromptu, max_points, session_id)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+           (id, title, category_id, course_id, is_impromptu, max_points, session_id)
+           VALUES (?, ?, ?, ?, ?, ?, ?)`,
         )
         .run(
           assessment.id,
           assessment.title,
-          assessment.date.toISOString(),
           assessment.category.id,
           assessment.course.id,
           assessment.isImpromptu ? 1 : 0,
@@ -140,7 +139,7 @@ export class SqliteSessionRepository implements SessionRepository {
   private loadAssessments(sessionId: string): (Assessment | GradedAssessment)[] {
     const rows = this.db
       .prepare(
-        `SELECT a.id, a.title, a.date, a.category_id, a.course_id, a.is_impromptu, a.max_points,
+        `SELECT a.id, a.title, a.category_id, a.course_id, a.is_impromptu, a.max_points,
                 cat.title AS category_title, cat.grading_type, cat.display_as_grade,
                 c.title AS course_title, c.school_class_id,
                 sc.name AS class_name, sc.school_year
@@ -152,7 +151,7 @@ export class SqliteSessionRepository implements SessionRepository {
       )
       .all(sessionId) as Array<Record<string, unknown>>;
 
-    return rows.map(r => this.rowToAssessment(r));
+    return rows.map(r => this.rowToAssessment(r, sessionId));
   }
 
   private loadStudents(sessionId: string): Student[] {
@@ -181,7 +180,7 @@ export class SqliteSessionRepository implements SessionRepository {
     });
   }
 
-  private rowToAssessment(row: Record<string, unknown>): Assessment | GradedAssessment {
+  private rowToAssessment(row: Record<string, unknown>, sessionId: string): Assessment | GradedAssessment {
     const gradingTypeResult = gradingTypeFromString(row.grading_type as string);
     if (!gradingTypeResult.ok) throw gradingTypeResult.error;
 
@@ -213,9 +212,9 @@ export class SqliteSessionRepository implements SessionRepository {
       const result = GradedAssessment.create(
         row.id as string,
         row.title as string,
-        new Date(row.date as string),
         category,
         course,
+        sessionId,
         row.max_points as number,
         (row.is_impromptu as number) === 1,
       );
@@ -226,9 +225,9 @@ export class SqliteSessionRepository implements SessionRepository {
     return new Assessment(
       row.id as string,
       row.title as string,
-      new Date(row.date as string),
       category,
       course,
+      sessionId,
       (row.is_impromptu as number) === 1,
     );
   }

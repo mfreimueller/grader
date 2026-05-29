@@ -10,22 +10,22 @@ export class GradedAssessment extends Assessment {
   private constructor(
     id: string,
     title: string,
-    date: Date,
     category: AssessmentCategory,
     course: Course,
+    sessionId: string,
     maxPoints: number,
     isImpromptu = false,
   ) {
-    super(id, title, date, category, course, isImpromptu);
+    super(id, title, category, course, sessionId, isImpromptu);
     this._maxPoints = maxPoints;
   }
 
   static create(
     id: string,
     title: string,
-    date: Date,
     category: AssessmentCategory,
     course: Course,
+    sessionId: string,
     maxPoints: number,
     isImpromptu = false,
   ): Result<GradedAssessment> {
@@ -35,7 +35,7 @@ export class GradedAssessment extends Assessment {
       );
     }
     return Result.ok(
-      new GradedAssessment(id, title, date, category, course, maxPoints, isImpromptu),
+      new GradedAssessment(id, title, category, course, sessionId, maxPoints, isImpromptu),
     );
   }
 

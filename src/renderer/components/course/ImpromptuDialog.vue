@@ -114,12 +114,11 @@ async function handleSubmit(): Promise<void> {
   try {
     const cat = selectedCat.value;
     const payload: {
-      courseId: string; studentId: string; date: string; categoryId: string; sessionId: string;
+      courseId: string; studentId: string; categoryId: string; sessionId: string;
       title?: string; score?: number; symbol?: string; maxPoints?: number;
     } = {
       courseId: props.courseId,
       studentId: props.student.id,
-      date: new Date().toISOString(),
       categoryId: categoryId.value,
       sessionId: props.sessionId,
       title: title.value || undefined,

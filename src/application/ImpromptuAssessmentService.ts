@@ -15,7 +15,6 @@ export interface ImpromptuResultDto {
 export interface CreateImpromptuInput {
   courseId: string;
   studentId: string;
-  date: string;
   categoryId: string;
   sessionId: string;
   title?: string;
@@ -32,8 +31,7 @@ export class ImpromptuAssessmentService {
 
   async create(input: CreateImpromptuInput): Promise<Result<ImpromptuResultDto>> {
     const common = {
-      title: input.title ?? `Impromptu ${new Date(input.date).toLocaleDateString()}`,
-      date: input.date,
+      title: input.title ?? 'Impromptu',
       categoryId: input.categoryId,
       courseId: input.courseId,
       sessionId: input.sessionId,
@@ -48,7 +46,6 @@ export class ImpromptuAssessmentService {
     const perfInput: RecordPerformanceInput = {
       studentId: input.studentId,
       assessmentId: assessed.value.id,
-      date: input.date,
     };
 
     if (input.score !== undefined) {

@@ -148,7 +148,7 @@ export class GradeImportService {
       if (hasMax) {
         const maxPoints = this.parseDecimal(row.max);
         const created = GradedAssessment.create(
-          assessmentId, row.name, sessionDate, category, course, maxPoints, false,
+          assessmentId, row.name, category, course, session.id, maxPoints, false,
         );
         if (!created.ok) {
           result.warnings.push(`${row.name}: ${created.error.message}`);
@@ -156,7 +156,7 @@ export class GradeImportService {
         }
         assessment = created.value;
       } else {
-        assessment = new Assessment(assessmentId, row.name, sessionDate, category, course, false);
+        assessment = new Assessment(assessmentId, row.name, category, course, session.id, false);
       }
 
       const loaded = await this.sessionRepo.findById(session.id);
@@ -178,19 +178,18 @@ export class GradeImportService {
     const existingPerformances = await this.perfRepo.findPerformancesByAssessment(assessment.id);
     const existing = existingPerformances.find(p => p.student.id.value === student.id.value);
     const perfId = existing?.id ?? generateId();
-    const perfDate = sessionDate;
 
     if (assessment instanceof GradedAssessment) {
       const scoreValue = row.note.length > 0 ? this.parseDecimal(row.note) : null;
       if (scoreValue === null) {
-        const created = GradedPerformance.create(perfId, perfDate, student, assessment, 0);
+        const created = GradedPerformance.create(perfId, student, assessment, 0);
         if (!created.ok) {
           result.warnings.push(`${row.name}: ${created.error.message}`);
           return;
         }
         await this.perfRepo.savePerformance(created.value);
       } else {
-        const created = GradedPerformance.create(perfId, perfDate, student, assessment, scoreValue);
+        const created = GradedPerformance.create(perfId, student, assessment, scoreValue);
         if (!created.ok) {
           result.warnings.push(`${row.name}: ${created.error.message}`);
           return;
@@ -210,7 +209,7 @@ export class GradeImportService {
         return;
       }
       const created = ParticipationPerformance.create(
-        perfId, perfDate, student, assessment, symbolResult.value,
+        perfId, student, assessment, symbolResult.value,
       );
       if (!created.ok) {
         result.warnings.push(`${row.name}: ${created.error.message}`);

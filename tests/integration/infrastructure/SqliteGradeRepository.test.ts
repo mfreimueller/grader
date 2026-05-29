@@ -55,9 +55,12 @@ describe('SqliteGradeRepository', () => {
 
   function seedAssessment(assessmentId: string, maxPoints: number | null): void {
     db.prepare(
-      `INSERT INTO assessments (id, title, date, category_id, course_id, is_impromptu, max_points)
+      `INSERT INTO sessions (id, date, notes, course_id) VALUES (?, ?, ?, ?)`,
+    ).run(`session-${assessmentId}`, '2025-10-01', '', 'course-1');
+    db.prepare(
+      `INSERT INTO assessments (id, title, category_id, course_id, is_impromptu, max_points, session_id)
        VALUES (?, ?, ?, ?, ?, ?, ?)`,
-    ).run(assessmentId, 'Test', '2025-10-01', 'cat-1', 'course-1', 0, maxPoints);
+    ).run(assessmentId, 'Test', 'cat-1', 'course-1', 0, maxPoints, `session-${assessmentId}`);
   }
 
   beforeEach(() => {
@@ -135,12 +138,12 @@ describe('SqliteGradeRepository', () => {
       seedAssessment('a-001', 30);
 
       const assessmentResult = GradedAssessment.create(
-        'a-001', 'Test', new Date('2025-10-01'), category, course, 30,
+        'a-001', 'Test', category, course, 'session-a-001', 30,
       );
       if (!assessmentResult.ok) throw new Error('Assessment create failed');
 
       const perf = GradedPerformance.create(
-        'p-001', new Date('2025-10-01'), student, assessmentResult.value, 24,
+        'p-001', student, assessmentResult.value, 24,
       );
       if (!perf.ok) throw new Error('Performance create failed');
 
@@ -154,13 +157,13 @@ describe('SqliteGradeRepository', () => {
       seedAssessment('a-002', null);
 
       const assessment = new Assessment(
-        'a-002', 'Mündlich', new Date('2025-10-01'), category, course,
+        'a-002', 'Mündlich', category, course, 'session-a-002',
       );
       const symbol = ParticipationSymbol.create('PLUS');
       if (!symbol.ok) throw new Error('Symbol create failed');
 
       const perf = ParticipationPerformance.create(
-        'p-002', new Date('2025-10-01'), student, assessment, symbol.value,
+        'p-002', student, assessment, symbol.value,
       );
       if (!perf.ok) throw new Error('Performance create failed');
 
@@ -174,12 +177,12 @@ describe('SqliteGradeRepository', () => {
       seedAssessment('a-003', null);
 
       const assessment = new Assessment(
-        'a-003', 'Mündlich', new Date('2025-10-01'), category, course,
+        'a-003', 'Mündlich', category, course, 'session-a-003',
       );
       const symbol = ParticipationSymbol.create('PLUS');
       if (!symbol.ok) throw new Error('Symbol create failed');
       const perf = ParticipationPerformance.create(
-        'p-003', new Date('2025-10-01'), student, assessment, symbol.value,
+        'p-003', student, assessment, symbol.value,
       );
       if (!perf.ok) throw new Error('Performance create failed');
       await repo.savePerformance(perf.value);

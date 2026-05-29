@@ -25,10 +25,13 @@ describe('DataExportService', () => {
       "INSERT INTO assessment_categories (id, title, grading_type, display_as_grade, course_id) VALUES ('cat-1', 'Schularbeit', 'NUMERIC', 1, 'course-1')",
     ).run();
     db.prepare(
-      "INSERT INTO assessments (id, title, date, category_id, course_id, is_impromptu, max_points) VALUES ('a-001', 'Test 1', '2025-10-01', 'cat-1', 'course-1', 0, 30)",
+      "INSERT INTO sessions (id, date, course_id) VALUES ('ses-1', '2025-10-01', 'course-1')",
     ).run();
     db.prepare(
-      "INSERT INTO student_performances (id, date, student_id, assessment_id, score, symbol, type) VALUES ('p-001', '2025-10-01', 's-001', 'a-001', 24, NULL, 'graded')",
+      "INSERT INTO assessments (id, title, category_id, course_id, session_id, is_impromptu, max_points) VALUES ('a-001', 'Test 1', 'cat-1', 'course-1', 'ses-1', 0, 30)",
+    ).run();
+    db.prepare(
+      "INSERT INTO student_performances (id, student_id, assessment_id, score, symbol, type) VALUES ('p-001', 's-001', 'a-001', 24, NULL, 'graded')",
     ).run();
     db.prepare(
       "INSERT INTO grades (id, student_id, course_id, score) VALUES ('g-001', 's-001', 'course-1', 2)",

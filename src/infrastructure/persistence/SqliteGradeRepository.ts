@@ -19,7 +19,6 @@ import { Name } from '../../domain/student/Name';
 
 interface PerformanceRow extends Record<string, unknown> {
   id: string;
-  date: string;
   student_id: string;
   assessment_id: string;
   score: number | null;
@@ -27,7 +26,7 @@ interface PerformanceRow extends Record<string, unknown> {
   type: string;
   max_points: number | null;
   assessment_title: string;
-  assessment_date: string;
+  session_id: string | null;
   category_id: string;
   course_id: string;
   is_impromptu: number;
@@ -104,12 +103,11 @@ export class SqliteGradeRepository implements GradeRepository, StudentPerformanc
       this.db
         .prepare(
           `INSERT OR REPLACE INTO student_performances
-           (id, date, student_id, assessment_id, score, symbol, type)
-           VALUES (?, ?, ?, ?, ?, ?, 'graded')`,
+           (id, student_id, assessment_id, score, symbol, type)
+           VALUES (?, ?, ?, ?, ?, 'graded')`,
         )
         .run(
           performance.id,
-          performance.date.toISOString(),
           performance.student.id.value,
           performance.assessment.id,
           performance.score,
@@ -119,12 +117,11 @@ export class SqliteGradeRepository implements GradeRepository, StudentPerformanc
       this.db
         .prepare(
           `INSERT OR REPLACE INTO student_performances
-           (id, date, student_id, assessment_id, score, symbol, type)
-           VALUES (?, ?, ?, ?, ?, ?, 'participation')`,
+           (id, student_id, assessment_id, score, symbol, type)
+           VALUES (?, ?, ?, ?, ?, 'participation')`,
         )
         .run(
           performance.id,
-          performance.date.toISOString(),
           performance.student.id.value,
           performance.assessment.id,
           null,
@@ -199,17 +196,16 @@ export class SqliteGradeRepository implements GradeRepository, StudentPerformanc
       row.display_as_grade === 1,
     );
 
-    const perfDate = new Date(row.date);
-    const assessmentDate = new Date(row.assessment_date);
+    const sessionId = row.session_id ?? '';
 
     if (row.type === 'graded') {
       const maxPoints = row.max_points ?? 100;
       const assessmentRes = GradedAssessment.create(
         row.assessment_id,
         row.assessment_title,
-        assessmentDate,
         category,
         mockCourse,
+        sessionId,
         maxPoints,
         row.is_impromptu === 1,
       );
@@ -217,7 +213,6 @@ export class SqliteGradeRepository implements GradeRepository, StudentPerformanc
 
       const perfRes = GradedPerformance.create(
         row.id,
-        perfDate,
         student,
         assessmentRes.value,
         row.score!,
@@ -229,9 +224,9 @@ export class SqliteGradeRepository implements GradeRepository, StudentPerformanc
     const assessment = new Assessment(
       row.assessment_id,
       row.assessment_title,
-      assessmentDate,
       category,
       mockCourse,
+      sessionId,
       row.is_impromptu === 1,
     );
 
@@ -240,7 +235,6 @@ export class SqliteGradeRepository implements GradeRepository, StudentPerformanc
 
     const perfRes = ParticipationPerformance.create(
       row.id,
-      perfDate,
       student,
       assessment,
       symbolRes.value,
@@ -267,8 +261,8 @@ export class SqliteGradeRepository implements GradeRepository, StudentPerformanc
 }
 
 const performanceQuery = `
-  SELECT sp.id, sp.date, sp.student_id, sp.assessment_id, sp.score, sp.symbol, sp.type,
-         a.max_points, a.title AS assessment_title, a.date AS assessment_date,
+  SELECT sp.id, sp.student_id, sp.assessment_id, sp.score, sp.symbol, sp.type,
+         a.max_points, a.title AS assessment_title, a.session_id,
          a.category_id, a.course_id, a.is_impromptu,
          c.title AS course_title, c.school_class_id,
          cat.title AS category_title, cat.grading_type, cat.display_as_grade,

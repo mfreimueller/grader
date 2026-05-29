@@ -11,11 +11,11 @@ import { SchoolYear } from '../../domain/student/SchoolYear';
 interface AssessmentRow {
   id: string;
   title: string;
-  date: string;
   category_id: string;
   course_id: string;
   is_impromptu: number;
   max_points: number | null;
+  session_id: string | null;
   category_title: string;
   grading_type: string;
   display_as_grade: number;
@@ -52,17 +52,17 @@ export class SqliteAssessmentRepository implements AssessmentRepository {
     this.db
       .prepare(
         `INSERT OR REPLACE INTO assessments
-         (id, title, date, category_id, course_id, is_impromptu, max_points)
+         (id, title, category_id, course_id, is_impromptu, max_points, session_id)
          VALUES (?, ?, ?, ?, ?, ?, ?)`,
       )
       .run(
         assessment.id,
         assessment.title,
-        assessment.date.toISOString(),
         catId,
         assessment.course.id,
         assessment.isImpromptu ? 1 : 0,
         maxPoints,
+        assessment.sessionId,
       );
   }
 
@@ -104,13 +104,15 @@ export class SqliteAssessmentRepository implements AssessmentRepository {
       [],
     );
 
+    const sessionId = row.session_id ?? '';
+
     if (row.max_points !== null) {
       const result = GradedAssessment.create(
         row.id,
         row.title,
-        new Date(row.date),
         category,
         course,
+        sessionId,
         row.max_points,
         row.is_impromptu === 1,
       );
@@ -121,16 +123,16 @@ export class SqliteAssessmentRepository implements AssessmentRepository {
     return new Assessment(
       row.id,
       row.title,
-      new Date(row.date),
       category,
       course,
+      sessionId,
       row.is_impromptu === 1,
     );
   }
 }
 
 const assessmentQuery = `
-  SELECT a.id, a.title, a.date, a.category_id, a.course_id, a.is_impromptu, a.max_points,
+  SELECT a.id, a.title, a.category_id, a.course_id, a.is_impromptu, a.max_points, a.session_id,
          cat.title AS category_title, cat.grading_type, cat.display_as_grade,
          c.title AS course_title, c.school_class_id,
          sc.name AS class_name, sc.school_year

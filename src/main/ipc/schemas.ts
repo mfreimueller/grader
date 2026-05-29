@@ -83,9 +83,8 @@ export const updateSessionSchema = z.object({
 });
 
 export const createAssessmentSchema = z.object({
-  sessionId: z.string().optional(),
+  sessionId: z.string().min(1),
   title: z.string().min(1),
-  date: z.string().min(1),
   categoryId: z.string().min(1),
   courseId: z.string().min(1),
   maxPoints: z.number().int().positive().optional(),
@@ -94,7 +93,6 @@ export const createAssessmentSchema = z.object({
 export const recordPerformanceSchema = z.object({
   studentId: z.string().min(1),
   assessmentId: z.string().min(1),
-  date: z.string().optional(),
   score: z.number().int().min(0).optional(),
   symbol: z.string().optional(),
 });
@@ -108,7 +106,6 @@ export const saveGradeSchema = z.object({
 export const impromptuSchema = z.object({
   courseId: z.string().min(1),
   studentId: z.string().min(1),
-  date: z.string().min(1),
   categoryId: z.string().min(1),
   sessionId: z.string().min(1),
   title: z.string().optional(),

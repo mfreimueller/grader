@@ -8,11 +8,13 @@ describe('CourseRepository', () => {
       findBySchoolYear: async () => [],
       save: async () => {},
       delete: async () => {},
+      deleteCategory: async () => {},
     };
     expect(typeof repo.findById).toBe('function');
     expect(typeof repo.findAll).toBe('function');
     expect(typeof repo.findBySchoolYear).toBe('function');
     expect(typeof repo.save).toBe('function');
     expect(typeof repo.delete).toBe('function');
+    expect(typeof repo.deleteCategory).toBe('function');
   });
 });

@@ -36,13 +36,14 @@ export class SqliteReportRepository implements ReportRepository {
 
       const perfRows = this.db
         .prepare(
-          `SELECT a.title AS assessment_title, a.date AS assessment_date,
+          `SELECT a.title AS assessment_title, ses.date AS assessment_date,
                   cat.title AS category_title, sp.score, sp.symbol, a.max_points
            FROM student_performances sp
            JOIN assessments a ON sp.assessment_id = a.id
+           JOIN sessions ses ON a.session_id = ses.id
            JOIN assessment_categories cat ON a.category_id = cat.id
            WHERE sp.student_id = ?
-           ORDER BY a.date`,
+           ORDER BY ses.date`,
         )
         .all(s.id) as {
           assessment_title: string;

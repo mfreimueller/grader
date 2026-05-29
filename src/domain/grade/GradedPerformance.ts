@@ -7,17 +7,15 @@ import { ValidationError } from '../../shared/errors';
 export class GradedPerformance extends StudentPerformance {
   private constructor(
     id: string,
-    date: Date,
     student: Student,
     assessment: GradedAssessment,
     score: number | null,
   ) {
-    super(id, date, student, assessment, score);
+    super(id, student, assessment, score);
   }
 
   static create(
     id: string,
-    date: Date,
     student: Student,
     assessment: GradedAssessment,
     score: number,
@@ -29,6 +27,6 @@ export class GradedPerformance extends StudentPerformance {
         ),
       );
     }
-    return Result.ok(new GradedPerformance(id, date, student, assessment, score));
+    return Result.ok(new GradedPerformance(id, student, assessment, score));
   }
 }

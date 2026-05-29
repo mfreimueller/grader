@@ -1,7 +1,6 @@
 import { CategoryWeightInput } from './categoryWeightedMean';
 
 export interface FinalGradePerformanceInput {
-  date: Date;
   categoryId: string;
   normalizedValue: number;
 }
@@ -9,7 +8,6 @@ export interface FinalGradePerformanceInput {
 export function computeFinalGrade(
   performances: FinalGradePerformanceInput[],
   compositions: CategoryWeightInput[],
-  _referenceDate: Date,
 ): number {
   const weightMap = new Map(compositions.map(c => [c.categoryId, c.weight]));
   const categoryGroups = new Map<string, { values: number[]; weights: number[] }>();
@@ -39,12 +37,9 @@ export function computeFinalGrade(
       continue;
     }
 
-    const perfDates = performances
-      .filter(p => p.categoryId === categoryId)
-      .map(p => p.date.toISOString().slice(0, 10));
     console.log(
       '[GRADE]',
-      `Category ${categoryId}: ${group.values.length} performances, dates=${perfDates.join(', ')}, categoryWeight=${categoryWeight}`,
+      `Category ${categoryId}: ${group.values.length} performances, categoryWeight=${categoryWeight}`,
     );
 
     const sum = group.values.reduce((a, b) => a + b, 0);

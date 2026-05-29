@@ -3,10 +3,12 @@ import { CourseRepository } from '../domain/grade/CourseRepository';
 import { StudentPerformanceRepository } from '../domain/grade/StudentPerformanceRepository';
 import { StudentRepository } from '../domain/student/StudentRepository';
 import { AssessmentRepository } from '../domain/grade/AssessmentRepository';
+import { SessionRepository } from '../domain/grade/SessionRepository';
 import { StudentId } from '../domain/student/StudentId';
 import { Grade } from '../domain/grade/Grade';
 import { GradedPerformance } from '../domain/grade/GradedPerformance';
 import { GradedAssessment } from '../domain/grade/GradedAssessment';
+import { StudentPerformance } from '../domain/grade/StudentPerformance';
 import { ParticipationPerformance } from '../domain/grade/ParticipationPerformance';
 import { ParticipationSymbol } from '../domain/grade/ParticipationSymbol';
 import { Result } from '../domain/shared/Result';
@@ -33,7 +35,6 @@ export interface GradeDto {
 export interface RecordPerformanceInput {
   studentId: string;
   assessmentId: string;
-  date?: string;
   score?: number;
   symbol?: string;
 }
@@ -51,6 +52,7 @@ export class GradingService {
     private readonly perfRepo: StudentPerformanceRepository,
     private readonly studentRepo: StudentRepository,
     private readonly assessmentRepo: AssessmentRepository,
+    private readonly sessionRepo: SessionRepository,
   ) {}
 
   async recordPerformance(input: RecordPerformanceInput): Promise<Result<PerformanceDto>> {
@@ -62,8 +64,6 @@ export class GradingService {
 
     const assessment = await this.assessmentRepo.findById(input.assessmentId);
     if (!assessment) return Result.fail(new NotFoundError('Assessment', input.assessmentId));
-
-    const date = input.date ? new Date(input.date) : new Date();
 
     const existing = (await this.perfRepo.findPerformancesByAssessment(input.assessmentId))
       .find(p => p.student.id.value === input.studentId);
@@ -81,29 +81,29 @@ export class GradingService {
         return Result.fail(new ValidationError('Graded assessments require a score'));
       }
       const perfResult = GradedPerformance.create(
-        id, date, student, assessment, input.score,
+        id, student, assessment, input.score,
       );
       if (!perfResult.ok) return Result.fail(perfResult.error);
       await this.perfRepo.savePerformance(perfResult.value);
       console.log('[GRADE]', `Saved graded performance: id=${perfResult.value.id}, score=${input.score}/${assessment.maxPoints}`);
-      return Result.ok(toPerfDto(perfResult.value));
+      return Result.ok(await this.toPerfDto(perfResult.value));
     }
 
     const symbolResult = ParticipationSymbol.create(input.symbol ?? 'WELLE');
     if (!symbolResult.ok) return Result.fail(symbolResult.error);
 
     const perfResult = ParticipationPerformance.create(
-      id, date, student, assessment, symbolResult.value,
+      id, student, assessment, symbolResult.value,
     );
     if (!perfResult.ok) return Result.fail(perfResult.error);
     await this.perfRepo.savePerformance(perfResult.value);
     console.log('[GRADE]', `Saved participation performance: id=${perfResult.value.id}, symbol=${symbolResult.value}`);
-    return Result.ok(toPerfDto(perfResult.value));
+    return Result.ok(await this.toPerfDto(perfResult.value));
   }
 
   async getPerformancesByAssessment(assessmentId: string): Promise<PerformanceDto[]> {
     const performances = await this.perfRepo.findPerformancesByAssessment(assessmentId);
-    return performances.map(toPerfDto);
+    return this.toPerfDtos(performances);
   }
 
   async getPerformancesByStudent(studentId: string): Promise<Result<PerformanceDto[]>> {
@@ -111,7 +111,7 @@ export class GradingService {
     if (!sidResult.ok) return Result.fail(sidResult.error);
 
     const performances = await this.perfRepo.findPerformancesByStudent(sidResult.value);
-    return Result.ok(performances.map(toPerfDto));
+    return Result.ok(await this.toPerfDtos(performances));
   }
 
   async saveManualGrade(input: SaveGradeInput): Promise<Result<GradeDto>> {
@@ -169,16 +169,52 @@ export class GradingService {
       score: g.score,
     })));
   }
-}
 
-function toPerfDto(p: GradedPerformance | ParticipationPerformance): PerformanceDto {
-  return {
-    id: p.id,
-    date: p.date.toISOString(),
-    studentId: p.student.id.value,
-    assessmentId: p.assessment.id,
-    score: p instanceof GradedPerformance ? p.score : null,
-    symbol: p instanceof ParticipationPerformance ? p.symbol.value : null,
-    type: p instanceof GradedPerformance ? 'graded' : 'participation',
-  };
+  private async loadSessionDate(assessmentId: string): Promise<Date> {
+    const assessment = await this.assessmentRepo.findById(assessmentId);
+    if (!assessment) return new Date();
+    const session = await this.sessionRepo.findById(assessment.sessionId);
+    if (!session) return new Date();
+    return session.date;
+  }
+
+  private async toPerfDto(p: GradedPerformance | ParticipationPerformance): Promise<PerformanceDto> {
+    const sessionDate = await this.loadSessionDate(p.assessment.id);
+    return {
+      id: p.id,
+      date: sessionDate.toISOString(),
+      studentId: p.student.id.value,
+      assessmentId: p.assessment.id,
+      score: p instanceof GradedPerformance ? p.score : null,
+      symbol: p instanceof ParticipationPerformance ? p.symbol.value : null,
+      type: p instanceof GradedPerformance ? 'graded' : 'participation',
+    };
+  }
+
+  private async toPerfDtos(performances: StudentPerformance[]): Promise<PerformanceDto[]> {
+    const sessionCache = new Map<string, Date>();
+    const result: PerformanceDto[] = [];
+
+    for (const p of performances) {
+      const sessionId = p.assessment.sessionId;
+      let sessionDate = sessionCache.get(sessionId);
+      if (!sessionDate) {
+        const session = await this.sessionRepo.findById(sessionId);
+        sessionDate = session?.date ?? new Date();
+        sessionCache.set(sessionId, sessionDate);
+      }
+
+      result.push({
+        id: p.id,
+        date: sessionDate.toISOString(),
+        studentId: p.student.id.value,
+        assessmentId: p.assessment.id,
+        score: p instanceof GradedPerformance ? p.score : null,
+        symbol: p instanceof ParticipationPerformance ? p.symbol.value : null,
+        type: p instanceof GradedPerformance ? 'graded' : 'participation',
+      });
+    }
+
+    return result;
+  }
 }

@@ -52,12 +52,16 @@ describe('GradeCalculationAppService', () => {
     const student = Student.create(sid.value, name.value, schoolClass);
     studentRepo.save(student);
 
-    const assessment = new Assessment('a-001', 'Mündlich', new Date('2025-10-01'), mitarbeit, reconstituted);
+    db.prepare(
+      "INSERT INTO sessions (id, date, notes, course_id) VALUES ('session-1', '2025-10-01', '', 'course-1')",
+    ).run();
+
+    const assessment = new Assessment('a-001', 'Mündlich', mitarbeit, reconstituted, 'session-1');
     assessmentRepo.save(assessment);
 
     const symbol = ParticipationSymbol.create('PLUS');
     if (!symbol.ok) throw symbol.error;
-    const perf = ParticipationPerformance.create('p-001', new Date('2025-10-01'), student, assessment, symbol.value);
+    const perf = ParticipationPerformance.create('p-001', student, assessment, symbol.value);
     if (!perf.ok) throw perf.error;
     gradeRepo.savePerformance(perf.value);
   });

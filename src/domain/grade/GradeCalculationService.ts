@@ -10,10 +10,10 @@ export interface GradeCalculationResult {
 }
 
 export function normalizedToGrade(value: number): 1 | 2 | 3 | 4 | 5 {
-  if (value >= 0.85) return 1;
-  if (value >= 0.65) return 2;
-  if (value >= 0.45) return 3;
-  if (value >= 0.2) return 4;
+  if (value >= 0.875) return 1;
+  if (value >= 0.75) return 2;
+  if (value >= 0.625) return 3;
+  if (value >= 0.5) return 4;
   return 5;
 }
 
@@ -21,9 +21,8 @@ export class GradeCalculationService {
   calculate(
     performances: StudentPerformance[],
     course: Course,
-    referenceDate: Date,
   ): Result<GradeCalculationResult> {
-    const inputs: { date: Date; categoryId: string; normalizedValue: number }[] = [];
+    const inputs: { categoryId: string; normalizedValue: number }[] = [];
 
     for (const perf of performances) {
       const normalized = performanceToValue(perf);
@@ -31,7 +30,6 @@ export class GradeCalculationService {
         return Result.fail(normalized.error);
       }
       inputs.push({
-        date: perf.date,
         categoryId: perf.assessment.category.id,
         normalizedValue: normalized.value,
       });
@@ -59,7 +57,7 @@ export class GradeCalculationService {
       );
     }
 
-    const rawScore = computeFinalGrade(inputs, compositions, referenceDate);
+    const rawScore = computeFinalGrade(inputs, compositions);
     const displayGrade = normalizedToGrade(rawScore);
 
     console.log(

@@ -44,7 +44,6 @@ export class GradeCalculationAppService {
     const result = this.calculationService.calculate(
       coursePerformances,
       course,
-      new Date(),
     );
 
     if (!result.ok) {

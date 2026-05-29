@@ -31,13 +31,13 @@ beforeAll(() => {
   student = Student.create(id.value, name.value, validClass);
 
   const ga = GradedAssessment.create(
-    'ga-1', 'Test 1', new Date(2025, 9, 15), numericCategory, validCourse, 30,
+    'ga-1', 'Test 1', numericCategory, validCourse, 'session-1', 30,
   );
   if (!ga.ok) throw new Error('Test setup failed');
   gradedAssessment = ga.value;
 
   participationAssessment = new Assessment(
-    'ass-1', 'Mündlich', new Date(2025, 9, 15), tertiaryCategory, validCourse,
+    'ass-1', 'Mündlich', tertiaryCategory, validCourse, 'session-1',
   );
 });
 
@@ -84,7 +84,7 @@ describe('normalizeScore', () => {
 describe('performanceToValue', () => {
   it('normalizes a GradedPerformance to a 0-1 ratio', () => {
     const perf = GradedPerformance.create(
-      'p-001', new Date(2025, 9, 15), student, gradedAssessment, 24,
+      'p-001', student, gradedAssessment, 24,
     );
     if (!perf.ok) throw new Error('GradedPerformance creation failed');
     const result = performanceToValue(perf.value);
@@ -97,7 +97,7 @@ describe('performanceToValue', () => {
     expect(symbol.ok).toBe(true);
     if (!symbol.ok) return;
     const perf = ParticipationPerformance.create(
-      'p-002', new Date(2025, 9, 15), student, participationAssessment, symbol.value,
+      'p-002', student, participationAssessment, symbol.value,
     );
     if (!perf.ok) throw new Error('ParticipationPerformance creation failed');
     const result = performanceToValue(perf.value);

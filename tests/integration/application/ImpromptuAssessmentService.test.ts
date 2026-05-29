@@ -32,7 +32,7 @@ describe('ImpromptuAssessmentService', () => {
     const gradeRepo = new SqliteGradeRepository(db);
 
     const assessmentService = new AssessmentService(assessmentRepo, sessionRepo, courseRepo);
-    const gradingService = new GradingService(gradeRepo, courseRepo, gradeRepo, studentRepo, assessmentRepo);
+    const gradingService = new GradingService(gradeRepo, courseRepo, gradeRepo, studentRepo, assessmentRepo, sessionRepo);
     service = new ImpromptuAssessmentService(assessmentService, gradingService);
 
     const year = SchoolYear.create('2025/26');
@@ -49,6 +49,10 @@ describe('ImpromptuAssessmentService', () => {
     if (!name.ok) throw name.error;
     const student = Student.create(sid.value, name.value, schoolClass);
     studentRepo.save(student);
+
+    db.prepare(
+      "INSERT INTO sessions (id, date, notes, course_id) VALUES ('session-1', '2025-10-01', '', 'course-1')",
+    ).run();
   });
 
   afterEach(() => {
@@ -63,8 +67,8 @@ describe('ImpromptuAssessmentService', () => {
     const result = await service.create({
       courseId: 'course-1',
       studentId: 's-001',
-      date: '2025-10-01T00:00:00.000Z',
       categoryId: mitarbeitId,
+      sessionId: 'session-1',
       symbol: 'PLUS',
     });
     expect(result.ok).toBe(true);
@@ -81,8 +85,8 @@ describe('ImpromptuAssessmentService', () => {
     const result = await service.create({
       courseId: 'course-1',
       studentId: 's-001',
-      date: '2025-10-01T00:00:00.000Z',
       categoryId: mitarbeitId,
+      sessionId: 'session-1',
       score: 85,
       maxPoints: 100,
     });

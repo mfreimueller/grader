@@ -12,12 +12,11 @@ import { Name } from '../../../../src/domain/student/Name';
 class TestPerformance extends StudentPerformance {
   constructor(
     id: string,
-    date: Date,
     student: Student,
     assessment: Assessment,
     score: number | null,
   ) {
-    super(id, date, student, assessment, score);
+    super(id, student, assessment, score);
   }
 }
 
@@ -33,7 +32,7 @@ beforeAll(() => {
   validClass = new SchoolClass('class-1', '1A', year.value);
   validCourse = Course.create('course-1', 'Mathematik', validClass);
   validCategory = new AssessmentCategory('cat-1', 'Schularbeit', GradingType.NUMERIC, true);
-  validAssessment = new Assessment('ass-1', 'Test 1', new Date(2025, 9, 15), validCategory, validCourse);
+  validAssessment = new Assessment('ass-1', 'Test 1', validCategory, validCourse, 'session-1');
 
   const id = StudentId.create('s-001');
   const name = Name.create('Max', 'Mustermann');
@@ -43,44 +42,40 @@ beforeAll(() => {
 
 describe('StudentPerformance', () => {
   describe('create', () => {
-    it('creates with id, date, student, assessment, and score', () => {
-      const date = new Date(2025, 10, 1);
-      const perf = new TestPerformance('perf-1', date, student, validAssessment, 24);
+    it('creates with id, student, assessment, and score', () => {
+      const perf = new TestPerformance('perf-1', student, validAssessment, 24);
       expect(perf.id).toBe('perf-1');
-      expect(perf.date).toBe(date);
       expect(perf.student.id.equals(student.id)).toBe(true);
       expect(perf.assessment.id).toBe('ass-1');
       expect(perf.score).toBe(24);
     });
 
     it('accepts null score (not yet graded)', () => {
-      const perf = new TestPerformance('perf-2', new Date(2025, 10, 1), student, validAssessment, null);
+      const perf = new TestPerformance('perf-2', student, validAssessment, null);
       expect(perf.score).toBeNull();
     });
 
     it('accepts score of 0', () => {
-      const perf = new TestPerformance('perf-3', new Date(2025, 10, 1), student, validAssessment, 0);
+      const perf = new TestPerformance('perf-3', student, validAssessment, 0);
       expect(perf.score).toBe(0);
     });
 
     it('starts with empty findings', () => {
-      const perf = new TestPerformance('perf-1', new Date(2025, 10, 1), student, validAssessment, 24);
+      const perf = new TestPerformance('perf-1', student, validAssessment, 24);
       expect(perf.findings).toEqual([]);
     });
   });
 
   describe('equals', () => {
     it('returns true for performances with same id', () => {
-      const date = new Date(2025, 10, 1);
-      const a = new TestPerformance('perf-1', date, student, validAssessment, 24);
-      const b = new TestPerformance('perf-1', date, student, validAssessment, 30);
+      const a = new TestPerformance('perf-1', student, validAssessment, 24);
+      const b = new TestPerformance('perf-1', student, validAssessment, 30);
       expect(a.equals(b)).toBe(true);
     });
 
     it('returns false for performances with different ids', () => {
-      const date = new Date(2025, 10, 1);
-      const a = new TestPerformance('perf-1', date, student, validAssessment, 24);
-      const b = new TestPerformance('perf-2', date, student, validAssessment, 24);
+      const a = new TestPerformance('perf-1', student, validAssessment, 24);
+      const b = new TestPerformance('perf-2', student, validAssessment, 24);
       expect(a.equals(b)).toBe(false);
     });
   });

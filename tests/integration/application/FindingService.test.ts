@@ -16,8 +16,8 @@ describe('FindingService', () => {
     db.prepare("INSERT INTO students (id, first_name, last_name, school_class_id) VALUES ('s-001', 'Max', 'Mustermann', 'class-1')").run();
     db.prepare("INSERT INTO courses (id, title, school_class_id) VALUES ('course-1', 'Mathematik', 'class-1')").run();
     db.prepare("INSERT INTO assessment_categories (id, title, grading_type, display_as_grade, course_id) VALUES ('cat-1', 'Mitarbeit', 'TERTIARY', 0, 'course-1')").run();
-    db.prepare("INSERT INTO assessments (id, title, date, category_id, course_id) VALUES ('a-001', 'Mündlich', '2025-10-01', 'cat-1', 'course-1')").run();
-    db.prepare("INSERT INTO student_performances (id, date, student_id, assessment_id, type) VALUES ('p-001', '2025-10-01', 's-001', 'a-001', 'participation')").run();
+    db.prepare("INSERT INTO assessments (id, title, category_id, course_id) VALUES ('a-001', 'Mündlich', 'cat-1', 'course-1')").run();
+    db.prepare("INSERT INTO student_performances (id, student_id, assessment_id, type) VALUES ('p-001', 's-001', 'a-001', 'participation')").run();
   });
 
   afterEach(() => {

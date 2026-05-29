@@ -25,7 +25,7 @@ beforeAll(() => {
   if (!id.ok || !name.ok) throw new Error('Test setup failed');
   student = Student.create(id.value, name.value, validClass);
 
-  assessment = new Assessment('ass-1', 'Mündlich', new Date(2025, 9, 15), category, validCourse);
+  assessment = new Assessment('ass-1', 'Mündlich', category, validCourse, 'session-1');
 });
 
 describe('ParticipationPerformance', () => {
@@ -35,7 +35,7 @@ describe('ParticipationPerformance', () => {
       expect(symbol.ok).toBe(true);
       if (symbol.ok) {
         const result = ParticipationPerformance.create(
-          'pp-1', new Date(2025, 10, 1), student, assessment, symbol.value,
+          'pp-1', student, assessment, symbol.value,
         );
         expect(result.ok).toBe(true);
         if (result.ok) {
@@ -49,7 +49,7 @@ describe('ParticipationPerformance', () => {
       expect(symbol.ok).toBe(true);
       if (symbol.ok) {
         const result = ParticipationPerformance.create(
-          'pp-2', new Date(2025, 10, 1), student, assessment, symbol.value,
+          'pp-2', student, assessment, symbol.value,
         );
         expect(result.ok).toBe(true);
       }
@@ -60,7 +60,7 @@ describe('ParticipationPerformance', () => {
       expect(symbol.ok).toBe(true);
       if (symbol.ok) {
         const result = ParticipationPerformance.create(
-          'pp-3', new Date(2025, 10, 1), student, assessment, symbol.value,
+          'pp-3', student, assessment, symbol.value,
         );
         expect(result.ok).toBe(true);
       }
@@ -72,7 +72,7 @@ describe('ParticipationPerformance', () => {
       const symbol = ParticipationSymbol.create('PLUS');
       if (symbol.ok) {
         const result = ParticipationPerformance.create(
-          'pp-1', new Date(2025, 10, 1), student, assessment, symbol.value,
+          'pp-1', student, assessment, symbol.value,
         );
         expect(result.ok && result.value.toScore()).toBe(2.0);
       }
@@ -82,7 +82,7 @@ describe('ParticipationPerformance', () => {
       const symbol = ParticipationSymbol.create('MINUS');
       if (symbol.ok) {
         const result = ParticipationPerformance.create(
-          'pp-2', new Date(2025, 10, 1), student, assessment, symbol.value,
+          'pp-2', student, assessment, symbol.value,
         );
         expect(result.ok && result.value.toScore()).toBe(0.0);
       }
@@ -92,7 +92,7 @@ describe('ParticipationPerformance', () => {
       const symbol = ParticipationSymbol.create('WELLE');
       if (symbol.ok) {
         const result = ParticipationPerformance.create(
-          'pp-3', new Date(2025, 10, 1), student, assessment, symbol.value,
+          'pp-3', student, assessment, symbol.value,
         );
         expect(result.ok && result.value.toScore()).toBe(1.0);
       }
@@ -104,7 +104,7 @@ describe('ParticipationPerformance', () => {
       const symbol = ParticipationSymbol.create('PLUS');
       if (symbol.ok) {
         const result = ParticipationPerformance.create(
-          'pp-1', new Date(2025, 10, 1), student, assessment, symbol.value,
+          'pp-1', student, assessment, symbol.value,
         );
         expect(result.ok && result.value.score).toBeNull();
       }

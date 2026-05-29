@@ -32,9 +32,9 @@ export class Session extends Entity<string> {
     const muendlich = new Assessment(
       `${id}:muendlich`,
       'Mündlich',
-      date,
       mitarbeit!,
       course,
+      id,
     );
     return new Session(id, date, notes, course, [], [muendlich]);
   }
