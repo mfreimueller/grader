@@ -14,6 +14,7 @@ import { SqliteReportRepository } from '../infrastructure/persistence/SqliteRepo
 
 import { StudentService } from '../application/StudentService';
 import { SchoolClassService } from '../application/SchoolClassService';
+import { CsvImportService } from '../application/CsvImportService';
 import { CourseService } from '../application/CourseService';
 import { AssessmentCategoryService } from '../application/AssessmentCategoryService';
 import { SessionService } from '../application/SessionService';
@@ -54,6 +55,7 @@ app.on('ready', () => {
   const dataExport = new DataExportService(reportRepo);
 
   const studentService = new StudentService(studentRepo, classRepo);
+  const csvImportService = new CsvImportService(classRepo, studentRepo);
   const classService = new SchoolClassService(classRepo);
   const courseService = new CourseService(courseRepo, classRepo);
   const categoryService = new AssessmentCategoryService(courseRepo);
@@ -65,7 +67,7 @@ app.on('ready', () => {
   const impromptuService = new ImpromptuAssessmentService(assessmentService, gradingService);
   const reportService = new ReportService(reportRepo, pdfGenerator, dataExport, calcService);
 
-  registerStudentHandlers(studentService);
+  registerStudentHandlers(studentService, csvImportService);
   registerCourseHandlers(classService, courseService, categoryService);
   registerSessionHandlers(sessionService);
   registerGradeHandlers(assessmentService, gradingService, findingService, calcService, impromptuService);

@@ -38,6 +38,8 @@ export const IPC = {
   GRADE_SAVE_MANUAL: 'grade:saveManualGrade',
   GRADE_RECORD_IMPROMPTU: 'grade:recordImpromptu',
 
+  STUDENT_IMPORT_CSV: 'student:importCsv',
+
   FINDING_ADD: 'finding:add',
   FINDING_REMOVE: 'finding:remove',
   FINDING_GET: 'finding:getFindings',

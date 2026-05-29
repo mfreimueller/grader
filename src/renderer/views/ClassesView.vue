@@ -4,6 +4,9 @@
       <h2>Klassen</h2>
       <div class="toolbar-actions">
         <button class="btn btn-primary" @click="openCreate">+ Klasse anlegen</button>
+        <button class="btn btn-secondary" @click="importCsv" :disabled="importing">
+          {{ importing ? 'Importiere...' : 'CSV importieren' }}
+        </button>
       </div>
     </div>
 
@@ -40,6 +43,25 @@
     />
 
     <Teleport to="body">
+      <div v-if="importResult" class="overlay" @click.self="importResult = null">
+        <div class="confirm-dialog">
+          <h3>CSV-Import abgeschlossen</h3>
+          <ul class="import-stats">
+            <li><strong>{{ importResult.classesCreated }}</strong> Klassen angelegt</li>
+            <li><strong>{{ importResult.studentsCreated }}</strong> Schüler angelegt</li>
+            <li><strong>{{ importResult.studentsUpdated }}</strong> Schüler aktualisiert</li>
+          </ul>
+          <div v-if="importResult.warnings.length > 0" class="import-warnings">
+            <h4>Warnungen ({{ importResult.warnings.length }})</h4>
+            <ul>
+              <li v-for="(w, i) in importResult.warnings" :key="i">{{ w }}</li>
+            </ul>
+          </div>
+          <div class="modal-actions">
+            <button class="btn btn-primary" @click="importResult = null">OK</button>
+          </div>
+        </div>
+      </div>
       <div v-if="deleting" class="overlay" @click.self="deleting = null">
         <div class="confirm-dialog">
           <p>{{ deleting.name }} ({{ deleting.schoolYear }}) wirklich löschen?</p>
@@ -58,7 +80,7 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue';
-import type { SchoolClassDto } from '../../shared/types';
+import type { SchoolClassDto, ImportResultDto } from '../../shared/types';
 import ClassFormModal from '../components/classes/ClassFormModal.vue';
 
 const classes = ref<SchoolClassDto[]>([]);
@@ -69,6 +91,8 @@ const editingClass = ref<SchoolClassDto | null>(null);
 const deleting = ref<SchoolClassDto | null>(null);
 const deleteError = ref('');
 const deletingSubmitting = ref(false);
+const importing = ref(false);
+const importResult = ref<ImportResultDto | null>(null);
 
 const grouped = computed(() => {
   const groups: Record<string, SchoolClassDto[]> = {};
@@ -85,7 +109,9 @@ onMounted(async () => {
 });
 
 async function loadClasses(): Promise<void> {
+  console.log('load classes');
   classes.value = await window.grdr.class.list();
+  console.log('new classes', classes.value);
 }
 
 function openCreate(): void {
@@ -118,6 +144,33 @@ async function doDelete(): Promise<void> {
     deleteError.value = (e as Error)?.message || 'Löschen fehlgeschlagen. Möglicherweise sind der Klasse noch Schüler zugeordnet.';
   } finally {
     deletingSubmitting.value = false;
+  }
+}
+
+async function importCsv(): Promise<void> {
+  importing.value = true;
+  try {
+    const result = await window.grdr.student.importCsv();
+    if (result.ok) {
+      importResult.value = result.value;
+      await loadClasses();
+    } else {
+      importResult.value = {
+        classesCreated: 0,
+        studentsCreated: 0,
+        studentsUpdated: 0,
+        warnings: [result.error.message],
+      };
+    }
+  } catch (e: unknown) {
+    importResult.value = {
+      classesCreated: 0,
+      studentsCreated: 0,
+      studentsUpdated: 0,
+      warnings: [(e as Error)?.message || 'Import fehlgeschlagen'],
+    };
+  } finally {
+    importing.value = false;
   }
 }
 
@@ -281,6 +334,43 @@ async function onSaved(): Promise<void> {
 .delete-error {
   color: var(--color-danger);
   font-size: 13px;
+}
+
+.import-stats {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 12px;
+}
+
+.import-stats li {
+  padding: 4px 0;
+  font-size: 14px;
+}
+
+.import-warnings {
+  background: #fff8e1;
+  border-radius: 6px;
+  padding: 12px;
+  margin-bottom: 16px;
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+.import-warnings h4 {
+  margin: 0 0 8px;
+  font-size: 13px;
+  color: #92400e;
+}
+
+.import-warnings ul {
+  margin: 0;
+  padding-left: 18px;
+  font-size: 13px;
+  color: #92400e;
+}
+
+.import-warnings li {
+  margin-bottom: 4px;
 }
 
 .modal-actions {

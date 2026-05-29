@@ -26,6 +26,20 @@ export class SqliteStudentRepository implements StudentRepository {
     return this.rowToStudent(row);
   }
 
+  async findByName(firstName: string, lastName: string): Promise<Student[]> {
+    const rows = this.db
+      .prepare(
+        `SELECT s.id, s.first_name, s.last_name, s.school_class_id,
+                sc.name AS class_name, sc.school_year
+         FROM students s
+         JOIN school_classes sc ON s.school_class_id = sc.id
+         WHERE s.first_name = ? AND s.last_name = ? AND s.deleted_at IS NULL`,
+      )
+      .all(firstName, lastName) as Record<string, unknown>[];
+
+    return rows.map(r => this.rowToStudent(r));
+  }
+
   async findAll(): Promise<Student[]> {
     const rows = this.db
       .prepare(

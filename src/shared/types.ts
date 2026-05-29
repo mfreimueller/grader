@@ -197,6 +197,13 @@ export interface GradeCalculationResultDto {
 
 export type ReportMode = 'full' | 'reduced';
 
+export interface ImportResultDto {
+  classesCreated: number;
+  studentsCreated: number;
+  studentsUpdated: number;
+  warnings: string[];
+}
+
 export interface IpcApi {
   student: {
     list: () => Promise<StudentDto[]>;
@@ -204,6 +211,7 @@ export interface IpcApi {
     create: (data: CreateStudentInput) => Promise<ResultDto<StudentDto>>;
     update: (id: string, data: UpdateStudentInput) => Promise<ResultDto<StudentDto>>;
     delete: (id: string) => Promise<ResultDto<void>>;
+    importCsv: () => Promise<ResultDto<ImportResultDto>>;
   };
   class: {
     list: () => Promise<SchoolClassDto[]>;

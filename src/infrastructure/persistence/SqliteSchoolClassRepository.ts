@@ -20,6 +20,15 @@ export class SqliteSchoolClassRepository implements SchoolClassRepository {
     return rows.map(r => this.rowToSchoolClass(r));
   }
 
+  async findByNameAndYear(name: string, schoolYear: string): Promise<SchoolClass | null> {
+    const row = this.db
+      .prepare('SELECT id, name, school_year FROM school_classes WHERE name = ? AND school_year = ?')
+      .get(name, schoolYear) as SchoolClassRow | undefined;
+
+    if (!row) return null;
+    return this.rowToSchoolClass(row);
+  }
+
   async findById(id: string): Promise<SchoolClass | null> {
     const row = this.db
       .prepare('SELECT id, name, school_year FROM school_classes WHERE id = ?')

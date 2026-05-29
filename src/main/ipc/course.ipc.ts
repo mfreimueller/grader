@@ -15,7 +15,10 @@ export function registerCourseHandlers(
   categoryService: AssessmentCategoryService,
 ): void {
   ipcMain.handle(IPC.CLASS_LIST, async () => {
-    return await classService.list();
+    console.log('fetching classes..');
+    const classes = await classService.list();
+    console.log('found classes', classes);
+    return classes;
   });
 
   ipcMain.handle(IPC.CLASS_CREATE, async (_event, data: unknown) => {
