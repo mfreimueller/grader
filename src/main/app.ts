@@ -1,6 +1,6 @@
 import { app } from 'electron';
-import path from 'node:path';
 import { createMainWindow } from './window';
+import { resolveDbPath, ensureDbDirectory } from './config';
 import { createFileDb, runMigrations } from '../infrastructure/persistence/db';
 
 import { SqliteStudentRepository } from '../infrastructure/persistence/SqliteStudentRepository';
@@ -35,7 +35,8 @@ import { registerGradeHandlers } from './ipc/grade.ipc';
 import { registerReportHandlers } from './ipc/report.ipc';
 
 app.on('ready', () => {
-  const dbPath = path.join(app.getPath('userData'), 'grdr.db');
+  const dbPath = resolveDbPath();
+  ensureDbDirectory(dbPath);
   const db = createFileDb(dbPath);
   runMigrations(db);
 
@@ -73,7 +74,6 @@ app.on('ready', () => {
   const win = createMainWindow();
   win.webContents.openDevTools();
   win.loadFile('build/renderer/index.html');
-  console.log(app.getPath('userData'));
 });
 
 app.on('window-all-closed', () => {
