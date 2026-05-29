@@ -115,7 +115,7 @@ onMounted(async () => {
         allAssessments.push(...asses);
       }),
     );
-    assessments.value = allAssessments;
+
     const courseAssessmentIds = new Set(allAssessments.map(a => a.id));
 
     await Promise.all(
@@ -146,6 +146,16 @@ onMounted(async () => {
         }
       }),
     );
+
+    const assessmentIdsWithPerfs = new Set<string>();
+    for (const studentId of Object.keys(perfMap)) {
+      for (const assessmentId of Object.keys(perfMap[studentId])) {
+        assessmentIdsWithPerfs.add(assessmentId);
+      }
+    }
+    assessments.value = allAssessments
+      .filter(a => assessmentIdsWithPerfs.has(a.id))
+      .sort((a, b) => a.date.localeCompare(b.date));
   } finally {
     loading.value = false;
   }
