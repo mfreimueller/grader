@@ -102,6 +102,6 @@ describe('performanceToValue', () => {
     if (!perf.ok) throw new Error('ParticipationPerformance creation failed');
     const result = performanceToValue(perf.value);
     expect(result.ok).toBe(true);
-    if (result.ok) expect(result.value).toBeCloseTo(2.0);
+    if (result.ok) expect(result.value).toBeCloseTo(1.0);
   });
 });
