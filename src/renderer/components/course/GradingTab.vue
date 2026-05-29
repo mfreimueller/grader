@@ -6,72 +6,159 @@
       Keine Schüler in dieser Klasse.
     </div>
 
-    <div v-else class="grading-table-wrapper">
-      <table class="grading-table">
-        <thead>
-          <tr>
-            <th class="col-name col-name-sortable" @click="sortAscending = !sortAscending">
-              Schüler {{ sortAscending ? '▲' : '▼' }}
-            </th>
-            <th class="col-manual">Note (manuell)</th>
-            <th class="col-calculated">Berechnete Note</th>
-            <th
-              v-for="a in assessments"
-              :key="a.id"
-              class="col-perf"
-              :title="a.title"
-            >
-              {{ a.title }}
-            </th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr v-for="student in sortedStudents" :key="student.id">
-            <td class="cell-name">{{ student.lastName }}, {{ student.firstName }}</td>
-            <td>
-              <select
-                class="grade-select"
-                :value="manualGrade(student.id)"
-                @change="setManualGrade(student.id, $event)"
+    <div v-else>
+      <div class="view-toggle">
+        <button
+          :class="['toggle-btn', { active: viewMode === 'high-level' }]"
+          @click="viewMode = 'high-level'"
+        >
+          Übersicht
+        </button>
+        <button
+          :class="['toggle-btn', { active: viewMode === 'detailed' }]"
+          @click="viewMode = 'detailed'"
+        >
+          Detailansicht
+        </button>
+      </div>
+
+      <div v-if="viewMode === 'high-level'" class="grading-table-wrapper">
+        <table class="grading-table">
+          <thead>
+            <tr>
+              <th class="col-name col-name-sortable" @click="sortAscending = !sortAscending">
+                Schüler {{ sortAscending ? '▲' : '▼' }}
+              </th>
+              <th class="col-manual">Note (manuell)</th>
+              <th class="col-calculated">Berechnet</th>
+              <th
+                v-for="col in categoryColumns"
+                :key="col.categoryId"
+                class="col-cat"
               >
-                <option value="">—</option>
-                <option v-for="g in 5" :key="g" :value="g">{{ g }}</option>
-              </select>
-            </td>
-            <td class="cell-calculated">
-              <span v-if="calculated[student.id] !== undefined" :class="gradeClass(calculated[student.id])">
-                {{ calculated[student.id] }}
-              </span>
-              <span v-else class="text-secondary">—</span>
-            </td>
-            <td
-              v-for="a in assessments"
-              :key="a.id"
-              class="cell-perf"
-            >
-              {{ formatPerformance(student.id, a) }}
-            </td>
-          </tr>
-        </tbody>
-      </table>
+                {{ col.categoryTitle }} ({{ col.weight }})
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="student in sortedStudents" :key="student.id">
+              <td class="cell-name">{{ student.lastName }}, {{ student.firstName }}</td>
+              <td>
+                <select
+                  class="grade-select"
+                  :value="manualGrade(student.id)"
+                  @change="setManualGrade(student.id, $event)"
+                >
+                  <option value="">—</option>
+                  <option v-for="g in 5" :key="g" :value="g">{{ g }}</option>
+                </select>
+              </td>
+              <td class="cell-calculated">
+                <span v-if="calculated[student.id] !== undefined" :class="gradeClass(calculated[student.id])">
+                  {{ calculated[student.id] }}
+                  <span
+                    v-if="gradeIndicator(student.id)"
+                    class="grade-indicator"
+                  >
+                    {{ gradeIndicator(student.id) }}
+                  </span>
+                </span>
+                <span v-else class="text-secondary">—</span>
+              </td>
+              <td
+                v-for="col in categoryColumns"
+                :key="col.categoryId"
+                class="cell-cat-grade"
+              >
+                <span v-if="catGrade(student.id, col.categoryId) !== undefined" :class="gradeClass(catGrade(student.id, col.categoryId)!)">
+                  {{ catGrade(student.id, col.categoryId) }}
+                </span>
+                <span v-else class="text-secondary">—</span>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div v-else class="grading-table-wrapper">
+        <table class="grading-table">
+          <thead>
+            <tr>
+              <th class="col-name col-name-sortable" @click="sortAscending = !sortAscending">
+                Schüler {{ sortAscending ? '▲' : '▼' }}
+              </th>
+              <th class="col-manual">Note (manuell)</th>
+              <th class="col-calculated">Berechnete Note</th>
+              <th
+                v-for="a in assessments"
+                :key="a.id"
+                class="col-perf"
+                :title="a.title"
+              >
+                {{ a.title }}
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="student in sortedStudents" :key="student.id">
+              <td class="cell-name">{{ student.lastName }}, {{ student.firstName }}</td>
+              <td>
+                <select
+                  class="grade-select"
+                  :value="manualGrade(student.id)"
+                  @change="setManualGrade(student.id, $event)"
+                >
+                  <option value="">—</option>
+                  <option v-for="g in 5" :key="g" :value="g">{{ g }}</option>
+                </select>
+              </td>
+              <td class="cell-calculated">
+                <span v-if="calculated[student.id] !== undefined">
+                  <span :class="gradeClass(calculated[student.id])">{{ calculated[student.id] }}</span>
+                  <span class="raw-score"> ({{ (rawScores[student.id] * 100).toFixed(1) }}%)</span>
+                </span>
+                <span v-else class="text-secondary">—</span>
+              </td>
+              <td
+                v-for="a in assessments"
+                :key="a.id"
+                class="cell-perf"
+              >
+                {{ formatPerformance(student.id, a) }}
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, reactive, computed, onMounted } from 'vue';
-import type { CourseDto, StudentDto, AssessmentDto, SessionDto, PerformanceDto } from '../../../shared/types';
+import type {
+  CourseDto,
+  StudentDto,
+  AssessmentDto,
+  SessionDto,
+  PerformanceDto,
+  CategoryGradeResultDto,
+} from '../../../shared/types';
 
 const props = defineProps<{
   course: CourseDto;
 }>();
 
+const viewMode = ref<'high-level' | 'detailed'>('high-level');
 const students = ref<StudentDto[]>([]);
 const assessments = ref<AssessmentDto[]>([]);
 const loading = ref(true);
 const manualGrades = reactive<Record<string, number>>({});
 const calculated = reactive<Record<string, number>>({});
 const perfMap = reactive<Record<string, Record<string, PerformanceDto>>>({});
+const rawScores = reactive<Record<string, number>>({});
+const catGrades = reactive<Record<string, Record<string, number>>>({});
+const categoryColumns = ref<CategoryGradeResultDto[]>([]);
 const sortAscending = ref(true);
 
 const sortedStudents = computed(() =>
@@ -89,6 +176,38 @@ function gradeClass(grade: number): string {
   if (grade <= 2) return 'grade-good';
   if (grade <= 3) return 'grade-ok';
   return 'grade-bad';
+}
+
+function catGrade(studentId: string, categoryId: string): number | undefined {
+  return catGrades[studentId]?.[categoryId];
+}
+
+const BOUNDARY_DELTA = 0.03;
+
+function gradeBoundaryIndicator(score: number, grade: number): string | null {
+  const b = [0.875, 0.75, 0.625, 0.50] as const;
+  if (grade === 1 && score - b[0] <= BOUNDARY_DELTA) return '↓2';
+  if (grade === 2) {
+    if (b[0] - score <= BOUNDARY_DELTA) return '↑1';
+    if (score - b[1] <= BOUNDARY_DELTA) return '↓3';
+  }
+  if (grade === 3) {
+    if (b[1] - score <= BOUNDARY_DELTA) return '↑2';
+    if (score - b[2] <= BOUNDARY_DELTA) return '↓4';
+  }
+  if (grade === 4) {
+    if (b[2] - score <= BOUNDARY_DELTA) return '↑3';
+    if (score - b[3] <= BOUNDARY_DELTA) return '↓5';
+  }
+  if (grade === 5 && b[3] - score <= BOUNDARY_DELTA) return '↑4';
+  return null;
+}
+
+function gradeIndicator(studentId: string): string | null {
+  const score = rawScores[studentId];
+  const grade = calculated[studentId];
+  if (score === undefined || grade === undefined) return null;
+  return gradeBoundaryIndicator(score, grade);
 }
 
 function formatPerformance(studentId: string, assessment: AssessmentDto): string {
@@ -146,7 +265,16 @@ onMounted(async () => {
         }
 
         if (calcResult.ok) {
+          rawScores[student.id] = calcResult.value.rawScore;
           calculated[student.id] = calcResult.value.displayGrade;
+          const grades: Record<string, number> = {};
+          for (const cg of calcResult.value.categoryGrades) {
+            grades[cg.categoryId] = cg.displayGrade;
+          }
+          catGrades[student.id] = grades;
+          if (categoryColumns.value.length === 0) {
+            categoryColumns.value = calcResult.value.categoryGrades;
+          }
         }
 
         if (gradeResult.ok && gradeResult.value) {
@@ -259,8 +387,21 @@ async function setManualGrade(studentId: string, event: Event): Promise<void> {
 
 .cell-calculated {
   text-align: center;
-  font-weight: 700;
-  font-size: 15px;
+  font-weight: 600;
+  font-size: 16px;
+}
+
+.raw-score {
+  color: var(--color-text-secondary);
+  font-weight: 400;
+  font-size: 11px;
+}
+
+.grade-indicator {
+  color: var(--color-text-secondary);
+  font-weight: 400;
+  font-size: 10px;
+  margin-left: 1px;
 }
 
 .grade-good { color: #059669; }
@@ -277,6 +418,43 @@ async function setManualGrade(studentId: string, event: Event): Promise<void> {
   color: var(--color-text-secondary);
   font-weight: 400;
   font-size: 10px;
+}
+
+.col-cat { min-width: 80px; text-align: center; }
+
+.cell-cat-grade {
+  text-align: center;
+  font-weight: 700;
+  font-size: 15px;
+}
+
+.view-toggle {
+  display: flex;
+  gap: 0;
+  margin-bottom: 16px;
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  overflow: hidden;
+  width: fit-content;
+}
+
+.toggle-btn {
+  padding: 6px 16px;
+  font-size: 13px;
+  border: none;
+  background: var(--color-surface);
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+
+.toggle-btn:not(:last-child) {
+  border-right: 1px solid var(--color-border);
+}
+
+.toggle-btn.active {
+  background: var(--color-primary, #3b82f6);
+  color: #fff;
 }
 
 .text-secondary {
