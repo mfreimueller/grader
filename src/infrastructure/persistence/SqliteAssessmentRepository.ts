@@ -67,6 +67,12 @@ export class SqliteAssessmentRepository implements AssessmentRepository {
   }
 
   async delete(id: string): Promise<void> {
+    this.db
+      .prepare(
+        'DELETE FROM findings WHERE student_performance_id IN (SELECT id FROM student_performances WHERE assessment_id = ?)',
+      )
+      .run(id);
+    this.db.prepare('DELETE FROM student_performances WHERE assessment_id = ?').run(id);
     this.db.prepare('DELETE FROM assessments WHERE id = ?').run(id);
   }
 

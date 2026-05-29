@@ -26,6 +26,7 @@ const IPC = {
 
   SESSION_LIST_BY_COURSE: 'session:listByCourse',
   SESSION_CREATE: 'session:create',
+  SESSION_UPDATE: 'session:update',
   SESSION_DELETE: 'session:delete',
 
   ASSESSMENT_LIST_BY_SESSION: 'assessment:listBySession',
@@ -83,6 +84,7 @@ const api: IpcApi = {
   session: {
     listByCourse: (courseId) => ipcRenderer.invoke(IPC.SESSION_LIST_BY_COURSE, courseId),
     create: (data) => ipcRenderer.invoke(IPC.SESSION_CREATE, data),
+    update: (id, data) => ipcRenderer.invoke(IPC.SESSION_UPDATE, id, data),
     delete: (id) => ipcRenderer.invoke(IPC.SESSION_DELETE, id),
   },
   assessment: {

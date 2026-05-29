@@ -116,6 +116,11 @@ export interface CreateSessionInput {
   studentIds?: string[];
 }
 
+export interface UpdateSessionInput {
+  date?: string;
+  notes?: string;
+}
+
 export interface AssessmentDto {
   id: string;
   title: string;
@@ -243,6 +248,7 @@ export interface IpcApi {
   session: {
     listByCourse: (courseId: string) => Promise<SessionDto[]>;
     create: (data: CreateSessionInput) => Promise<ResultDto<SessionDto>>;
+    update: (id: string, data: UpdateSessionInput) => Promise<ResultDto<SessionDto>>;
     delete: (id: string) => Promise<ResultDto<void>>;
   };
   assessment: {

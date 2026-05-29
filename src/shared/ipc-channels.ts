@@ -23,6 +23,7 @@ export const IPC = {
 
   SESSION_LIST_BY_COURSE: 'session:listByCourse',
   SESSION_CREATE: 'session:create',
+  SESSION_UPDATE: 'session:update',
   SESSION_DELETE: 'session:delete',
 
   ASSESSMENT_LIST_BY_SESSION: 'assessment:listBySession',

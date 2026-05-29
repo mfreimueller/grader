@@ -62,14 +62,25 @@
         :key="session.id"
         :class="['session-card', { 'session-card--expanded': expandedId === session.id }]"
       >
-        <div class="session-header" @click="toggleExpand(session.id)">
-          <div class="session-info">
-            <span class="session-date">{{ formatDate(session.date) }}</span>
-            <span v-if="session.notes" class="session-notes">{{ session.notes }}</span>
-          </div>
-          <div class="session-header-actions">
-            <button class="btn-icon btn-danger-icon" title="Sitzung löschen" @click.stop="deleteSession(session.id)">🗑️</button>
-          </div>
+        <div class="session-header" @click="editingId !== session.id && toggleExpand(session.id)">
+          <template v-if="editingId === session.id">
+            <div class="session-edit-form">
+              <input v-model="editForm.date" type="date" class="edit-input" @click.stop />
+              <input v-model="editForm.notes" type="text" placeholder="Notizen" class="edit-input" @click.stop />
+              <button class="btn btn-primary btn-sm" @click.stop="saveEdit(session.id)">Speichern</button>
+              <button class="btn btn-secondary btn-sm" @click.stop="cancelEdit">Abbrechen</button>
+            </div>
+          </template>
+          <template v-else>
+            <div class="session-info">
+              <span class="session-date">{{ formatDate(session.date) }}</span>
+              <span v-if="session.notes" class="session-notes">{{ session.notes }}</span>
+            </div>
+            <div class="session-header-actions">
+              <button class="btn-icon" title="Bearbeiten" @click.stop="startEdit(session)">✏️</button>
+              <button class="btn-icon btn-danger-icon" title="Sitzung löschen" @click.stop="deleteSession(session.id)">🗑️</button>
+            </div>
+          </template>
         </div>
         <div v-if="expandedId === session.id" class="session-detail">
           <SessionAssessmentTable
@@ -86,7 +97,7 @@
 
 <script setup lang="ts">
 import { ref, reactive, onMounted } from 'vue';
-import type { CourseDto, GradeImportResultDto, SessionDto } from '../../shared/types';
+import type { CourseDto, GradeImportResultDto, SessionDto, UpdateSessionInput } from '../../shared/types';
 import SessionAssessmentTable from './SessionAssessmentTable.vue';
 
 const props = defineProps<{
@@ -96,6 +107,8 @@ const props = defineProps<{
 const sessions = ref<SessionDto[]>([]);
 const loadingSessions = ref(true);
 const expandedId = ref<string | null>(null);
+const editingId = ref<string | null>(null);
+const editForm = reactive({ date: '', notes: '' });
 const showCreate = ref(false);
 const creating = ref(false);
 const sessionError = ref('');
@@ -179,6 +192,29 @@ async function deleteSession(id: string): Promise<void> {
   const result = await window.grdr.session.delete(id);
   if (result.ok) {
     if (expandedId.value === id) expandedId.value = null;
+    await loadSessions();
+  }
+}
+
+function startEdit(session: SessionDto): void {
+  editForm.date = session.date.slice(0, 10);
+  editForm.notes = session.notes ?? '';
+  editingId.value = session.id;
+}
+
+function cancelEdit(): void {
+  editingId.value = null;
+  editForm.date = '';
+  editForm.notes = '';
+}
+
+async function saveEdit(id: string): Promise<void> {
+  const data: UpdateSessionInput = {};
+  if (editForm.date) data.date = editForm.date;
+  if (editForm.notes !== undefined) data.notes = editForm.notes || '';
+  const result = await window.grdr.session.update(id, data);
+  if (result.ok) {
+    editingId.value = null;
     await loadSessions();
   }
 }
@@ -373,6 +409,39 @@ input:focus {
 .session-header-actions {
   display: flex;
   gap: 4px;
+}
+
+.session-edit-form {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+}
+
+.edit-input {
+  display: block;
+  padding: 6px 10px;
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  font-size: 14px;
+  background: var(--color-surface);
+  color: var(--color-text);
+  width: auto;
+}
+
+.edit-input:focus {
+  outline: none;
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 2px rgba(26,115,232,0.15);
+}
+
+input[type="date"].edit-input {
+  width: 160px;
+}
+
+input[type="text"].edit-input {
+  flex: 1;
+  min-width: 120px;
 }
 
 .session-detail {

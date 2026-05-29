@@ -80,4 +80,12 @@ export class Session extends Entity<string> {
   removeStudent(studentId: StudentId): void {
     this._students = this._students.filter((s) => !s.id.equals(studentId));
   }
+
+  updateDate(date: Date): void {
+    this._date = date;
+  }
+
+  updateNotes(notes: string): void {
+    this._notes = notes;
+  }
 }

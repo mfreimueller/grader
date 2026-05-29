@@ -77,6 +77,11 @@ export const createSessionSchema = z.object({
   studentIds: z.array(z.string()).optional(),
 });
 
+export const updateSessionSchema = z.object({
+  date: z.string().min(1).optional(),
+  notes: z.string().optional(),
+});
+
 export const createAssessmentSchema = z.object({
   sessionId: z.string().optional(),
   title: z.string().min(1),

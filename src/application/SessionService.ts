@@ -22,6 +22,11 @@ export interface CreateSessionInput {
   studentIds?: string[];
 }
 
+export interface UpdateSessionInput {
+  date?: string;
+  notes?: string;
+}
+
 export class SessionService {
   constructor(
     private readonly sessionRepo: SessionRepository,
@@ -53,6 +58,21 @@ export class SessionService {
 
     await this.sessionRepo.save(session);
     return Result.ok(toDto(session));
+  }
+
+  async update(id: string, input: UpdateSessionInput): Promise<Result<SessionDto>> {
+    const existing = await this.sessionRepo.findById(id);
+    if (!existing) return Result.fail(new NotFoundError('Session', id));
+
+    if (input.date !== undefined) {
+      existing.updateDate(new Date(input.date));
+    }
+    if (input.notes !== undefined) {
+      existing.updateNotes(input.notes);
+    }
+
+    await this.sessionRepo.save(existing);
+    return Result.ok(toDto(existing));
   }
 
   async delete(id: string): Promise<Result<void>> {

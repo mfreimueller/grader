@@ -104,10 +104,9 @@
                 </td>
                 <td>
                   <button
-                    v-if="assessment.isImpromptu"
                     class="btn-icon btn-danger-icon btn-xs"
-                    title="Entfernen"
-                    @click="removeImpromptu(assessment.id)"
+                    title="Leistung löschen"
+                    @click="removeAssessment(assessment.id)"
                   >
                     ✕
                   </button>
@@ -330,7 +329,8 @@ async function onImpromptuSaved(): Promise<void> {
   await refreshAssessments();
 }
 
-async function removeImpromptu(assessmentId: string): Promise<void> {
+async function removeAssessment(assessmentId: string): Promise<void> {
+  if (!confirm('Soll diese Leistung inkl. aller Schülerergebnisse wirklich gelöscht werden?')) return;
   const result = await window.grdr.assessment.delete(assessmentId);
   if (result.ok) {
     await refreshAssessments();
