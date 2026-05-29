@@ -3,10 +3,18 @@ import { Course } from './Course';
 import { Result } from '../shared/Result';
 import { ValidationError } from '../../shared/errors';
 import { performanceToValue } from './performanceNormalization';
-import { computeFinalGrade } from './computeFinalGrade';
+import { computeFinalGrade, CategoryGradeResult } from './computeFinalGrade';
+
+export interface GradeCategoryGradeResult extends CategoryGradeResult {
+  categoryTitle: string;
+  weight: number;
+  displayGrade: 1 | 2 | 3 | 4 | 5;
+}
+
 export interface GradeCalculationResult {
   rawScore: number;
   displayGrade: 1 | 2 | 3 | 4 | 5;
+  categoryGrades: GradeCategoryGradeResult[];
 }
 
 export function normalizedToGrade(value: number): 1 | 2 | 3 | 4 | 5 {
@@ -46,6 +54,10 @@ export class GradeCalculationService {
       weight: gc.weight,
     }));
 
+    const titleMap = new Map(
+      course.gradeCompositions.map(gc => [gc.assessmentCategory.id, gc.assessmentCategory.title]),
+    );
+
     console.log(
       '[GRADE]',
       `Compositions: ${compositions.map(c => `${c.categoryId}=${c.weight}`).join(', ')}`,
@@ -57,14 +69,21 @@ export class GradeCalculationService {
       );
     }
 
-    const rawScore = computeFinalGrade(inputs, compositions);
-    const displayGrade = normalizedToGrade(rawScore);
+    const result = computeFinalGrade(inputs, compositions);
+    const displayGrade = normalizedToGrade(result.rawScore);
+
+    const categoryGrades: GradeCategoryGradeResult[] = result.categoryGrades.map(cg => ({
+      ...cg,
+      categoryTitle: titleMap.get(cg.categoryId) ?? cg.categoryId,
+      weight: compositions.find(c => c.categoryId === cg.categoryId)?.weight ?? 0,
+      displayGrade: normalizedToGrade(cg.mean),
+    }));
 
     console.log(
       '[GRADE]',
-      `Result: rawScore=${rawScore.toFixed(4)}, displayGrade=${displayGrade}`,
+      `Result: rawScore=${result.rawScore.toFixed(4)}, displayGrade=${displayGrade}`,
     );
 
-    return Result.ok({ rawScore, displayGrade });
+    return Result.ok({ rawScore: result.rawScore, displayGrade, categoryGrades });
   }
 }

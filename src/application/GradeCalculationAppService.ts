@@ -8,6 +8,14 @@ import { NotFoundError } from '../shared/errors';
 export interface GradeCalculationResultDto {
   rawScore: number;
   displayGrade: 1 | 2 | 3 | 4 | 5;
+  categoryGrades: Array<{
+    categoryId: string;
+    categoryTitle: string;
+    weight: number;
+    mean: number;
+    performanceCount: number;
+    displayGrade: 1 | 2 | 3 | 4 | 5;
+  }>;
 }
 
 export class GradeCalculationAppService {

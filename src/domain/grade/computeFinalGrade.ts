@@ -5,20 +5,29 @@ export interface FinalGradePerformanceInput {
   normalizedValue: number;
 }
 
+export interface CategoryGradeResult {
+  categoryId: string;
+  mean: number;
+  performanceCount: number;
+}
+
+export interface ComputeFinalGradeResult {
+  rawScore: number;
+  categoryGrades: CategoryGradeResult[];
+}
+
 export function computeFinalGrade(
   performances: FinalGradePerformanceInput[],
   compositions: CategoryWeightInput[],
-): number {
-  const weightMap = new Map(compositions.map(c => [c.categoryId, c.weight]));
-  const categoryGroups = new Map<string, { values: number[]; weights: number[] }>();
+): ComputeFinalGradeResult {
+  const categoryGroups = new Map<string, number[]>();
 
   for (const perf of performances) {
     const group = categoryGroups.get(perf.categoryId);
     if (group) {
-      group.values.push(perf.normalizedValue);
-      group.weights.push(1);
+      group.push(perf.normalizedValue);
     } else {
-      categoryGroups.set(perf.categoryId, { values: [perf.normalizedValue], weights: [1] });
+      categoryGroups.set(perf.categoryId, [perf.normalizedValue]);
     }
   }
 
@@ -29,38 +38,31 @@ export function computeFinalGrade(
 
   let totalWeightedSum = 0;
   let totalWeight = 0;
+  const categoryGrades: CategoryGradeResult[] = [];
 
-  for (const [categoryId, group] of categoryGroups) {
-    const categoryWeight = weightMap.get(categoryId);
-    if (categoryWeight === undefined) {
-      console.log('[GRADE]', `Category ${categoryId}: skipped (no weight configured)`);
-      continue;
-    }
+  for (const comp of compositions) {
+    const values = categoryGroups.get(comp.categoryId) ?? [];
+    const count = values.length;
 
-    console.log(
-      '[GRADE]',
-      `Category ${categoryId}: ${group.values.length} performances, categoryWeight=${categoryWeight}`,
-    );
-
-    const sum = group.values.reduce((a, b) => a + b, 0);
-    const count = group.values.length;
-    console.log(`[GRADE] Category ${categoryId}: sum=${sum.toFixed(4)}, count=${count}`);
-
+    let mean: number;
     if (count === 0) {
-      console.log('[GRADE]', `Category ${categoryId}: skipped (no performances)`);
-      continue;
+      mean = 0;
+    } else {
+      const sum = values.reduce((a, b) => a + b, 0);
+      mean = sum / count;
+      console.log(
+        '[GRADE]',
+        `Category ${comp.categoryId}: sum=${sum.toFixed(4)}, count=${count}, mean=${mean.toFixed(4)}, contribution=${(mean * comp.weight).toFixed(4)}`,
+      );
+      totalWeightedSum += mean * comp.weight;
+      totalWeight += comp.weight;
     }
 
-    const mean = sum / count;
-    console.log(
-      '[GRADE]',
-      `Category ${categoryId}: mean=${mean.toFixed(4)}, contribution=${(mean * categoryWeight).toFixed(4)}`,
-    );
-    totalWeightedSum += mean * categoryWeight;
-    totalWeight += categoryWeight;
+    categoryGrades.push({ categoryId: comp.categoryId, mean, performanceCount: count });
   }
 
-  if (totalWeight === 0) return 0;
-
-  return totalWeightedSum / totalWeight;
+  return {
+    rawScore: totalWeight === 0 ? 0 : totalWeightedSum / totalWeight,
+    categoryGrades,
+  };
 }

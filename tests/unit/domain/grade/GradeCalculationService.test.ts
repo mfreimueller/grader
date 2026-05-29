@@ -68,6 +68,13 @@ describe('GradeCalculationService', () => {
     if (result.ok) {
       expect(result.value.rawScore).toBeCloseTo(0.9);
       expect(result.value.displayGrade).toBe(1);
+      expect(result.value.categoryGrades).toHaveLength(1);
+      expect(result.value.categoryGrades[0]!.categoryId).toBe('cat-1');
+      expect(result.value.categoryGrades[0]!.categoryTitle).toBe('Schularbeit');
+      expect(result.value.categoryGrades[0]!.weight).toBe(80);
+      expect(result.value.categoryGrades[0]!.mean).toBeCloseTo(0.9);
+      expect(result.value.categoryGrades[0]!.performanceCount).toBe(1);
+      expect(result.value.categoryGrades[0]!.displayGrade).toBe(1);
     }
   });
 

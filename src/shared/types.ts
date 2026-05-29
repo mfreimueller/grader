@@ -201,9 +201,19 @@ export interface GradeImportResultDto {
   warnings: string[];
 }
 
+export interface CategoryGradeResultDto {
+  categoryId: string;
+  categoryTitle: string;
+  weight: number;
+  mean: number;
+  performanceCount: number;
+  displayGrade: number;
+}
+
 export interface GradeCalculationResultDto {
   rawScore: number;
   displayGrade: number;
+  categoryGrades: CategoryGradeResultDto[];
 }
 
 export type ReportMode = 'full' | 'reduced';
