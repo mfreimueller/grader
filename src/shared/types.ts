@@ -214,7 +214,7 @@ export interface ImportResultDto {
 
 export interface IpcApi {
   student: {
-    list: () => Promise<StudentDto[]>;
+    list: (schoolClassId?: string) => Promise<StudentDto[]>;
     get: (id: string) => Promise<ResultDto<StudentDto>>;
     create: (data: CreateStudentInput) => Promise<ResultDto<StudentDto>>;
     update: (id: string, data: UpdateStudentInput) => Promise<ResultDto<StudentDto>>;

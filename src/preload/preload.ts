@@ -54,7 +54,7 @@ const IPC = {
 
 const api: IpcApi = {
   student: {
-    list: () => ipcRenderer.invoke(IPC.STUDENT_LIST),
+    list: (schoolClassId?: string) => ipcRenderer.invoke(IPC.STUDENT_LIST, schoolClassId),
     get: (id) => ipcRenderer.invoke(IPC.STUDENT_GET, id),
     create: (data) => ipcRenderer.invoke(IPC.STUDENT_CREATE, data),
     update: (id, data) => ipcRenderer.invoke(IPC.STUDENT_UPDATE, id, data),

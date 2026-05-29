@@ -10,7 +10,9 @@
       <table class="grading-table">
         <thead>
           <tr>
-            <th class="col-name">Schüler</th>
+            <th class="col-name col-name-sortable" @click="sortAscending = !sortAscending">
+              Schüler {{ sortAscending ? '▲' : '▼' }}
+            </th>
             <th class="col-manual">Note (manuell)</th>
             <th class="col-calculated">Berechnete Note</th>
             <th
@@ -25,7 +27,7 @@
           </tr>
         </thead>
         <tbody>
-          <tr v-for="student in students" :key="student.id">
+          <tr v-for="student in sortedStudents" :key="student.id">
             <td class="cell-name">{{ student.lastName }}, {{ student.firstName }}</td>
             <td>
               <select
@@ -58,7 +60,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted } from 'vue';
+import { ref, reactive, computed, onMounted } from 'vue';
 import type { CourseDto, StudentDto, AssessmentDto, SessionDto, PerformanceDto } from '../../../shared/types';
 
 const props = defineProps<{
@@ -71,6 +73,14 @@ const loading = ref(true);
 const manualGrades = reactive<Record<string, number>>({});
 const calculated = reactive<Record<string, number>>({});
 const perfMap = reactive<Record<string, Record<string, PerformanceDto>>>({});
+const sortAscending = ref(true);
+
+const sortedStudents = computed(() =>
+  [...students.value].sort((a, b) => {
+    const cmp = a.lastName.localeCompare(b.lastName) || a.firstName.localeCompare(b.firstName);
+    return sortAscending.value ? cmp : -cmp;
+  }),
+);
 
 function manualGrade(studentId: string): number | '' {
   return manualGrades[studentId] ?? '';
@@ -104,8 +114,7 @@ function formatPerformance(studentId: string, assessment: AssessmentDto): string
 
 onMounted(async () => {
   try {
-    const allStudents = await window.grdr.student.list();
-    students.value = allStudents.filter(s => s.schoolClass.id === props.course.schoolClass.id);
+    students.value = await window.grdr.student.list(props.course.schoolClass.id);
 
     const sessions: SessionDto[] = await window.grdr.session.listByCourse(props.course.id);
     const allAssessments: AssessmentDto[] = [];
@@ -155,7 +164,7 @@ onMounted(async () => {
     }
     assessments.value = allAssessments
       .filter(a => assessmentIdsWithPerfs.has(a.id))
-      .sort((a, b) => a.date.localeCompare(b.date));
+      .sort((a, b) => b.date.localeCompare(a.date));
   } finally {
     loading.value = false;
   }
@@ -224,6 +233,7 @@ async function setManualGrade(studentId: string, event: Event): Promise<void> {
 }
 
 .col-name { min-width: 160px; }
+.col-name-sortable { cursor: pointer; user-select: none; }
 .col-manual { min-width: 100px; }
 .col-calculated { min-width: 100px; }
 .col-perf { min-width: 80px; text-align: center; }

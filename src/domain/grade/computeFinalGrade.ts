@@ -43,12 +43,18 @@ export function computeFinalGrade(
       (sum, v, i) => sum + v * group.weights[i]!,
       0,
     );
+    console.log(`Calculated weighted sum for category ${categoryId}: ${weightedSum}`);
+
     const weightSum = group.weights.reduce((a, b) => a + b, 0);
+    console.log(`Reduced group weights for category ${categoryId} to ${weightSum}`);
+
     if (weightSum === 0) continue;
 
     const recencyWeightedMean = weightedSum / weightSum;
     totalWeightedSum += recencyWeightedMean * categoryWeight;
     totalWeight += categoryWeight;
+
+    console.log(`Calculated new total weight: ${totalWeight}`);
   }
 
   if (totalWeight === 0) return 0;

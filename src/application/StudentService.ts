@@ -47,8 +47,8 @@ export class StudentService {
     private readonly schoolClassRepo: SchoolClassRepository,
   ) {}
 
-  async list(): Promise<StudentDto[]> {
-    const students = await this.studentRepo.findAll();
+  async list(schoolClassId?: string): Promise<StudentDto[]> {
+    const students = await this.studentRepo.findAll(schoolClassId);
     return students.map(toDto);
   }
 

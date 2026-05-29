@@ -9,12 +9,14 @@
     <table v-else class="roster-table">
       <thead>
         <tr>
-          <th>Name</th>
+          <th class="col-name-sortable" @click="sortAscending = !sortAscending">
+            Name {{ sortAscending ? '▲' : '▼' }}
+          </th>
           <th class="col-actions">Aktionen</th>
         </tr>
       </thead>
       <tbody>
-        <tr v-for="student in students" :key="student.id">
+        <tr v-for="student in sortedStudents" :key="student.id">
           <td class="cell-name">{{ student.lastName }}, {{ student.firstName }}</td>
           <td class="cell-actions">
             <button class="btn btn-secondary btn-sm" @click="openImpromptu(student)">
@@ -37,7 +39,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue';
+import { ref, computed, onMounted } from 'vue';
 import type { CourseDto, StudentDto, AssessmentCategoryDto } from '../../../shared/types';
 import ImpromptuDialog from './ImpromptuDialog.vue';
 
@@ -49,14 +51,22 @@ const students = ref<StudentDto[]>([]);
 const categories = ref<AssessmentCategoryDto[]>([]);
 const loading = ref(true);
 const impromptuStudent = ref<StudentDto | null>(null);
+const sortAscending = ref(true);
+
+const sortedStudents = computed(() =>
+  [...students.value].sort((a, b) => {
+    const cmp = a.lastName.localeCompare(b.lastName) || a.firstName.localeCompare(b.firstName);
+    return sortAscending.value ? cmp : -cmp;
+  }),
+);
 
 onMounted(async () => {
   try {
     const [allStudents, cats] = await Promise.all([
-      window.grdr.student.list(),
+      window.grdr.student.list(props.course.schoolClass.id),
       window.grdr.assessmentCategory.listByCourse(props.course.id),
     ]);
-    students.value = allStudents.filter(s => s.schoolClass.id === props.course.schoolClass.id);
+    students.value = allStudents;
     categories.value = cats;
   } finally {
     loading.value = false;
@@ -112,6 +122,7 @@ function openImpromptu(student: StudentDto): void {
   font-weight: 600;
 }
 
+.col-name-sortable { cursor: pointer; user-select: none; }
 .col-actions { width: 180px; }
 
 .cell-actions {

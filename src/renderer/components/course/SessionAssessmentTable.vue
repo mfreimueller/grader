@@ -47,7 +47,9 @@
         <table class="perf-table" v-if="assessments.length > 0">
           <thead>
             <tr>
-              <th class="col-student">Schüler</th>
+              <th class="col-student col-student-sortable" @click="sortAscending = !sortAscending">
+                Schüler {{ sortAscending ? '▲' : '▼' }}
+              </th>
               <th class="col-assessment">Erfasste Leistung</th>
               <th class="col-grade">Beurteilung</th>
               <th class="col-finding">Anmerkung</th>
@@ -55,7 +57,7 @@
             </tr>
           </thead>
           <tbody>
-            <template v-for="student in students" :key="student.id + '-group'">
+            <template v-for="student in sortedStudents" :key="student.id + '-group'">
               <tr
                 v-for="(assessment, aIdx) in assessments"
                 :key="student.id + '-' + assessment.id"
@@ -147,6 +149,7 @@ import ImpromptuDialog from './ImpromptuDialog.vue';
 const props = defineProps<{
   courseId: string;
   sessionId: string;
+  schoolClassId: string;
 }>();
 
 const symbols = [
@@ -164,6 +167,14 @@ const showAddForm = ref(false);
 const addingAssessment = ref(false);
 const addError = ref('');
 const impromptuStudent = ref<StudentDto | null>(null);
+const sortAscending = ref(true);
+
+const sortedStudents = computed(() =>
+  [...students.value].sort((a, b) => {
+    const cmp = a.lastName.localeCompare(b.lastName) || a.firstName.localeCompare(b.firstName);
+    return sortAscending.value ? cmp : -cmp;
+  }),
+);
 
 const addForm = reactive({
   title: '',
@@ -200,7 +211,7 @@ onMounted(async () => {
 
 async function loadData(): Promise<void> {
   const [allStudents, asses, cats] = await Promise.all([
-    window.grdr.student.list(),
+    window.grdr.student.list(props.schoolClassId),
     window.grdr.assessment.listBySession(props.sessionId),
     window.grdr.assessmentCategory.listByCourse(props.courseId),
   ]);
@@ -511,6 +522,7 @@ input:focus, select:focus {
 }
 
 .col-student { min-width: 140px; }
+.col-student-sortable { cursor: pointer; user-select: none; }
 .col-assessment { min-width: 120px; }
 .col-grade { min-width: 140px; }
 .col-finding { min-width: 120px; }

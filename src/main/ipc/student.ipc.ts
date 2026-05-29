@@ -6,8 +6,8 @@ import { CsvImportService } from '../../application/CsvImportService';
 import { createStudentSchema, updateStudentSchema, studentIdParam } from './schemas';
 
 export function registerStudentHandlers(service: StudentService, csvImportService: CsvImportService): void {
-  ipcMain.handle(IPC.STUDENT_LIST, async () => {
-    return await service.list();
+  ipcMain.handle(IPC.STUDENT_LIST, async (_event, schoolClassId?: string) => {
+    return await service.list(schoolClassId);
   });
 
   ipcMain.handle(IPC.STUDENT_GET, async (_event, id: string) => {

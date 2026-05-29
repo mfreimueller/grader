@@ -75,6 +75,7 @@
           <SessionAssessmentTable
             :course-id="course.id"
             :session-id="session.id"
+            :school-class-id="course.schoolClass.id"
             :key="session.id + '-assessments'"
           />
         </div>
