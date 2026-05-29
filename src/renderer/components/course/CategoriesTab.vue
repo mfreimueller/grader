@@ -17,6 +17,7 @@
           <th>Titel</th>
           <th>Bewertungstyp</th>
           <th>Als Note anzeigen</th>
+          <th class="col-weight">Gewichtung</th>
           <th class="col-actions">Aktionen</th>
         </tr>
       </thead>
@@ -25,6 +26,16 @@
           <td class="cell-title">{{ cat.title }}</td>
           <td>{{ cat.gradingType === 'NUMERIC' ? 'Punkte' : 'Symbole (+/~/−)' }}</td>
           <td>{{ cat.displayAsGrade ? 'Ja' : 'Nein' }}</td>
+          <td class="cell-weight">
+            <input
+              v-model.number="weightEdits[cat.id]"
+              type="number"
+              min="1"
+              max="99"
+              class="weight-input"
+              placeholder="−"
+            />
+          </td>
           <td class="cell-actions">
             <button class="btn btn-secondary btn-sm" @click="openEdit(cat)">Bearbeiten</button>
             <button
@@ -39,6 +50,12 @@
         </tr>
       </tbody>
     </table>
+    <div v-if="hasWeightChanges" class="weight-actions">
+      <span class="weight-hint">Gewichtungen geändert</span>
+      <button class="btn btn-primary btn-sm" @click="saveWeights" :disabled="savingWeights">
+        {{ savingWeights ? 'Speichert...' : 'Gewichte speichern' }}
+      </button>
+    </div>
 
     <div v-if="showForm" class="overlay" @click.self="showForm = false">
       <div class="modal">
@@ -85,8 +102,8 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted } from 'vue';
-import type { CourseDto, AssessmentCategoryDto } from '../../../shared/types';
+import { ref, reactive, computed, onMounted } from 'vue';
+import type { CourseDto, AssessmentCategoryDto, GradeCompositionDto } from '../../../shared/types';
 
 const props = defineProps<{
   course: CourseDto;
@@ -106,7 +123,52 @@ const form = reactive({
   displayAsGrade: false,
 });
 
-onMounted(loadCategories);
+const weightEdits = reactive<Record<string, number | undefined>>({});
+const weightSnapshot = ref<Record<string, number>>({});
+const savingWeights = ref(false);
+
+const hasWeightChanges = computed(() => {
+  const snap = weightSnapshot.value;
+  const keys = new Set([...Object.keys(snap), ...Object.keys(weightEdits)]);
+  for (const key of keys) {
+    const a = snap[key];
+    const b = weightEdits[key];
+    if (a === undefined && b === undefined) continue;
+    if (a === undefined || b === undefined) return true;
+    if (a !== b) return true;
+  }
+  return false;
+});
+
+function initWeights(): void {
+  const w: Record<string, number> = {};
+  for (const gc of props.course.gradeCompositions) {
+    w[gc.categoryId] = gc.weight;
+  }
+  weightSnapshot.value = { ...w };
+  for (const key of Object.keys(weightEdits)) delete weightEdits[key];
+  for (const [key, val] of Object.entries(w)) weightEdits[key] = val;
+}
+
+async function saveWeights(): Promise<void> {
+  savingWeights.value = true;
+  try {
+    const gradeCompositions: GradeCompositionDto[] = Object.entries(weightEdits)
+      .filter(([, w]) => w !== undefined && w !== null)
+      .map(([categoryId, weight]) => ({ categoryId, weight: weight! }));
+    const result = await window.grdr.course.update(props.course.id, { gradeCompositions });
+    if (result.ok) {
+      weightSnapshot.value = { ...weightEdits as Record<string, number> };
+    }
+  } finally {
+    savingWeights.value = false;
+  }
+}
+
+onMounted(() => {
+  initWeights();
+  loadCategories();
+});
 
 async function loadCategories(): Promise<void> {
   loading.value = true;
@@ -243,7 +305,47 @@ async function doDelete(): Promise<void> {
   font-weight: 600;
 }
 
+.cell-weight {
+  text-align: center;
+}
+
+.weight-input {
+  width: 60px;
+  margin: 0 auto;
+  padding: 4px 6px;
+  border: 1px solid var(--color-border);
+  border-radius: 4px;
+  font-size: 13px;
+  text-align: center;
+  background: var(--color-surface);
+  color: var(--color-text);
+}
+
+.weight-input:focus {
+  outline: none;
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 2px rgba(26,115,232,0.15);
+}
+
+.weight-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-top: 12px;
+  padding: 10px 14px;
+  background: #fefce8;
+  border: 1px solid #fde68a;
+  border-radius: 8px;
+}
+
+.weight-hint {
+  font-size: 13px;
+  color: #92400e;
+}
+
 .col-actions { width: 180px; }
+.col-weight { width: 100px; }
 
 .cell-actions {
   display: flex;

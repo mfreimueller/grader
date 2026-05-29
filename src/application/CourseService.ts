@@ -108,18 +108,28 @@ export class CourseService {
     return Result.ok(toDto(cloned));
   }
 
-  async update(id: string, input: { title?: string }): Promise<Result<CourseDto>> {
+  async update(
+    id: string,
+    input: { title?: string; gradeCompositions?: GradeCompositionDto[] },
+  ): Promise<Result<CourseDto>> {
     const existing = await this.courseRepo.findById(id);
     if (!existing) return Result.fail(new NotFoundError('Course', id));
 
     const title = input.title ?? existing.title;
-    const updated = Course.reconstitute(
-      id,
-      title,
-      existing.schoolClass,
-      [...existing.assessmentCategories],
-      [...existing.gradeCompositions],
-    );
+
+    const compositions = input.gradeCompositions
+      ? input.gradeCompositions.map(gc => {
+          const cat = existing.assessmentCategories.find(c => c.id === gc.categoryId);
+          if (!cat) throw new Error(`Category ${gc.categoryId} not found in course ${id}`);
+          const result = GradeComposition.create(cat, gc.weight);
+          if (!result.ok) throw result.error;
+          return result.value;
+        })
+      : [...existing.gradeCompositions];
+
+    const updated = Course.reconstitute(id, title, existing.schoolClass, [
+      ...existing.assessmentCategories,
+    ], compositions);
     await this.courseRepo.save(updated);
     return Result.ok(toDto(updated));
   }

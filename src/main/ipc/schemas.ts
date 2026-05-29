@@ -47,6 +47,14 @@ export const courseCloneSchema = z.object({
 
 export const updateCourseSchema = z.object({
   title: z.string().min(1).optional(),
+  gradeCompositions: z
+    .array(
+      z.object({
+        categoryId: z.string().min(1),
+        weight: z.number().int().min(1).max(99),
+      }),
+    )
+    .optional(),
 });
 
 export const createCategorySchema = z.object({

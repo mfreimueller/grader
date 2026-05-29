@@ -231,7 +231,7 @@ export interface IpcApi {
     list: (params?: CourseListParams) => Promise<CourseDto[]>;
     create: (data: CreateCourseInput) => Promise<ResultDto<CourseDto>>;
     clone: (id: string, targetClassId: string) => Promise<ResultDto<CourseDto>>;
-    update: (id: string, data: { title?: string }) => Promise<ResultDto<CourseDto>>;
+    update: (id: string, data: { title?: string; gradeCompositions?: GradeCompositionDto[] }) => Promise<ResultDto<CourseDto>>;
     delete: (id: string) => Promise<ResultDto<void>>;
   };
   assessmentCategory: {
