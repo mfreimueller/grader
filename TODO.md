@@ -1,0 +1,4 @@
+- [ ] Bin for soft-deleted items
+- [ ] Remove assessments from session
+- [ ] Have weight directly in GradingTab -> remove from assessment type category, move to assessment
+- [ ] In GradingTab, have a "high level" view of the grade components (only category names) and a "detailled" view listing the sub-performances of the students -> in the high-level view, for each component there is a computed grade
