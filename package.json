@@ -1,6 +1,6 @@
 {
-  "name": "grdr",
-  "version": "0.0.1",
+  "name": "grader",
+  "version": "1.0.0",
   "description": "A grading tool for the Austrian school system.",
   "keywords": [
     "grading",
@@ -9,13 +9,13 @@
     "teaching",
     "teacher"
   ],
-  "homepage": "https://github.com/mfreimueller/grdr#readme",
+  "homepage": "https://github.com/mfreimueller/grader#readme",
   "bugs": {
-    "url": "https://github.com/mfreimueller/grdr/issues"
+    "url": "https://github.com/mfreimueller/grader/issues"
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/mfreimueller/grdr.git"
+    "url": "https://github.com/mfreimueller/grader.git"
   },
   "license": "UNLICENSED",
   "author": "Michael Freimüller",

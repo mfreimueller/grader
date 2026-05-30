@@ -1,7 +1,7 @@
-# Plan: Decompose grdr into Atomic Sub-Tasks
+# Plan: Decompose Grader into Atomic Sub-Tasks
 
 **Date:** 2026-05-28
-**Goal:** Break the full grdr Electron application down into independently implementable, testable sub-tasks with clear dependency ordering.
+**Goal:** Break the full Grader Electron application down into independently implementable, testable sub-tasks with clear dependency ordering.
 
 **Framework choice:** Vue 3 (Composition API, SFC) for the renderer.
 **Feature priority:** Phase 1–3: CRUD screens → Phase 4: Grading engine → Phase 5: Reporting.
