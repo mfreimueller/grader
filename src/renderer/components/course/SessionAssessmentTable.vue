@@ -252,6 +252,12 @@ async function refreshAssessments(): Promise<void> {
 
 async function recordNumeric(studentId: string, assessmentId: string, event: Event, maxPoints: number): Promise<void> {
   const input = event.target as HTMLInputElement;
+  const perf = getPerf(studentId, assessmentId);
+  if (input.value.trim() === '' && perf) {
+    await window.grdr.grade.deletePerformance(perf.id);
+    await refreshPerf(assessmentId);
+    return;
+  }
   const score = parseInt(input.value, 10);
   if (isNaN(score) || score < 0 || score > maxPoints) return;
   const result = await window.grdr.grade.recordPerformance({ studentId, assessmentId, score });
@@ -262,7 +268,12 @@ async function recordNumeric(studentId: string, assessmentId: string, event: Eve
 
 async function recordSymbol(studentId: string, assessmentId: string, symbol: string): Promise<void> {
   const existing = getSymbol(studentId, assessmentId);
-  if (existing === symbol) return;
+  const perf = getPerf(studentId, assessmentId);
+  if (existing === symbol && perf) {
+    await window.grdr.grade.deletePerformance(perf.id);
+    await refreshPerf(assessmentId);
+    return;
+  }
   const result = await window.grdr.grade.recordPerformance({ studentId, assessmentId, symbol });
   if (result.ok) {
     await refreshPerf(assessmentId);

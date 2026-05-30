@@ -7,7 +7,7 @@ export type ParticipationSymbolType = (typeof PARTICIPATION_SYMBOLS)[number];
 
 const SCORE_MAP: Record<ParticipationSymbolType, number> = {
   PLUS: 1.0,
-  WELLE: 0.0,
+  WELLE: 0.5,
   MINUS: -1.0,
 };
 

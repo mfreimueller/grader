@@ -88,13 +88,13 @@ describe('ParticipationPerformance', () => {
       }
     });
 
-    it('returns 0.0 for WELLE', () => {
+    it('returns 0.5 for WELLE', () => {
       const symbol = ParticipationSymbol.create('WELLE');
       if (symbol.ok) {
         const result = ParticipationPerformance.create(
           'pp-3', student, assessment, symbol.value,
         );
-        expect(result.ok && result.value.toScore()).toBe(0.0);
+        expect(result.ok && result.value.toScore()).toBe(0.5);
       }
     });
   });

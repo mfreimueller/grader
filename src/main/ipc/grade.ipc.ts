@@ -46,6 +46,11 @@ export function registerGradeHandlers(
     return await gradingService.recordPerformance(input as Parameters<GradingService['recordPerformance']>[0]);
   });
 
+  ipcMain.handle(IPC.GRADE_DELETE_PERFORMANCE, async (_event, performanceId: string) => {
+    studentIdParam.parse({ id: performanceId });
+    return await gradingService.deletePerformance(performanceId);
+  });
+
   ipcMain.handle(IPC.GRADE_GET_PERFORMANCES_BY_ASSESSMENT, async (_event, assessmentId: string) => {
     studentIdParam.parse({ id: assessmentId });
     return await gradingService.getPerformancesByAssessment(assessmentId);

@@ -266,6 +266,7 @@ export interface IpcApi {
     delete: (id: string) => Promise<ResultDto<void>>;
   };
   grade: {
+    deletePerformance: (performanceId: string) => Promise<ResultDto<void>>;
     recordPerformance: (data: RecordPerformanceInput) => Promise<ResultDto<PerformanceDto>>;
     getPerformancesByAssessment: (assessmentId: string) => Promise<PerformanceDto[]>;
     listByStudent: (studentId: string) => Promise<ResultDto<PerformanceDto[]>>;

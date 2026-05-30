@@ -43,9 +43,9 @@ describe('ParticipationSymbol', () => {
       expect(result.ok && result.value.toScore()).toBe(1.0);
     });
 
-    it('returns 0.0 for WELLE', () => {
+    it('returns 0.5 for WELLE', () => {
       const result = ParticipationSymbol.create('WELLE');
-      expect(result.ok && result.value.toScore()).toBe(0.0);
+      expect(result.ok && result.value.toScore()).toBe(0.5);
     });
 
     it('returns -1.0 for MINUS', () => {

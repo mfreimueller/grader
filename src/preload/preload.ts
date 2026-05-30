@@ -34,6 +34,7 @@ const IPC = {
   ASSESSMENT_CREATE_IMPROMPTU: 'assessment:createImpromptu',
   ASSESSMENT_DELETE: 'assessment:delete',
 
+  GRADE_DELETE_PERFORMANCE: 'grade:deletePerformance',
   GRADE_RECORD_PERFORMANCE: 'grade:recordPerformance',
   GRADE_GET_PERFORMANCES_BY_ASSESSMENT: 'grade:getPerformancesByAssessment',
   GRADE_LIST_BY_STUDENT: 'grade:listByStudent',
@@ -94,6 +95,7 @@ const api: IpcApi = {
     delete: (id) => ipcRenderer.invoke(IPC.ASSESSMENT_DELETE, id),
   },
   grade: {
+    deletePerformance: (performanceId) => ipcRenderer.invoke(IPC.GRADE_DELETE_PERFORMANCE, performanceId),
     recordPerformance: (data) => ipcRenderer.invoke(IPC.GRADE_RECORD_PERFORMANCE, data),
     getPerformancesByAssessment: (assessmentId) => ipcRenderer.invoke(IPC.GRADE_GET_PERFORMANCES_BY_ASSESSMENT, assessmentId),
     listByStudent: (studentId) => ipcRenderer.invoke(IPC.GRADE_LIST_BY_STUDENT, studentId),

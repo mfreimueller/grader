@@ -101,6 +101,11 @@ export class GradingService {
     return Result.ok(await this.toPerfDto(perfResult.value));
   }
 
+  async deletePerformance(performanceId: string): Promise<Result<void>> {
+    await this.perfRepo.deletePerformance(performanceId);
+    return Result.ok(undefined);
+  }
+
   async getPerformancesByAssessment(assessmentId: string): Promise<PerformanceDto[]> {
     const performances = await this.perfRepo.findPerformancesByAssessment(assessmentId);
     return this.toPerfDtos(performances);

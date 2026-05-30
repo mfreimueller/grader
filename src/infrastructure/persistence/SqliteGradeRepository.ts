@@ -130,6 +130,12 @@ export class SqliteGradeRepository implements GradeRepository, StudentPerformanc
     }
   }
 
+  async deletePerformance(id: string): Promise<void> {
+    this.db
+      .prepare(`UPDATE student_performances SET deleted_at = datetime('now') WHERE id = ?`)
+      .run(id);
+  }
+
   async findPerformancesByAssessment(
     assessmentId: string,
   ): Promise<StudentPerformance[]> {
