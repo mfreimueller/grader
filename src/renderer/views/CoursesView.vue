@@ -90,7 +90,12 @@ const showPast = ref(false);
 
 const displayEntries = computed<ListEntry[]>(() => {
   if (!showPast.value) {
-    return courses.value.map(c => ({ type: 'course', course: c }));
+    const sorted = [...courses.value].sort((a, b) => {
+      const cls = a.schoolClass.name.localeCompare(b.schoolClass.name);
+      if (cls !== 0) return cls;
+      return a.title.localeCompare(b.title);
+    });
+    return sorted.map(c => ({ type: 'course', course: c }));
   }
   const groups = new Map<string, CourseDto[]>();
   for (const c of courses.value) {
