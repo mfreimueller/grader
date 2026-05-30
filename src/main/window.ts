@@ -1,10 +1,11 @@
-import { BrowserWindow, session } from 'electron';
+import { app, BrowserWindow, session } from 'electron';
 import path from 'node:path';
 
 export function createMainWindow(): BrowserWindow {
   const win = new BrowserWindow({
     width: 1200,
     height: 800,
+    icon: path.join(app.getAppPath(), 'assets', 'icon.svg'),
     webPreferences: {
       contextIsolation: true,
       sandbox: true,
