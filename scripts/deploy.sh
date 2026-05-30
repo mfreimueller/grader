@@ -8,5 +8,7 @@ rsync -avP \
   --include='latest-*.yml' \
   --include='Grader-*.AppImage' \
   --include='grader_*.deb' \
+  --include='Grader-*.dmg' \
+  --include='Grader-*.zip' \
   --exclude='*' \
   dist/ "$REMOTE:$REMOTE_PATH/"
