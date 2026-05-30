@@ -3,7 +3,7 @@ productName: Grader
 directories:
   buildResources: assets
   output: dist
-icon: assets/icon.svg
+icon: assets/icon.png
 files:
   - build/**/*
   - assets/**/*
