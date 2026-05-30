@@ -25,7 +25,7 @@
         <SessionsTab v-if="activeTab === 'sessions'" :course="course" />
         <GradingTab v-else-if="activeTab === 'grading'" :course="course" />
 
-        <CategoriesTab v-else-if="activeTab === 'categories'" :course="course" />
+        <CategoriesTab v-else-if="activeTab === 'categories'" :course="course" @update:course="course = $event" />
       </div>
     </template>
   </div>

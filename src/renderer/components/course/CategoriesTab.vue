@@ -109,6 +109,10 @@ const props = defineProps<{
   course: CourseDto;
 }>();
 
+const emit = defineEmits<{
+  (e: 'update:course', course: CourseDto): void;
+}>();
+
 const categories = ref<AssessmentCategoryDto[]>([]);
 const loading = ref(true);
 const showForm = ref(false);
@@ -159,6 +163,7 @@ async function saveWeights(): Promise<void> {
     const result = await window.grdr.course.update(props.course.id, { gradeCompositions });
     if (result.ok) {
       weightSnapshot.value = { ...weightEdits as Record<string, number> };
+      emit('update:course', result.value);
     }
   } finally {
     savingWeights.value = false;
