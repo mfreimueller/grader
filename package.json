@@ -31,7 +31,8 @@
     "test:e2e": "playwright test",
     "lint": "eslint .",
     "typecheck": "tsc -p tsconfig.main.json --noEmit && tsc -p tsconfig.renderer.json --noEmit",
-    "package": "electron-builder build"
+    "package": "electron-builder build",
+    "deploy": "./scripts/deploy.sh"
   },
   "devDependencies": {
     "@electron/rebuild": "^4.0.4",
