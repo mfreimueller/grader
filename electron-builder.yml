@@ -16,6 +16,7 @@ win:
   target:
     - nsis
 linux:
+  category: Education
   target:
     - deb
     - AppImage
