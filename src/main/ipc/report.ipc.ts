@@ -1,5 +1,6 @@
-import { ipcMain, dialog } from 'electron';
+import { ipcMain, dialog, app } from 'electron';
 import { writeFileSync } from 'fs';
+import path from 'path';
 import { IPC } from '../../shared/ipc-channels';
 import { ReportService } from '../../application/ReportService';
 import { reportGenerateSchema } from './schemas';
@@ -12,7 +13,7 @@ export function registerReportHandlers(service: ReportService): void {
     if (!result.ok) return result;
 
     const { filePath, canceled } = await dialog.showSaveDialog({
-      defaultPath: `Bericht_${cid}_${m}.pdf`,
+      defaultPath: path.join(app.getPath('documents'), `Bericht_${cid}_${m}.pdf`),
       filters: [{ name: 'PDF', extensions: ['pdf'] }],
     });
 
