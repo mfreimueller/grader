@@ -18,25 +18,23 @@
     </div>
 
     <div v-else class="course-list">
-      <div
-        v-for="c in courses"
-        :key="c.id"
-        class="course-card"
-        @click="openCourse(c.id)"
-      >
-        <div class="course-body">
-          <h3 class="course-title">{{ c.title }}</h3>
-          <p class="course-meta">
-            {{ c.schoolClass.name }} · {{ c.schoolClass.schoolYear }}
-            · {{ c.assessmentCategories.length }} Kategorien
-          </p>
+      <template v-for="entry in displayEntries" :key="entry.type === 'header' ? `h-${entry.year}` : entry.course.id">
+        <div v-if="entry.type === 'header'" class="year-header">{{ entry.year }}</div>
+        <div v-else class="course-card" @click="openCourse(entry.course.id)">
+          <div class="course-body">
+            <h3 class="course-title">{{ entry.course.title }}</h3>
+            <p class="course-meta">
+              {{ entry.course.schoolClass.name }} · {{ entry.course.schoolClass.schoolYear }}
+              · {{ entry.course.assessmentCategories.length }} Kategorien
+            </p>
+          </div>
+          <div class="course-actions" @click.stop>
+            <button class="btn-icon" title="Klonen" @click="openClone(entry.course)">📋</button>
+            <button class="btn-icon" title="Bearbeiten" @click="openEdit(entry.course)">✏️</button>
+            <button class="btn-icon btn-danger-icon" title="Löschen" @click="confirmDelete(entry.course)">🗑️</button>
+          </div>
         </div>
-        <div class="course-actions" @click.stop>
-          <button class="btn-icon" title="Klonen" @click="openClone(c)">📋</button>
-          <button class="btn-icon" title="Bearbeiten" @click="openEdit(c)">✏️</button>
-          <button class="btn-icon btn-danger-icon" title="Löschen" @click="confirmDelete(c)">🗑️</button>
-        </div>
-      </div>
+      </template>
     </div>
 
     <CourseFormModal
@@ -74,9 +72,13 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue';
+import { ref, computed, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import type { CourseDto } from '../../shared/types';
+
+type ListEntry =
+  | { type: 'header'; year: string }
+  | { type: 'course'; course: CourseDto };
 import CourseFormModal from '../components/courses/CourseFormModal.vue';
 import CourseCloneDialog from '../components/courses/CourseCloneDialog.vue';
 
@@ -85,6 +87,31 @@ const router = useRouter();
 const courses = ref<CourseDto[]>([]);
 const loading = ref(true);
 const showPast = ref(false);
+
+const displayEntries = computed<ListEntry[]>(() => {
+  if (!showPast.value) {
+    return courses.value.map(c => ({ type: 'course', course: c }));
+  }
+  const groups = new Map<string, CourseDto[]>();
+  for (const c of courses.value) {
+    const year = c.schoolClass.schoolYear;
+    if (!groups.has(year)) groups.set(year, []);
+    groups.get(year)!.push(c);
+  }
+  const entries: ListEntry[] = [];
+  for (const year of [...groups.keys()].sort().reverse()) {
+    entries.push({ type: 'header', year });
+    const sorted = groups.get(year)!.sort((a, b) => {
+      const cls = a.schoolClass.name.localeCompare(b.schoolClass.name);
+      if (cls !== 0) return cls;
+      return a.title.localeCompare(b.title);
+    });
+    for (const c of sorted) {
+      entries.push({ type: 'course', course: c });
+    }
+  }
+  return entries;
+});
 const showCreate = ref(false);
 const showEdit = ref(false);
 const editingCourse = ref<CourseDto | null>(null);
@@ -253,7 +280,20 @@ async function onSaved(): Promise<void> {
 .course-list {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 4px;
+}
+
+.year-header {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-text-secondary);
+  padding: 12px 0 4px;
+  margin-top: 12px;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.year-header:first-of-type {
+  margin-top: 0;
 }
 
 .course-card {
