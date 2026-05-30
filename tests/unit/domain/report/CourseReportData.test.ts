@@ -1,7 +1,6 @@
 import {
   CourseReportData,
   StudentReportEntry,
-  CategoryGradeReportEntry,
   sortStudentsByLastName,
 } from '../../../../src/domain/report/CourseReportData';
 

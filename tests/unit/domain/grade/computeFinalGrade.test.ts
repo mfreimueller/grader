@@ -90,6 +90,20 @@ describe('computeFinalGrade', () => {
     expect(result.categoryGrades).toHaveLength(1);
   });
 
+  it('clamps negative mean to 0', () => {
+    const performances: FinalGradePerformanceInput[] = [
+      { categoryId: 'cat-1', normalizedValue: -1.0 },
+      { categoryId: 'cat-1', normalizedValue: -1.0 },
+    ];
+    const compositions: CategoryWeightInput[] = [
+      { categoryId: 'cat-1', weight: 100 },
+    ];
+    const result = computeFinalGrade(performances, compositions);
+    expect(result.rawScore).toBe(0);
+    expect(result.categoryGrades[0]!.mean).toBe(0);
+    expect(result.categoryGrades[0]!.performanceCount).toBe(2);
+  });
+
   it('includes empty categories in categoryGrades with mean 0', () => {
     const performances: FinalGradePerformanceInput[] = [
       { categoryId: 'cat-1', normalizedValue: 1.0 },

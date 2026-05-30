@@ -49,7 +49,7 @@ export function computeFinalGrade(
       mean = 0;
     } else {
       const sum = values.reduce((a, b) => a + b, 0);
-      mean = sum / count;
+      mean = Math.max(0, sum / count);
       console.log(
         '[GRADE]',
         `Category ${comp.categoryId}: sum=${sum.toFixed(4)}, count=${count}, mean=${mean.toFixed(4)}, contribution=${(mean * comp.weight).toFixed(4)}`,
