@@ -9,7 +9,7 @@
     "teaching",
     "teacher"
   ],
-  "homepage": "https://github.com/mfreimueller/grader#readme",
+  "homepage": "https://mfreimueller.com/grader",
   "bugs": {
     "url": "https://github.com/mfreimueller/grader/issues"
   },
@@ -18,13 +18,14 @@
     "url": "https://github.com/mfreimueller/grader.git"
   },
   "license": "UNLICENSED",
-  "author": "Michael Freimüller",
+  "author": "Michael Freimüller <michael@mfreimueller.com> (https://mfreimueller.com)",
   "main": "build/main/main/app.js",
   "scripts": {
     "postinstall": "npx patch-package",
     "dev": "npm run build && electron .",
     "build": "tsc -p tsconfig.main.json && vite build",
     "start": "electron .",
+    "seed": "npx tsx scripts/seed.ts",
     "test": "jest",
     "test:watch": "jest --watch",
     "test:e2e": "playwright test",
