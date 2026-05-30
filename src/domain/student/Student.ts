@@ -8,25 +8,29 @@ export class Student extends Entity<StudentId> {
   private _name: Name;
   private _schoolClass: SchoolClass;
   private _additionalInformation: AdditionalInformation[];
+  public readonly deletedAt: string | null;
 
   private constructor(
     id: StudentId,
     name: Name,
     schoolClass: SchoolClass,
     additionalInformation: AdditionalInformation[],
+    deletedAt: string | null,
   ) {
     super(id);
     this._name = name;
     this._schoolClass = schoolClass;
     this._additionalInformation = [...additionalInformation];
+    this.deletedAt = deletedAt;
   }
 
   static create(
     id: StudentId,
     name: Name,
     schoolClass: SchoolClass,
+    deletedAt?: string | null,
   ): Student {
-    return new Student(id, name, schoolClass, []);
+    return new Student(id, name, schoolClass, [], deletedAt ?? null);
   }
 
   get name(): Name {

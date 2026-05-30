@@ -30,6 +30,7 @@ import { ReportService } from '../application/ReportService';
 import { GradeImportService } from '../application/GradeImportService';
 import { GradeCalculationService } from '../domain/grade/GradeCalculationService';
 import { PdfReportGenerator } from '../infrastructure/pdf/PdfReportGenerator';
+import { BinService } from '../application/BinService';
 
 import { registerStudentHandlers } from './ipc/student.ipc';
 import { registerCourseHandlers } from './ipc/course.ipc';
@@ -37,6 +38,7 @@ import { registerSessionHandlers } from './ipc/session.ipc';
 import { registerGradeHandlers } from './ipc/grade.ipc';
 import { registerReportHandlers } from './ipc/report.ipc';
 import { registerSettingsHandlers } from './ipc/settings.ipc';
+import { registerBinHandlers } from './ipc/bin.ipc';
 
 app.on('ready', () => {
   const dbPath = resolveDbPath();
@@ -69,12 +71,14 @@ app.on('ready', () => {
   const impromptuService = new ImpromptuAssessmentService(assessmentService, gradingService);
   const reportService = new ReportService(reportRepo, pdfGenerator, calcService);
   const gradeImportService = new GradeImportService(sessionRepo, assessmentRepo, gradeRepo, studentRepo, courseRepo);
+  const binService = new BinService(studentRepo, classRepo);
 
   registerStudentHandlers(studentService, csvImportService);
   registerCourseHandlers(classService, courseService, categoryService);
   registerSessionHandlers(sessionService);
   registerGradeHandlers(assessmentService, gradingService, findingService, calcService, impromptuService, gradeImportService);
   registerReportHandlers(reportService);
+  registerBinHandlers(binService);
 
   const win = createMainWindow();
   registerSettingsHandlers(win);

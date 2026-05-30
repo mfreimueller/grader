@@ -6,6 +6,7 @@ export class SchoolClass extends Entity<string> {
     id: string,
     public readonly name: string,
     public readonly schoolYear: SchoolYear,
+    public readonly deletedAt: string | null = null,
   ) {
     super(id);
   }

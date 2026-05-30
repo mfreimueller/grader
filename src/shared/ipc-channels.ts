@@ -55,4 +55,9 @@ export const IPC = {
   SETTINGS_PICK_DB_PATH: 'settings:pickDbPath',
   SETTINGS_SAVE_DB_PATH: 'settings:saveDbPath',
   SETTINGS_RESTART_APP: 'settings:restartApp',
+
+  BIN_LIST: 'bin:list',
+  BIN_RESTORE: 'bin:restore',
+  BIN_HARD_DELETE: 'bin:hardDelete',
+  BIN_EMPTY: 'bin:empty',
 } as const;

@@ -225,6 +225,36 @@ export interface ImportResultDto {
   warnings: string[];
 }
 
+export interface DeletedStudentDto {
+  id: string;
+  firstName: string;
+  lastName: string;
+  className: string;
+  deletedAt: string;
+}
+
+export interface DeletedClassDto {
+  id: string;
+  name: string;
+  schoolYear: string;
+  deletedAt: string;
+}
+
+export interface BinListDto {
+  students: DeletedStudentDto[];
+  classes: DeletedClassDto[];
+}
+
+export interface BinRestoreInput {
+  type: 'student' | 'class';
+  id: string;
+}
+
+export interface BinHardDeleteInput {
+  type: 'student' | 'class';
+  id: string;
+}
+
 export interface IpcApi {
   student: {
     list: (schoolClassId?: string) => Promise<StudentDto[]>;
@@ -290,5 +320,11 @@ export interface IpcApi {
     saveDbPath: (path: string) => Promise<void>;
     restartApp: () => Promise<void>;
     onOpenSettings: (callback: () => void) => () => void;
+  };
+  bin: {
+    listAll: () => Promise<BinListDto>;
+    restore: (type: 'student' | 'class', id: string) => Promise<void>;
+    hardDelete: (type: 'student' | 'class', id: string) => Promise<void>;
+    empty: () => Promise<void>;
   };
 }

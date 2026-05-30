@@ -7,6 +7,7 @@ interface SchoolClassRow {
   id: string;
   name: string;
   school_year: string;
+  deleted_at?: string | null;
 }
 
 export class SqliteSchoolClassRepository implements SchoolClassRepository {
@@ -60,10 +61,40 @@ export class SqliteSchoolClassRepository implements SchoolClassRepository {
       .run(id);
   }
 
+  async findDeleted(): Promise<SchoolClass[]> {
+    const rows = this.db
+      .prepare(
+        'SELECT id, name, school_year, deleted_at FROM school_classes WHERE deleted_at IS NOT NULL',
+      )
+      .all() as SchoolClassRow[];
+
+    return rows.map(r => this.rowToSchoolClass(r));
+  }
+
+  async restore(id: string): Promise<void> {
+    this.db
+      .prepare('UPDATE school_classes SET deleted_at = NULL WHERE id = ?')
+      .run(id);
+  }
+
+  async hardDelete(id: string): Promise<void> {
+    const studentCount = this.db
+      .prepare('SELECT COUNT(*) AS cnt FROM students WHERE school_class_id = ?')
+      .get(id) as { cnt: number };
+
+    if (studentCount.cnt > 0) {
+      throw new Error(
+        `Klasse kann nicht endgültig gelöscht werden: ${studentCount.cnt} Schüler vorhanden. Löschen Sie zuerst alle Schüler.`,
+      );
+    }
+
+    this.db.prepare('DELETE FROM school_classes WHERE id = ?').run(id);
+  }
+
   private rowToSchoolClass(row: SchoolClassRow): SchoolClass {
     const yearResult = SchoolYear.create(row.school_year);
     if (!yearResult.ok) throw yearResult.error;
 
-    return new SchoolClass(row.id, row.name, yearResult.value);
+    return new SchoolClass(row.id, row.name, yearResult.value, row.deleted_at ?? null);
   }
 }

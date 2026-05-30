@@ -30,6 +30,11 @@ const routes: RouteRecordRaw[] = [
     name: 'Reports',
     component: () => import('./views/ReportsView.vue'),
   },
+  {
+    path: '/bin',
+    name: 'Bin',
+    component: () => import('./views/BinView.vue'),
+  },
 ];
 
 export const router = createRouter({

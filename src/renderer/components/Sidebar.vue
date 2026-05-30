@@ -20,6 +20,10 @@
         <span class="nav-icon">📄</span>
         <span>Berichte</span>
       </router-link>
+      <router-link to="/bin" class="nav-item" active-class="nav-item--active">
+        <span class="nav-icon">🗑️</span>
+        <span>Papierkorb</span>
+      </router-link>
     </nav>
   </aside>
 </template>

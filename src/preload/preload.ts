@@ -58,6 +58,10 @@ const IPC = {
   SETTINGS_SAVE_DB_PATH: 'settings:saveDbPath',
   SETTINGS_RESTART_APP: 'settings:restartApp',
   SHOW_SETTINGS: 'show-settings',
+  BIN_LIST: 'bin:list',
+  BIN_RESTORE: 'bin:restore',
+  BIN_HARD_DELETE: 'bin:hardDelete',
+  BIN_EMPTY: 'bin:empty',
 } as const;
 
 const api: IpcApi = {
@@ -128,6 +132,12 @@ const api: IpcApi = {
       ipcRenderer.on(IPC.SHOW_SETTINGS, callback);
       return () => ipcRenderer.removeListener(IPC.SHOW_SETTINGS, callback);
     },
+  },
+  bin: {
+    listAll: () => ipcRenderer.invoke(IPC.BIN_LIST),
+    restore: (type, id) => ipcRenderer.invoke(IPC.BIN_RESTORE, { type, id }),
+    hardDelete: (type, id) => ipcRenderer.invoke(IPC.BIN_HARD_DELETE, { type, id }),
+    empty: () => ipcRenderer.invoke(IPC.BIN_EMPTY),
   },
 };
 

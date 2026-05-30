@@ -102,6 +102,49 @@ export class SqliteStudentRepository implements StudentRepository {
       .run(id.value);
   }
 
+  async findDeleted(): Promise<Student[]> {
+    const rows = this.db
+      .prepare(
+        `SELECT s.id, s.first_name, s.last_name, s.school_class_id, s.deleted_at,
+                sc.name AS class_name, sc.school_year
+         FROM students s
+         JOIN school_classes sc ON s.school_class_id = sc.id
+         WHERE s.deleted_at IS NOT NULL`,
+      )
+      .all() as Record<string, unknown>[];
+
+    return rows.map(r => this.rowToStudent(r));
+  }
+
+  async restore(id: StudentId): Promise<void> {
+    this.db
+      .prepare('UPDATE students SET deleted_at = NULL WHERE id = ?')
+      .run(id.value);
+  }
+
+  async hardDelete(id: StudentId): Promise<void> {
+    this.db
+      .prepare('DELETE FROM student_additional_information WHERE student_id = ?')
+      .run(id.value);
+    this.db
+      .prepare('DELETE FROM session_students WHERE student_id = ?')
+      .run(id.value);
+    this.db
+      .prepare('DELETE FROM grades WHERE student_id = ?')
+      .run(id.value);
+    this.db
+      .prepare(
+        'DELETE FROM findings WHERE student_performance_id IN (SELECT id FROM student_performances WHERE student_id = ?)',
+      )
+      .run(id.value);
+    this.db
+      .prepare('DELETE FROM student_performances WHERE student_id = ?')
+      .run(id.value);
+    this.db
+      .prepare('DELETE FROM students WHERE id = ?')
+      .run(id.value);
+  }
+
   private rowToStudent(row: Record<string, unknown>): Student {
     const studentIdResult = StudentId.create(row.id as string);
     if (!studentIdResult.ok) throw studentIdResult.error;
@@ -125,6 +168,7 @@ export class SqliteStudentRepository implements StudentRepository {
       studentIdResult.value,
       nameResult.value,
       schoolClass,
+      (row.deleted_at as string | undefined) ?? null,
     );
 
     const infoRows = this.db
