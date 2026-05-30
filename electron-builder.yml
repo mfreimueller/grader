@@ -19,3 +19,6 @@ linux:
   target:
     - deb
     - AppImage
+publish:
+  provider: generic
+  url: https://mfreimueller.com/grader/updates/

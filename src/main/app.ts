@@ -1,4 +1,5 @@
-import { app } from 'electron';
+import { app, dialog } from 'electron';
+import { autoUpdater } from 'electron-updater';
 import { createMainWindow } from './window';
 import { createAppMenu } from './menu';
 import { resolveDbPath, ensureDbDirectory } from './config';
@@ -79,6 +80,55 @@ app.on('ready', () => {
   registerSettingsHandlers(win);
   createAppMenu(win);
   win.loadFile('build/renderer/index.html');
+
+  autoUpdater.autoDownload = false;
+
+  if (app.isPackaged) {
+    autoUpdater.checkForUpdates().catch((err) => {
+      console.error('Update check failed:', err);
+    });
+
+    autoUpdater.on('update-available', (info) => {
+      dialog.showMessageBox(win, {
+        type: 'info',
+        title: 'Update verfügbar',
+        message: `Version ${info.version} ist verfügbar. Möchten Sie sie jetzt herunterladen?`,
+        buttons: ['Herunterladen', 'Später'],
+        defaultId: 0,
+        cancelId: 1,
+      }).then(({ response }) => {
+        if (response === 0) {
+          autoUpdater.downloadUpdate().catch((err) => {
+            console.error('Download failed:', err);
+          });
+        }
+      });
+    });
+
+    autoUpdater.on('update-not-available', () => {
+      // silent
+    });
+
+    autoUpdater.on('error', (err) => {
+      console.error('Auto-updater error:', err);
+    });
+
+    autoUpdater.on('download-progress', () => {
+      // could show progress in UI later
+    });
+
+    autoUpdater.on('update-downloaded', () => {
+      dialog.showMessageBox(win, {
+        type: 'info',
+        title: 'Update bereit',
+        message: 'Das Update wurde heruntergeladen. Die App wird jetzt neu gestartet, um es zu installieren.',
+        buttons: ['Jetzt neu starten'],
+        defaultId: 0,
+      }).then(() => {
+        autoUpdater.quitAndInstall();
+      });
+    });
+  }
 });
 
 app.on('window-all-closed', () => {
