@@ -1,5 +1,6 @@
 import { app } from 'electron';
 import { createMainWindow } from './window';
+import { createAppMenu } from './menu';
 import { resolveDbPath, ensureDbDirectory } from './config';
 import { createFileDb, runMigrations } from '../infrastructure/persistence/db';
 
@@ -76,7 +77,7 @@ app.on('ready', () => {
   registerReportHandlers(reportService);
 
   const win = createMainWindow();
-  win.webContents.openDevTools();
+  createAppMenu(win);
   win.loadFile('build/renderer/index.html');
 });
 

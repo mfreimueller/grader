@@ -10,22 +10,22 @@
 
     <div v-if="loading" class="loading">Lade Schüler...</div>
 
-    <div v-else-if="filteredStudents.length === 0" class="empty">
+      <div v-else-if="sortedFilteredStudents.length === 0" class="empty">
       {{ search ? 'Keine Schüler gefunden.' : 'Noch keine Schüler angelegt.' }}
     </div>
 
     <table v-else class="student-table">
       <thead>
         <tr>
-          <th>Name</th>
-          <th>Klasse</th>
+          <th class="col-sortable" @click="sortBy('name')">Name{{ sortKey === 'name' ? (sortAscending ? ' ▲' : ' ▼') : '' }}</th>
+          <th class="col-sortable" @click="sortBy('class')">Klasse{{ sortKey === 'class' ? (sortAscending ? ' ▲' : ' ▼') : '' }}</th>
           <th>Schuljahr</th>
           <th class="col-actions">Aktionen</th>
         </tr>
       </thead>
       <tbody>
         <tr
-          v-for="s in filteredStudents"
+          v-for="s in sortedFilteredStudents"
           :key="s.id"
           :class="{ 'row-expanded': expandedId === s.id }"
           @click="toggleExpand(s.id)"
@@ -80,16 +80,41 @@ const performances = ref<PerformanceDto[]>([]);
 const loadingPerf = ref(false);
 const deleting = ref<StudentDto | null>(null);
 
-const filteredStudents = computed(() => {
-  if (!search.value) return students.value;
-  const q = search.value.toLowerCase();
-  return students.value.filter(
-    (s) =>
-      s.lastName.toLowerCase().includes(q) ||
-      s.firstName.toLowerCase().includes(q) ||
-      s.schoolClass.name.toLowerCase().includes(q),
-  );
+const sortAscending = ref(true);
+const sortKey = ref<'name' | 'class'>('name');
+
+const sortedFilteredStudents = computed(() => {
+  let list = students.value;
+  if (search.value) {
+    const q = search.value.toLowerCase();
+    list = list.filter(
+      (s) =>
+        s.lastName.toLowerCase().includes(q) ||
+        s.firstName.toLowerCase().includes(q) ||
+        s.schoolClass.name.toLowerCase().includes(q),
+    );
+  }
+  return [...list].sort((a, b) => {
+    let cmp: number;
+    if (sortKey.value === 'name') {
+      cmp = a.lastName.localeCompare(b.lastName) || a.firstName.localeCompare(b.firstName);
+    } else {
+      cmp = a.schoolClass.name.localeCompare(b.schoolClass.name) ||
+            a.lastName.localeCompare(b.lastName) ||
+            a.firstName.localeCompare(b.firstName);
+    }
+    return sortAscending.value ? cmp : -cmp;
+  });
 });
+
+function sortBy(key: 'name' | 'class'): void {
+  if (sortKey.value === key) {
+    sortAscending.value = !sortAscending.value;
+  } else {
+    sortKey.value = key;
+    sortAscending.value = true;
+  }
+}
 
 const expandedStudent = computed(() =>
   expandedId.value ? students.value.find((s) => s.id === expandedId.value) ?? null : null,
@@ -261,6 +286,11 @@ async function onSaved(): Promise<void> {
   color: var(--color-text-secondary);
   background: #f9fafb;
   border-bottom: 1px solid var(--color-border);
+}
+
+.col-sortable {
+  cursor: pointer;
+  user-select: none;
 }
 
 .student-table td {
