@@ -262,7 +262,7 @@ export interface IpcApi {
     create: (data: CreateStudentInput) => Promise<ResultDto<StudentDto>>;
     update: (id: string, data: UpdateStudentInput) => Promise<ResultDto<StudentDto>>;
     delete: (id: string) => Promise<ResultDto<void>>;
-    importCsv: () => Promise<ResultDto<ImportResultDto>>;
+    importCsv: (hasHeader: boolean) => Promise<ResultDto<ImportResultDto>>;
   };
   class: {
     list: () => Promise<SchoolClassDto[]>;
@@ -304,7 +304,7 @@ export interface IpcApi {
     calculateFinal: (courseId: string, studentId: string) => Promise<ResultDto<GradeCalculationResultDto>>;
     saveManualGrade: (data: SaveGradeInput) => Promise<ResultDto<GradeDto>>;
     recordImpromptu: (data: CreateImpromptuInput) => Promise<ResultDto<{ assessmentId: string; performance: { id: string; type: string; score: number | null; symbol: string | null } }>>;
-    importCsv: (courseId: string) => Promise<ResultDto<GradeImportResultDto>>;
+    importCsv: (courseId: string, hasHeader: boolean) => Promise<ResultDto<GradeImportResultDto>>;
   };
   finding: {
     add: (data: AddFindingInput & { text: string } | AddFindingInput & { filePath: string } | AddFindingInput & { url: string }) => Promise<ResultDto<FindingDto>>;

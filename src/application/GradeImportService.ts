@@ -37,7 +37,7 @@ export class GradeImportService {
     private readonly courseRepo: CourseRepository,
   ) {}
 
-  async importCsv(courseId: string, csvContent: string): Promise<GradeImportResultDto> {
+  async importCsv(courseId: string, csvContent: string, hasHeader: boolean = true): Promise<GradeImportResultDto> {
     const result: GradeImportResultDto = {
       sessionsCreated: 0,
       assessmentsCreated: 0,
@@ -52,7 +52,7 @@ export class GradeImportService {
       return result;
     }
 
-    const rows = this.parseCsv(csvContent);
+    const rows = this.parseCsv(csvContent, hasHeader);
 
     for (const [index, row] of rows.entries()) {
       try {
@@ -67,13 +67,14 @@ export class GradeImportService {
     return result;
   }
 
-  private parseCsv(content: string): CsvRow[] {
+  private parseCsv(content: string, hasHeader: boolean): CsvRow[] {
     const cleaned = content.replace(/^\uFEFF/, '').replace(/\r/g, '');
     const lines = cleaned.split('\n').filter(l => l.trim().length > 0);
-    if (lines.length < 2) return [];
+    const startIndex = hasHeader ? 1 : 0;
+    if (lines.length <= startIndex) return [];
 
     const rows: CsvRow[] = [];
-    for (let i = 1; i < lines.length; i++) {
+    for (let i = startIndex; i < lines.length; i++) {
       const line = lines[i]!.trim();
       if (!line) continue;
       const parts = line.split(';');

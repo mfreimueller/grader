@@ -83,7 +83,7 @@ export function registerGradeHandlers(
     return await impromptuService.create(input as Parameters<ImpromptuAssessmentService['create']>[0]);
   });
 
-  ipcMain.handle(IPC.GRADE_IMPORT_CSV, async (_event, courseId: string) => {
+  ipcMain.handle(IPC.GRADE_IMPORT_CSV, async (_event, courseId: string, hasHeader: boolean) => {
     const result = await dialog.showOpenDialog({
       filters: [{ name: 'CSV', extensions: ['csv'] }],
       properties: ['openFile'],
@@ -92,7 +92,7 @@ export function registerGradeHandlers(
       return { ok: true, value: { sessionsCreated: 0, assessmentsCreated: 0, performancesCreated: 0, performancesUpdated: 0, warnings: [] } };
     }
     const content = readFileSync(result.filePaths[0]!, 'utf-8');
-    return { ok: true, value: await gradeImportService.importCsv(courseId, content) };
+    return { ok: true, value: await gradeImportService.importCsv(courseId, content, hasHeader) };
   });
 
   ipcMain.handle(IPC.FINDING_ADD, async (_event, data: unknown) => {

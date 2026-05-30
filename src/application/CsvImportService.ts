@@ -27,8 +27,8 @@ export class CsvImportService {
     private readonly studentRepo: StudentRepository,
   ) {}
 
-  async importCsv(csvContent: string): Promise<ImportResult> {
-    const rows = this.parseCsv(csvContent);
+  async importCsv(csvContent: string, hasHeader: boolean = true): Promise<ImportResult> {
+    const rows = this.parseCsv(csvContent, hasHeader);
     const result: ImportResult = {
       classesCreated: 0,
       studentsCreated: 0,
@@ -49,13 +49,14 @@ export class CsvImportService {
     return result;
   }
 
-  private parseCsv(content: string): CsvRow[] {
+  private parseCsv(content: string, hasHeader: boolean): CsvRow[] {
     const cleaned = content.replace(/^\uFEFF/, '');
     const lines = cleaned.split('\n');
-    if (lines.length < 2) return [];
+    const startIndex = hasHeader ? 1 : 0;
+    if (lines.length <= startIndex) return [];
 
     const rows: CsvRow[] = [];
-    for (let i = 1; i < lines.length; i++) {
+    for (let i = startIndex; i < lines.length; i++) {
       const line = lines[i]?.trim();
       if (!line) continue;
       const parts = line.split(';');

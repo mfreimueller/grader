@@ -12,6 +12,23 @@
       </div>
     </div>
 
+    <CsvFormatDialog
+      v-if="showCsvFormat"
+      title="Noten importieren (CSV)"
+      :columns="[
+        { name: 'Nachname', desc: '' },
+        { name: 'Vorname', desc: '' },
+        { name: 'Kategorie', desc: 'z.B. Schularbeit, Mitarbeit' },
+        { name: 'Name der Bewertung', desc: 'z.B. Test 1' },
+        { name: 'Datum', desc: 'TT.MM.JJJJ' },
+        { name: 'Maximalpunkte', desc: 'Leer lassen bei Mitarbeit' },
+        { name: 'Erreichte Punkte', desc: 'Bei Mitarbeit: +, ~, -' },
+      ]"
+      example="Mustermann;Max;Schularbeit;Test 1;15.03.2025;20;18"
+      @confirm="(hasHeader: boolean) => proceedImportCsv(hasHeader)"
+      @cancel="cancelCsvImport"
+    />
+
     <div v-if="importResult" class="import-result-panel">
       <div class="import-summary">
         <strong>Import abgeschlossen:</strong>
@@ -99,6 +116,7 @@
 import { ref, reactive, onMounted } from 'vue';
 import type { CourseDto, GradeImportResultDto, SessionDto, UpdateSessionInput } from '../../shared/types';
 import SessionAssessmentTable from './SessionAssessmentTable.vue';
+import CsvFormatDialog from '../CsvFormatDialog.vue';
 
 const props = defineProps<{
   course: CourseDto;
@@ -115,6 +133,7 @@ const sessionError = ref('');
 
 const importing = ref(false);
 const importResult = ref<GradeImportResultDto | null>(null);
+const showCsvFormat = ref(false);
 
 const sessionForm = reactive({
   date: new Date().toISOString().slice(0, 10),
@@ -132,11 +151,20 @@ async function loadSessions(): Promise<void> {
   }
 }
 
-async function handleImportCsv(): Promise<void> {
+function handleImportCsv(): void {
+  showCsvFormat.value = true;
+}
+
+function cancelCsvImport(): void {
+  showCsvFormat.value = false;
+}
+
+async function proceedImportCsv(hasHeader: boolean): Promise<void> {
+  showCsvFormat.value = false;
   importResult.value = null;
   importing.value = true;
   try {
-    const result = await window.grdr.grade.importCsv(props.course.id);
+    const result = await window.grdr.grade.importCsv(props.course.id, hasHeader);
     if (result.ok) {
       importResult.value = result.value;
       await loadSessions();

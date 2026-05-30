@@ -71,7 +71,7 @@ const api: IpcApi = {
     create: (data) => ipcRenderer.invoke(IPC.STUDENT_CREATE, data),
     update: (id, data) => ipcRenderer.invoke(IPC.STUDENT_UPDATE, id, data),
     delete: (id) => ipcRenderer.invoke(IPC.STUDENT_DELETE, id),
-    importCsv: () => ipcRenderer.invoke(IPC.STUDENT_IMPORT_CSV),
+    importCsv: (hasHeader) => ipcRenderer.invoke(IPC.STUDENT_IMPORT_CSV, hasHeader),
   },
   class: {
     list: () => ipcRenderer.invoke(IPC.CLASS_LIST),
@@ -113,7 +113,7 @@ const api: IpcApi = {
     calculateFinal: (courseId, studentId) => ipcRenderer.invoke(IPC.GRADE_CALCULATE_FINAL, courseId, studentId),
     saveManualGrade: (data) => ipcRenderer.invoke(IPC.GRADE_SAVE_MANUAL, data),
     recordImpromptu: (data) => ipcRenderer.invoke(IPC.GRADE_RECORD_IMPROMPTU, data),
-    importCsv: (courseId) => ipcRenderer.invoke(IPC.GRADE_IMPORT_CSV, courseId),
+    importCsv: (courseId, hasHeader) => ipcRenderer.invoke(IPC.GRADE_IMPORT_CSV, courseId, hasHeader),
   },
   finding: {
     add: (data) => ipcRenderer.invoke(IPC.FINDING_ADD, data),

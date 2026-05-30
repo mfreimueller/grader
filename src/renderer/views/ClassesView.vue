@@ -42,6 +42,20 @@
       @saved="onSaved"
     />
 
+    <CsvFormatDialog
+      v-if="showCsvFormat"
+      title="CSV importieren"
+      :columns="[
+        { name: 'Klasse', desc: 'z.B. 4A' },
+        { name: 'Schuljahr', desc: 'z.B. 2025/26' },
+        { name: 'Nachname', desc: '' },
+        { name: 'Vorname', desc: '' },
+      ]"
+      example="4A;2025/26;Mustermann;Max"
+      @confirm="(hasHeader: boolean) => proceedImportCsv(hasHeader)"
+      @cancel="cancelCsvImport"
+    />
+
     <Teleport to="body">
       <div v-if="importResult" class="overlay" @click.self="importResult = null">
         <div class="confirm-dialog">
@@ -82,6 +96,7 @@
 import { ref, computed, onMounted } from 'vue';
 import type { SchoolClassDto, ImportResultDto } from '../../shared/types';
 import ClassFormModal from '../components/classes/ClassFormModal.vue';
+import CsvFormatDialog from '../components/CsvFormatDialog.vue';
 
 const classes = ref<SchoolClassDto[]>([]);
 const loading = ref(true);
@@ -93,6 +108,7 @@ const deleteError = ref('');
 const deletingSubmitting = ref(false);
 const importing = ref(false);
 const importResult = ref<ImportResultDto | null>(null);
+const showCsvFormat = ref(false);
 
 const grouped = computed(() => {
   const groups: Record<string, SchoolClassDto[]> = {};
@@ -147,10 +163,19 @@ async function doDelete(): Promise<void> {
   }
 }
 
-async function importCsv(): Promise<void> {
+function importCsv(): void {
+  showCsvFormat.value = true;
+}
+
+function cancelCsvImport(): void {
+  showCsvFormat.value = false;
+}
+
+async function proceedImportCsv(hasHeader: boolean): Promise<void> {
+  showCsvFormat.value = false;
   importing.value = true;
   try {
-    const result = await window.grdr.student.importCsv();
+    const result = await window.grdr.student.importCsv(hasHeader);
     if (result.ok) {
       importResult.value = result.value;
       await loadClasses();

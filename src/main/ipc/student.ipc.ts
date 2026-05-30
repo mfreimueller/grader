@@ -31,7 +31,7 @@ export function registerStudentHandlers(service: StudentService, csvImportServic
     return await service.delete(id);
   });
 
-  ipcMain.handle(IPC.STUDENT_IMPORT_CSV, async () => {
+  ipcMain.handle(IPC.STUDENT_IMPORT_CSV, async (_event, hasHeader: boolean) => {
     const result = await dialog.showOpenDialog({
       properties: ['openFile'],
       filters: [{ name: 'CSV-Dateien', extensions: ['csv'] }],
@@ -43,7 +43,7 @@ export function registerStudentHandlers(service: StudentService, csvImportServic
 
     const filePath = result.filePaths[0]!;
     const content = readFileSync(filePath, 'utf-8');
-    const importResult = await csvImportService.importCsv(content);
+    const importResult = await csvImportService.importCsv(content, hasHeader);
     return { ok: true, value: importResult };
   });
 }
