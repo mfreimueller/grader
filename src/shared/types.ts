@@ -284,4 +284,11 @@ export interface IpcApi {
   report: {
     generate: (courseId: string, mode: ReportMode) => Promise<ResultDto<{ filePath: string }>>;
   };
+  settings: {
+    getDbPath: () => Promise<string>;
+    pickDbPath: () => Promise<string | null>;
+    saveDbPath: (path: string) => Promise<void>;
+    restartApp: () => Promise<void>;
+    onOpenSettings: (callback: () => void) => () => void;
+  };
 }

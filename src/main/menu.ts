@@ -1,4 +1,5 @@
 import { app, Menu, BrowserWindow, dialog, type MenuItemConstructorOptions } from 'electron';
+import { IPC } from '../shared/ipc-channels';
 
 export function createAppMenu(win: BrowserWindow): void {
   const isMac = process.platform === 'darwin';
@@ -19,6 +20,11 @@ export function createAppMenu(win: BrowserWindow): void {
     {
       label: 'Datei',
       submenu: [
+        {
+          label: 'Einstellungen…',
+          click: () => win.webContents.send(IPC.SHOW_SETTINGS),
+        },
+        { type: 'separator' as const },
         {
           label: 'Beenden',
           accelerator: isMac ? 'Cmd+Q' : 'Alt+F4',
@@ -67,12 +73,12 @@ export function createAppMenu(win: BrowserWindow): void {
       label: 'Hilfe',
       submenu: [
         {
-          label: 'Über grdr',
+          label: 'Über Grader',
           click: () => {
             dialog.showMessageBox(win, {
               type: 'info',
-              title: 'Über grdr',
-              message: 'grdr',
+              title: 'Über Grader',
+              message: 'Grader',
               detail: 'Benotungsanwendung nach LBVO\nVersion ' + app.getVersion(),
             });
           },

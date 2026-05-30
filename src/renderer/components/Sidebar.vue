@@ -1,7 +1,7 @@
 <template>
   <aside class="sidebar">
     <div class="sidebar-header">
-      <h1 class="sidebar-title">grdr</h1>
+      <h1 class="sidebar-title">Grader</h1>
     </div>
     <nav class="sidebar-nav">
       <router-link to="/courses" class="nav-item" active-class="nav-item--active">

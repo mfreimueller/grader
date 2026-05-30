@@ -35,6 +35,7 @@ import { registerCourseHandlers } from './ipc/course.ipc';
 import { registerSessionHandlers } from './ipc/session.ipc';
 import { registerGradeHandlers } from './ipc/grade.ipc';
 import { registerReportHandlers } from './ipc/report.ipc';
+import { registerSettingsHandlers } from './ipc/settings.ipc';
 
 app.on('ready', () => {
   const dbPath = resolveDbPath();
@@ -75,6 +76,7 @@ app.on('ready', () => {
   registerReportHandlers(reportService);
 
   const win = createMainWindow();
+  registerSettingsHandlers(win);
   createAppMenu(win);
   win.loadFile('build/renderer/index.html');
 });

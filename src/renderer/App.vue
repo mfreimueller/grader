@@ -4,11 +4,27 @@
     <main class="main-content">
       <router-view />
     </main>
+    <SettingsModal :visible="showSettings" @close="showSettings = false" />
   </div>
 </template>
 
 <script setup lang="ts">
+import { ref, onMounted, onUnmounted } from 'vue';
 import Sidebar from './components/Sidebar.vue';
+import SettingsModal from './components/SettingsModal.vue';
+
+const showSettings = ref(false);
+let cleanupListener: (() => void) | undefined;
+
+onMounted(() => {
+  cleanupListener = window.grdr.settings.onOpenSettings(() => {
+    showSettings.value = true;
+  });
+});
+
+onUnmounted(() => {
+  cleanupListener?.();
+});
 </script>
 
 <style>

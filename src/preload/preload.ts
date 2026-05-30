@@ -52,6 +52,12 @@ const IPC = {
   FINDING_GET: 'finding:getFindings',
 
   REPORT_GENERATE: 'report:generate',
+
+  SETTINGS_GET_DB_PATH: 'settings:getDbPath',
+  SETTINGS_PICK_DB_PATH: 'settings:pickDbPath',
+  SETTINGS_SAVE_DB_PATH: 'settings:saveDbPath',
+  SETTINGS_RESTART_APP: 'settings:restartApp',
+  SHOW_SETTINGS: 'show-settings',
 } as const;
 
 const api: IpcApi = {
@@ -112,6 +118,16 @@ const api: IpcApi = {
   },
   report: {
     generate: (courseId, mode) => ipcRenderer.invoke(IPC.REPORT_GENERATE, courseId, mode),
+  },
+  settings: {
+    getDbPath: () => ipcRenderer.invoke(IPC.SETTINGS_GET_DB_PATH),
+    pickDbPath: () => ipcRenderer.invoke(IPC.SETTINGS_PICK_DB_PATH),
+    saveDbPath: (path) => ipcRenderer.invoke(IPC.SETTINGS_SAVE_DB_PATH, path),
+    restartApp: () => ipcRenderer.invoke(IPC.SETTINGS_RESTART_APP),
+    onOpenSettings: (callback) => {
+      ipcRenderer.on(IPC.SHOW_SETTINGS, callback);
+      return () => ipcRenderer.removeListener(IPC.SHOW_SETTINGS, callback);
+    },
   },
 };
 

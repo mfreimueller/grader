@@ -1,6 +1,7 @@
 import { app } from 'electron';
 import { existsSync, mkdirSync } from 'node:fs';
 import { dirname } from 'node:path';
+import { loadSettings } from './settings';
 
 const ENV_VAR = 'GRDR_DB_PATH';
 const CLI_PREFIX = '--db-path=';
@@ -12,6 +13,12 @@ function parseCliDbPath(): string | null {
 }
 
 export function resolveDbPath(): string {
+  const settings = loadSettings();
+  if (settings.dbPath) {
+    console.log(`[config] Using settings dbPath: ${settings.dbPath}`);
+    return settings.dbPath;
+  }
+
   const cliPath = parseCliDbPath();
   if (cliPath) {
     console.log(`[config] Using CLI --db-path: ${cliPath}`);

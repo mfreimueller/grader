@@ -49,4 +49,10 @@ export const IPC = {
   GRADE_IMPORT_CSV: 'grade:importCsv',
 
   REPORT_GENERATE: 'report:generate',
+
+  SHOW_SETTINGS: 'show-settings',
+  SETTINGS_GET_DB_PATH: 'settings:getDbPath',
+  SETTINGS_PICK_DB_PATH: 'settings:pickDbPath',
+  SETTINGS_SAVE_DB_PATH: 'settings:saveDbPath',
+  SETTINGS_RESTART_APP: 'settings:restartApp',
 } as const;
