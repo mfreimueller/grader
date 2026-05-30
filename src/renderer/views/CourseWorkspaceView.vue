@@ -24,7 +24,7 @@
       <div class="tab-content">
         <SessionsTab v-if="activeTab === 'sessions'" :course="course" />
         <GradingTab v-else-if="activeTab === 'grading'" :course="course" />
-        <StudentsTab v-else-if="activeTab === 'students'" :course="course" />
+
         <CategoriesTab v-else-if="activeTab === 'categories'" :course="course" />
       </div>
     </template>
@@ -37,7 +37,6 @@ import { useRoute } from 'vue-router';
 import type { CourseDto } from '../../shared/types';
 import SessionsTab from '../components/course/SessionsTab.vue';
 import GradingTab from '../components/course/GradingTab.vue';
-import StudentsTab from '../components/course/StudentsTab.vue';
 import CategoriesTab from '../components/course/CategoriesTab.vue';
 
 const route = useRoute();
@@ -48,7 +47,6 @@ const activeTab = ref('sessions');
 const tabs = [
   { key: 'sessions', label: 'Sitzungen' },
   { key: 'grading', label: 'Benotung' },
-  { key: 'students', label: 'Schüler' },
   { key: 'categories', label: 'Kategorien' },
 ];
 

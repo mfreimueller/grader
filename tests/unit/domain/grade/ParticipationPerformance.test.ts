@@ -68,33 +68,33 @@ describe('ParticipationPerformance', () => {
   });
 
   describe('toScore', () => {
-    it('returns 2.0 for PLUS', () => {
+    it('returns 1.0 for PLUS', () => {
       const symbol = ParticipationSymbol.create('PLUS');
       if (symbol.ok) {
         const result = ParticipationPerformance.create(
           'pp-1', student, assessment, symbol.value,
         );
-        expect(result.ok && result.value.toScore()).toBe(2.0);
+        expect(result.ok && result.value.toScore()).toBe(1.0);
       }
     });
 
-    it('returns 0.0 for MINUS', () => {
+    it('returns -1.0 for MINUS', () => {
       const symbol = ParticipationSymbol.create('MINUS');
       if (symbol.ok) {
         const result = ParticipationPerformance.create(
           'pp-2', student, assessment, symbol.value,
         );
-        expect(result.ok && result.value.toScore()).toBe(0.0);
+        expect(result.ok && result.value.toScore()).toBe(-1.0);
       }
     });
 
-    it('returns 1.0 for WELLE', () => {
+    it('returns 0.0 for WELLE', () => {
       const symbol = ParticipationSymbol.create('WELLE');
       if (symbol.ok) {
         const result = ParticipationPerformance.create(
           'pp-3', student, assessment, symbol.value,
         );
-        expect(result.ok && result.value.toScore()).toBe(1.0);
+        expect(result.ok && result.value.toScore()).toBe(0.0);
       }
     });
   });

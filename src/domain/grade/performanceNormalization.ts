@@ -41,7 +41,7 @@ export function performanceToValue(
     return normalized;
   }
   if (performance instanceof ParticipationPerformance) {
-    const value = performance.toScore() / 2;
+    const value = performance.toScore();
     console.log(
       '[GRADE]',
       `Normalize: student=${performance.student.name.firstName} ${performance.student.name.lastName}, ` +

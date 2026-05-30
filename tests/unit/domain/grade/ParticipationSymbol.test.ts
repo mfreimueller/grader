@@ -38,19 +38,19 @@ describe('ParticipationSymbol', () => {
   });
 
   describe('toScore', () => {
-    it('returns 2.0 for PLUS', () => {
+    it('returns 1.0 for PLUS', () => {
       const result = ParticipationSymbol.create('PLUS');
-      expect(result.ok && result.value.toScore()).toBe(2.0);
-    });
-
-    it('returns 1.0 for WELLE', () => {
-      const result = ParticipationSymbol.create('WELLE');
       expect(result.ok && result.value.toScore()).toBe(1.0);
     });
 
-    it('returns 0.0 for MINUS', () => {
-      const result = ParticipationSymbol.create('MINUS');
+    it('returns 0.0 for WELLE', () => {
+      const result = ParticipationSymbol.create('WELLE');
       expect(result.ok && result.value.toScore()).toBe(0.0);
+    });
+
+    it('returns -1.0 for MINUS', () => {
+      const result = ParticipationSymbol.create('MINUS');
+      expect(result.ok && result.value.toScore()).toBe(-1.0);
     });
   });
 
