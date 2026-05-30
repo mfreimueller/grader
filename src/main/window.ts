@@ -5,7 +5,7 @@ export function createMainWindow(): BrowserWindow {
   const win = new BrowserWindow({
     width: 1200,
     height: 800,
-    icon: path.join(app.getAppPath(), 'assets', 'icon.svg'),
+    icon: path.join(app.getAppPath(), 'assets', 'icon.png'),
     webPreferences: {
       contextIsolation: true,
       sandbox: true,
