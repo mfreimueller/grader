@@ -29,7 +29,6 @@ import { ReportService } from '../application/ReportService';
 import { GradeImportService } from '../application/GradeImportService';
 import { GradeCalculationService } from '../domain/grade/GradeCalculationService';
 import { PdfReportGenerator } from '../infrastructure/pdf/PdfReportGenerator';
-import { DataExportService } from '../infrastructure/fs/DataExportService';
 
 import { registerStudentHandlers } from './ipc/student.ipc';
 import { registerCourseHandlers } from './ipc/course.ipc';
@@ -53,8 +52,7 @@ app.on('ready', () => {
   const reportRepo = new SqliteReportRepository(db);
 
   const gradeCalculationService = new GradeCalculationService();
-  const pdfGenerator = new PdfReportGenerator(reportRepo);
-  const dataExport = new DataExportService(reportRepo);
+  const pdfGenerator = new PdfReportGenerator();
 
   const studentService = new StudentService(studentRepo, classRepo);
   const csvImportService = new CsvImportService(classRepo, studentRepo);
@@ -67,7 +65,7 @@ app.on('ready', () => {
   const findingService = new FindingService(findingRepo);
   const calcService = new GradeCalculationAppService(courseRepo, gradeRepo, gradeCalculationService);
   const impromptuService = new ImpromptuAssessmentService(assessmentService, gradingService);
-  const reportService = new ReportService(reportRepo, pdfGenerator, dataExport, calcService);
+  const reportService = new ReportService(reportRepo, pdfGenerator, calcService);
   const gradeImportService = new GradeImportService(sessionRepo, assessmentRepo, gradeRepo, studentRepo, courseRepo);
 
   registerStudentHandlers(studentService, csvImportService);

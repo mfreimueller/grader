@@ -8,12 +8,12 @@ export class SqliteReportRepository implements ReportRepository {
   async findCourseReportData(courseId: string): Promise<CourseReportData | null> {
     const courseRow = this.db
       .prepare(
-        `SELECT c.id, c.title, sc.school_year
+        `SELECT c.id, c.title, sc.name AS class_name, sc.school_year
          FROM courses c
          JOIN school_classes sc ON c.school_class_id = sc.id
          WHERE c.id = ?`,
       )
-      .get(courseId) as { id: string; title: string; school_year: string } | undefined;
+      .get(courseId) as { id: string; title: string; class_name: string; school_year: string } | undefined;
 
     if (!courseRow) return null;
 
@@ -64,9 +64,12 @@ export class SqliteReportRepository implements ReportRepository {
       }));
 
       return {
+        studentId: s.id,
         firstName: s.first_name,
         lastName: s.last_name,
         manualGrade: gradeRow?.score ?? null,
+        calculatedGrade: null,
+        categoryGrades: [],
         performances,
       };
     });
@@ -74,6 +77,7 @@ export class SqliteReportRepository implements ReportRepository {
     return {
       courseId: courseRow.id,
       courseTitle: courseRow.title,
+      className: courseRow.class_name,
       schoolYearLabel: courseRow.school_year,
       students: sortStudentsByLastName(studentEntries),
     };

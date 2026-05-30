@@ -282,6 +282,6 @@ export interface IpcApi {
     getFindings: (performanceId: string) => Promise<FindingDto[]>;
   };
   report: {
-    generate: (courseId: string, mode: ReportMode) => Promise<ResultDto<Buffer | string>>;
+    generate: (courseId: string, mode: ReportMode) => Promise<ResultDto<{ filePath: string }>>;
   };
 }

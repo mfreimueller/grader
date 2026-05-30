@@ -7,16 +7,26 @@ export interface PerformanceReportEntry {
   symbol: string | null;
 }
 
+export interface CategoryGradeReportEntry {
+  categoryTitle: string;
+  displayGrade: number;
+  mean: number;
+}
+
 export interface StudentReportEntry {
+  studentId: string;
   firstName: string;
   lastName: string;
   manualGrade: number | null;
+  calculatedGrade: number | null;
+  categoryGrades: CategoryGradeReportEntry[];
   performances: PerformanceReportEntry[];
 }
 
 export interface CourseReportData {
   courseId: string;
   courseTitle: string;
+  className: string;
   schoolYearLabel: string;
   students: StudentReportEntry[];
 }
