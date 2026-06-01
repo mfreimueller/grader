@@ -2,7 +2,7 @@ import type { CourseReportData } from '../../domain/report/CourseReportData';
 import type { ReportGenerator } from '../../domain/report/ReportGenerator';
 
 export class AsciidocReportGenerator implements ReportGenerator {
-  async generate(data: CourseReportData, mode: 'full' | 'reduced'): Promise<Buffer> {
+  async generate(data: CourseReportData, _mode: 'full' | 'reduced'): Promise<Buffer> {
     const lines: string[] = [];
 
     lines.push(`= Notenübersicht: ${data.courseTitle} — ${data.className} — ${data.schoolYearLabel}`);
