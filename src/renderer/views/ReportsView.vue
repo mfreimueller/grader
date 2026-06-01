@@ -153,7 +153,12 @@ watch(selectedCourseId, async () => {
   if (!selectedCourseId.value) return;
   const course = selectedCourse.value;
   if (!course) return;
-  students.value = await window.grdr.student.list(course.schoolClass.id);
+  const all = await window.grdr.student.list(course.schoolClass.id);
+  students.value = all.sort((a, b) => {
+    const cmp = a.lastName.localeCompare(b.lastName);
+    if (cmp !== 0) return cmp;
+    return a.firstName.localeCompare(b.firstName);
+  });
 });
 
 onMounted(async () => {
