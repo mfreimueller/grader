@@ -1,5 +1,6 @@
 import PDFDocument from 'pdfkit';
 import type { CourseReportData, CategoryGradeReportEntry } from '../../domain/report/CourseReportData';
+import type { ReportGenerator } from '../../domain/report/ReportGenerator';
 
 interface Column {
   title: string;
@@ -14,7 +15,7 @@ interface StudentRow {
   categoryGrades: CategoryGradeReportEntry[];
 }
 
-export class PdfReportGenerator {
+export class PdfReportGenerator implements ReportGenerator {
   async generate(data: CourseReportData, mode: 'full' | 'reduced'): Promise<Buffer> {
     const isDetailed = mode === 'full';
     const doc = new PDFDocument({

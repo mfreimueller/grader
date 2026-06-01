@@ -5,6 +5,7 @@ import { SqliteGradeRepository } from '../../../src/infrastructure/persistence/S
 import { SqliteSchoolClassRepository } from '../../../src/infrastructure/persistence/SqliteSchoolClassRepository';
 import { SqliteSessionRepository } from '../../../src/infrastructure/persistence/SqliteSessionRepository';
 import { PdfReportGenerator } from '../../../src/infrastructure/pdf/PdfReportGenerator';
+import { AsciidocReportGenerator } from '../../../src/infrastructure/asciidoc/AsciidocReportGenerator';
 import { GradeCalculationService } from '../../../src/domain/grade/GradeCalculationService';
 import { ReportService } from '../../../src/application/ReportService';
 import { GradeCalculationAppService } from '../../../src/application/GradeCalculationAppService';
@@ -27,7 +28,7 @@ describe('ReportService', () => {
     const sessionRepo = new SqliteSessionRepository(db);
     const reportRepo = new SqliteReportRepository(db);
     const gradeCalc = new GradeCalculationAppService(courseRepo, gradeRepo, sessionRepo, new GradeCalculationService());
-    service = new ReportService(reportRepo, new PdfReportGenerator(), gradeCalc);
+    service = new ReportService(reportRepo, new PdfReportGenerator(), new AsciidocReportGenerator(), gradeCalc);
 
     const year = SchoolYear.create('2025/26');
     if (!year.ok) throw year.error;
@@ -58,6 +59,11 @@ describe('ReportService', () => {
 
   it('fails for nonexistent course', async () => {
     const result = await service.generate('nonexistent', 'full');
+    expect(result.ok).toBe(false);
+  });
+
+  it('fails for nonexistent student in single export', async () => {
+    const result = await service.generateSingle('course-1', 'nonexistent', 'reduced', 'pdf');
     expect(result.ok).toBe(false);
   });
 });
