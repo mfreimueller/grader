@@ -5,6 +5,7 @@ export interface PerformanceReportEntry {
   rawScore: number | null;
   maxPoints: number | null;
   symbol: string | null;
+  notes: string[];
 }
 
 export interface CategoryGradeReportEntry {

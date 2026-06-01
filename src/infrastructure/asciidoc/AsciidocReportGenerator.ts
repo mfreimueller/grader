@@ -13,6 +13,13 @@ function gradeToWritten(grade: number): string {
   return GRADE_WRITTEN[grade] ?? String(grade);
 }
 
+function formatDate(d: Date): string {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+}
+
 export class AsciidocReportGenerator implements ReportGenerator {
   async generate(data: CourseReportData, _mode: 'full' | 'reduced'): Promise<Buffer> {
     const parts: string[] = [];
@@ -47,6 +54,24 @@ export class AsciidocReportGenerator implements ReportGenerator {
           parts.push(`${gradeToWritten(cg.displayGrade)} (${cg.displayGrade})`);
           parts.push('');
         }
+      }
+
+      if (s.performances.length > 0) {
+        parts.push('==== Leistungsnachweise');
+        parts.push('');
+        parts.push('|===');
+        parts.push('| Datum | Bezeichnung | Kategorie | Ergebnis | Max | Anmerkungen');
+
+        for (const p of s.performances) {
+          const dateStr = formatDate(p.date);
+          const result = p.symbol ?? (p.rawScore !== null ? String(p.rawScore) : '-');
+          const maxStr = p.maxPoints !== null ? String(p.maxPoints) : (p.symbol ? '' : '-');
+          const notes = p.notes.length > 0 ? p.notes.join('; ') : '';
+          parts.push(`| ${dateStr} | ${p.assessmentTitle} | ${p.categoryTitle} | ${result} | ${maxStr} | ${notes}`);
+        }
+
+        parts.push('|===');
+        parts.push('');
       }
 
       parts.push('');

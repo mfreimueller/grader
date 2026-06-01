@@ -114,4 +114,45 @@ describe('AsciidocReportGenerator', () => {
       expect(content).toContain(`(${g})`);
     }
   });
+
+  it('renders Leistungsnachweise section with performance table', async () => {
+    const data: CourseReportData = {
+      ...baseData,
+      students: [{
+        ...baseData.students[0]!,
+        performances: [
+          {
+            assessmentTitle: 'Test 1',
+            date: new Date('2025-10-01'),
+            categoryTitle: 'Schularbeit',
+            rawScore: 24,
+            maxPoints: 30,
+            symbol: null,
+            notes: ['gut gemacht'],
+          },
+          {
+            assessmentTitle: 'Mitarbeit Oktober',
+            date: new Date('2025-10-15'),
+            categoryTitle: 'Mitarbeit',
+            rawScore: null,
+            maxPoints: null,
+            symbol: '+',
+            notes: [],
+          },
+        ],
+      }],
+    };
+    const buf = await generator.generate(data, 'reduced');
+    const content = buf.toString('utf-8');
+    expect(content).toContain('==== Leistungsnachweise');
+    expect(content).toContain('|===');
+    expect(content).toContain('| Datum | Bezeichnung | Kategorie | Ergebnis | Max | Anmerkungen');
+    expect(content).toContain('| 2025-10-01 | Test 1 | Schularbeit | 24 | 30 | gut gemacht');
+    expect(content).toContain('| 2025-10-15 | Mitarbeit Oktober | Mitarbeit | + |  |');
+  });
+
+  it('renders Leistungsnachweise only when performances exist', async () => {
+    const content = (await generator.generate(baseData, 'reduced')).toString('utf-8');
+    expect(content).not.toContain('==== Leistungsnachweise');
+  });
 });
