@@ -47,6 +47,8 @@ const IPC = {
 
   GRADE_IMPORT_CSV: 'grade:importCsv',
 
+  REPORT_GENERATE_SINGLE: 'report:generateSingle',
+
   FINDING_ADD: 'finding:add',
   FINDING_REMOVE: 'finding:remove',
   FINDING_GET: 'finding:getFindings',
@@ -122,6 +124,8 @@ const api: IpcApi = {
   },
   report: {
     generate: (courseId, mode) => ipcRenderer.invoke(IPC.REPORT_GENERATE, courseId, mode),
+    generateSingle: (courseId, studentId, mode, format) =>
+      ipcRenderer.invoke(IPC.REPORT_GENERATE_SINGLE, courseId, studentId, mode, format),
   },
   settings: {
     getDbPath: () => ipcRenderer.invoke(IPC.SETTINGS_GET_DB_PATH),

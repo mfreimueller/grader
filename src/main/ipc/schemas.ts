@@ -134,3 +134,10 @@ export const reportGenerateSchema = z.object({
   courseId: z.string().min(1),
   mode: z.enum(['full', 'reduced']),
 });
+
+export const reportGenerateSingleSchema = z.object({
+  courseId: z.string().min(1),
+  studentId: z.string().min(1),
+  mode: z.enum(['full', 'reduced']),
+  format: z.enum(['pdf', 'adoc']),
+});
