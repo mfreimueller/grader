@@ -4,6 +4,7 @@ import { SqliteCourseRepository } from '../../../src/infrastructure/persistence/
 import { SqliteSchoolClassRepository } from '../../../src/infrastructure/persistence/SqliteSchoolClassRepository';
 import { SqliteStudentRepository } from '../../../src/infrastructure/persistence/SqliteStudentRepository';
 import { SqliteAssessmentRepository } from '../../../src/infrastructure/persistence/SqliteAssessmentRepository';
+import { SqliteSessionRepository } from '../../../src/infrastructure/persistence/SqliteSessionRepository';
 import { GradeCalculationAppService } from '../../../src/application/GradeCalculationAppService';
 import { GradeCalculationService } from '../../../src/domain/grade/GradeCalculationService';
 import { GradeComposition } from '../../../src/domain/grade/GradeComposition';
@@ -30,8 +31,9 @@ describe('GradeCalculationAppService', () => {
     const courseRepo = new SqliteCourseRepository(db);
     const studentRepo = new SqliteStudentRepository(db);
     const assessmentRepo = new SqliteAssessmentRepository(db);
+    const sessionRepo = new SqliteSessionRepository(db);
     const gradeRepo = new SqliteGradeRepository(db);
-    service = new GradeCalculationAppService(courseRepo, gradeRepo, new GradeCalculationService());
+    service = new GradeCalculationAppService(courseRepo, gradeRepo, sessionRepo, new GradeCalculationService());
 
     const year = SchoolYear.create('2025/26');
     if (!year.ok) throw year.error;

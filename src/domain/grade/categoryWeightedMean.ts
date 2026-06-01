@@ -1,11 +1,15 @@
+import { SubWeightType } from './SubWeightType';
+
 export interface CategoryMeanInput {
   categoryId: string;
   normalizedValue: number;
+  date?: Date;
 }
 
 export interface CategoryWeightInput {
   categoryId: string;
   weight: number;
+  subWeightType?: SubWeightType;
 }
 
 export function categoryWeightedMean(

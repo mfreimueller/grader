@@ -1,5 +1,6 @@
 import { CourseRepository } from '../domain/grade/CourseRepository';
 import { StudentPerformanceRepository } from '../domain/grade/StudentPerformanceRepository';
+import { SessionRepository } from '../domain/grade/SessionRepository';
 import { GradeCalculationService } from '../domain/grade/GradeCalculationService';
 import { StudentId } from '../domain/student/StudentId';
 import { Result } from '../domain/shared/Result';
@@ -22,6 +23,7 @@ export class GradeCalculationAppService {
   constructor(
     private readonly courseRepo: CourseRepository,
     private readonly perfRepo: StudentPerformanceRepository,
+    private readonly sessionRepo: SessionRepository,
     private readonly calculationService: GradeCalculationService,
   ) {}
 
@@ -34,31 +36,29 @@ export class GradeCalculationAppService {
 
     const performances = await this.perfRepo.findPerformancesByStudent(sidResult.value);
 
-    console.log(
-      '[GRADE]',
-      `Calculate: course=${course.title} (${courseId}), student=${studentId}, ` +
-        `totalPerformances=${performances.length}`,
-    );
-
     const coursePerformances = performances.filter(
       p => p.assessment.course.id === courseId,
     );
 
-    console.log(
-      '[GRADE]',
-      `Filtered: coursePerformances=${coursePerformances.length} (removed ${performances.length - coursePerformances.length} from other courses)`,
-    );
+    const sessionIds = new Set(coursePerformances.map(p => p.assessment.sessionId));
+    const sessionDates = new Map<string, Date>();
+    for (const sessionId of sessionIds) {
+      if (!sessionId) continue;
+      const session = await this.sessionRepo.findById(sessionId);
+      if (session) {
+        sessionDates.set(sessionId, session.date);
+      }
+    }
 
     const result = this.calculationService.calculate(
       coursePerformances,
       course,
+      sessionDates,
     );
 
     if (!result.ok) {
-      console.log('[GRADE]', `Calculation failed: ${result.error.message}`);
       return Result.fail(result.error);
     }
-    console.log('[GRADE]', `Calculation success: rawScore=${result.value.rawScore}, displayGrade=${result.value.displayGrade}`);
     return Result.ok(result.value);
   }
 }

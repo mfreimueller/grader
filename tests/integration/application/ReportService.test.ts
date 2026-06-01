@@ -3,8 +3,8 @@ import { SqliteReportRepository } from '../../../src/infrastructure/persistence/
 import { SqliteCourseRepository } from '../../../src/infrastructure/persistence/SqliteCourseRepository';
 import { SqliteGradeRepository } from '../../../src/infrastructure/persistence/SqliteGradeRepository';
 import { SqliteSchoolClassRepository } from '../../../src/infrastructure/persistence/SqliteSchoolClassRepository';
+import { SqliteSessionRepository } from '../../../src/infrastructure/persistence/SqliteSessionRepository';
 import { PdfReportGenerator } from '../../../src/infrastructure/pdf/PdfReportGenerator';
-import { DataExportService } from '../../../src/infrastructure/fs/DataExportService';
 import { GradeCalculationService } from '../../../src/domain/grade/GradeCalculationService';
 import { ReportService } from '../../../src/application/ReportService';
 import { GradeCalculationAppService } from '../../../src/application/GradeCalculationAppService';
@@ -24,9 +24,10 @@ describe('ReportService', () => {
     const classRepo = new SqliteSchoolClassRepository(db);
     const courseRepo = new SqliteCourseRepository(db);
     const gradeRepo = new SqliteGradeRepository(db);
+    const sessionRepo = new SqliteSessionRepository(db);
     const reportRepo = new SqliteReportRepository(db);
-    const gradeCalc = new GradeCalculationAppService(courseRepo, gradeRepo, new GradeCalculationService());
-    service = new ReportService(reportRepo, new PdfReportGenerator(reportRepo), new DataExportService(reportRepo), gradeCalc);
+    const gradeCalc = new GradeCalculationAppService(courseRepo, gradeRepo, sessionRepo, new GradeCalculationService());
+    service = new ReportService(reportRepo, new PdfReportGenerator(), gradeCalc);
 
     const year = SchoolYear.create('2025/26');
     if (!year.ok) throw year.error;
@@ -41,14 +42,14 @@ describe('ReportService', () => {
     db.close();
   });
 
-  it('generates a reduced mode report (CSV)', async () => {
+  it('generates a reduced mode report', async () => {
     const result = await service.generate('course-1', 'reduced');
     expect(result.ok).toBe(true);
     if (!result.ok) return;
-    expect(typeof result.value).toBe('string');
+    expect(result.value).toBeInstanceOf(Buffer);
   });
 
-  it('generates a full mode report (PDF)', async () => {
+  it('generates a full mode report', async () => {
     const result = await service.generate('course-1', 'full');
     expect(result.ok).toBe(true);
     if (!result.ok) return;
