@@ -61,6 +61,7 @@ export interface AssessmentCategoryRefDto {
 export interface GradeCompositionDto {
   categoryId: string;
   weight: number;
+  subWeightType?: 'NONE' | 'CHRONOLOGICAL';
 }
 
 export interface CourseDto {

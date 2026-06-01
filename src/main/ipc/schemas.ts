@@ -52,6 +52,7 @@ export const updateCourseSchema = z.object({
       z.object({
         categoryId: z.string().min(1),
         weight: z.number().int().min(1).max(99),
+        subWeightType: z.enum(['NONE', 'CHRONOLOGICAL']).optional(),
       }),
     )
     .optional(),
