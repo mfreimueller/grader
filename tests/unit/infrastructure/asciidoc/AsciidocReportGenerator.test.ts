@@ -16,7 +16,10 @@ describe('AsciidocReportGenerator', () => {
         lastName: 'Mustermann',
         manualGrade: null,
         calculatedGrade: 2,
-        categoryGrades: [],
+        categoryGrades: [
+          { categoryTitle: 'Schularbeit', displayGrade: 2, mean: 0.85 },
+          { categoryTitle: 'Mitarbeit', displayGrade: 1, mean: 0.95 },
+        ],
         performances: [],
       },
       {
@@ -31,19 +34,28 @@ describe('AsciidocReportGenerator', () => {
     ],
   };
 
-  it('generates an AsciiDoc table with header', async () => {
+  it('generates a per-student report with title and metadata', async () => {
     const buf = await generator.generate(baseData, 'reduced');
     const content = buf.toString('utf-8');
-    expect(content).toContain('= Notenübersicht: Mathematik — 1A — 2025/26');
-    expect(content).toContain('|===');
-    expect(content).toContain('| Name | Note');
+    expect(content).toContain('= Max Mustermann');
+    expect(content).toContain('== Aufzeichnungen: Mathematik — 1A — 2025/26');
+    expect(content).toContain('=== Gesamtnote');
   });
 
-  it('includes student names and grades', async () => {
+  it('uses written form for grades', async () => {
     const buf = await generator.generate(baseData, 'reduced');
     const content = buf.toString('utf-8');
-    expect(content).toContain('| Mustermann, Max | 2');
-    expect(content).toContain('| Muster, Anna | -');
+    expect(content).toContain('Gut (2)');
+  });
+
+  it('includes category breakdown under Bestandteile der Note', async () => {
+    const buf = await generator.generate(baseData, 'reduced');
+    const content = buf.toString('utf-8');
+    expect(content).toContain('=== Bestandteile der Note');
+    expect(content).toContain('==== Schularbeit');
+    expect(content).toContain('==== Mitarbeit');
+    expect(content).toContain('Gut (2)');
+    expect(content).toContain('Sehr Gut (1)');
   });
 
   it('prefers manualGrade over calculatedGrade', async () => {
@@ -54,18 +66,52 @@ describe('AsciidocReportGenerator', () => {
           ...baseData.students[0]!,
           manualGrade: 3,
           calculatedGrade: 1,
+          categoryGrades: [],
         },
       ],
     };
     const buf = await generator.generate(data, 'reduced');
     const content = buf.toString('utf-8');
-    expect(content).toContain('| Mustermann, Max | 3');
+    expect(content).toContain('Befriedigend (3)');
+    expect(content).not.toContain('Sehr Gut (1)');
+  });
+
+  it('shows a dash for missing grade', async () => {
+    const buf = await generator.generate(baseData, 'reduced');
+    const content = buf.toString('utf-8');
+    const secondStudentSection = content.split('<<<')[1] ?? '';
+    expect(secondStudentSection).toContain('=== Gesamtnote\n\n-');
+  });
+
+  it('separates multiple students with page break', async () => {
+    const buf = await generator.generate(baseData, 'reduced');
+    const content = buf.toString('utf-8');
+    expect(content).toContain('<<<');
+    expect(content).toContain('= Max Mustermann');
+    expect(content).toContain('= Anna Muster');
   });
 
   it('handles empty student list', async () => {
     const data: CourseReportData = { ...baseData, students: [] };
     const buf = await generator.generate(data, 'reduced');
-    const content = buf.toString('utf-8');
-    expect(content).toContain('|===');
+    expect(buf.toString('utf-8').trim()).toBe('');
+  });
+
+  it('maps all grade values to correct written form', async () => {
+    const grades = [1, 2, 3, 4, 5];
+    for (const g of grades) {
+      const data: CourseReportData = {
+        ...baseData,
+        students: [{
+          ...baseData.students[0]!,
+          manualGrade: null,
+          calculatedGrade: g,
+          categoryGrades: [],
+        }],
+      };
+      const buf = await generator.generate(data, 'reduced');
+      const content = buf.toString('utf-8');
+      expect(content).toContain(`(${g})`);
+    }
   });
 });
