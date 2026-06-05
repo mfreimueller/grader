@@ -101,4 +101,17 @@ describe('GradingService', () => {
     if (!grade.ok) return;
     expect(grade.value!.score).toBe(2);
   });
+
+  it('updates an existing grade for the same student and course', async () => {
+    const first = await service.saveManualGrade({ studentId, courseId, score: 2 });
+    expect(first.ok).toBe(true);
+
+    const second = await service.saveManualGrade({ studentId, courseId, score: 4 });
+    expect(second.ok).toBe(true);
+
+    const grade = await service.getGrade(studentId, courseId);
+    expect(grade.ok).toBe(true);
+    if (!grade.ok) return;
+    expect(grade.value!.score).toBe(4);
+  });
 });
