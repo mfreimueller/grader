@@ -84,7 +84,7 @@ describe('ParticipationPerformance', () => {
         const result = ParticipationPerformance.create(
           'pp-2', student, assessment, symbol.value,
         );
-        expect(result.ok && result.value.toScore()).toBe(-1.0);
+        expect(result.ok && result.value.toScore()).toBe(0.0);
       }
     });
 

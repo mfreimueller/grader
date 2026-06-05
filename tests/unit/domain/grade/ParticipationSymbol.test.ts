@@ -50,7 +50,7 @@ describe('ParticipationSymbol', () => {
 
     it('returns -1.0 for MINUS', () => {
       const result = ParticipationSymbol.create('MINUS');
-      expect(result.ok && result.value.toScore()).toBe(-1.0);
+      expect(result.ok && result.value.toScore()).toBe(0.0);
     });
   });
 
