@@ -3,6 +3,7 @@ import { CourseRepository } from '../../domain/grade/CourseRepository';
 import { Course } from '../../domain/grade/Course';
 import { AssessmentCategory } from '../../domain/grade/AssessmentCategory';
 import { GradeComposition } from '../../domain/grade/GradeComposition';
+import { SubWeightType } from '../../domain/grade/SubWeightType';
 import { gradingTypeFromString } from '../../domain/grade/GradingType';
 import { SchoolClass } from '../../domain/student/SchoolClass';
 import { SchoolYear } from '../../domain/student/SchoolYear';
@@ -27,6 +28,7 @@ interface CompositionRow {
   category_id: string;
   course_id: string;
   weight: number;
+  sub_weight_type: string;
 }
 
 export class SqliteCourseRepository implements CourseRepository {
@@ -111,11 +113,11 @@ export class SqliteCourseRepository implements CourseRepository {
     }
 
     const insertComposition = this.db.prepare(
-      'INSERT OR REPLACE INTO grade_compositions (category_id, course_id, weight) VALUES (?, ?, ?)',
+      'INSERT OR REPLACE INTO grade_compositions (category_id, course_id, weight, sub_weight_type) VALUES (?, ?, ?, ?)',
     );
 
     for (const comp of course.gradeCompositions) {
-      insertComposition.run(comp.assessmentCategory.id, course.id, comp.weight);
+      insertComposition.run(comp.assessmentCategory.id, course.id, comp.weight, comp.subWeightType);
       console.log(`Saved grade composition for category ${comp.assessmentCategory.id} and course ${course.id}`);
     }
   }
@@ -175,7 +177,7 @@ export class SqliteCourseRepository implements CourseRepository {
 
     const compositionRows = this.db
       .prepare(
-        'SELECT category_id, course_id, weight FROM grade_compositions WHERE course_id = ?',
+        'SELECT category_id, course_id, weight, sub_weight_type FROM grade_compositions WHERE course_id = ?',
       )
       .all(row.id) as CompositionRow[];
 
@@ -184,7 +186,10 @@ export class SqliteCourseRepository implements CourseRepository {
       const category = categories.find(c => c.id === compRow.category_id);
       if (!category) continue;
 
-      const compResult = GradeComposition.create(category, compRow.weight);
+      const subWeightType = compRow.sub_weight_type === 'CHRONOLOGICAL'
+        ? SubWeightType.CHRONOLOGICAL
+        : SubWeightType.NONE;
+      const compResult = GradeComposition.create(category, compRow.weight, subWeightType);
       if (!compResult.ok) throw compResult.error;
       compositions.push(compResult.value);
     }

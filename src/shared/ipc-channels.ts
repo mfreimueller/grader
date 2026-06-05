@@ -49,6 +49,7 @@ export const IPC = {
   GRADE_IMPORT_CSV: 'grade:importCsv',
 
   REPORT_GENERATE: 'report:generate',
+  REPORT_GENERATE_SINGLE: 'report:generateSingle',
 
   SHOW_SETTINGS: 'show-settings',
   SETTINGS_GET_DB_PATH: 'settings:getDbPath',

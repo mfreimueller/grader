@@ -29,38 +29,33 @@ export class GradeCalculationService {
   calculate(
     performances: StudentPerformance[],
     course: Course,
+    sessionDates?: Map<string, Date>,
   ): Result<GradeCalculationResult> {
-    const inputs: { categoryId: string; normalizedValue: number }[] = [];
+    const inputs: { categoryId: string; normalizedValue: number; date?: Date }[] = [];
 
     for (const perf of performances) {
       const normalized = performanceToValue(perf);
       if (!normalized.ok) {
         return Result.fail(normalized.error);
       }
-      inputs.push({
+      const sessionId = perf.assessment.sessionId;
+      const date = sessionDates?.get(sessionId);
+      const entry: { categoryId: string; normalizedValue: number; date?: Date } = {
         categoryId: perf.assessment.category.id,
         normalizedValue: normalized.value,
-      });
+      };
+      if (date !== undefined) entry.date = date;
+      inputs.push(entry);
     }
-
-    console.log(
-      '[GRADE]',
-      `Calculation: student=${performances.length > 0 ? performances[0]!.student.name.firstName + ' ' + performances[0]!.student.name.lastName : '?'}, ` +
-        `performances=${inputs.length}, course=${course.title}`,
-    );
 
     const compositions = course.gradeCompositions.map(gc => ({
       categoryId: gc.assessmentCategory.id,
       weight: gc.weight,
+      subWeightType: gc.subWeightType,
     }));
 
     const titleMap = new Map(
       course.gradeCompositions.map(gc => [gc.assessmentCategory.id, gc.assessmentCategory.title]),
-    );
-
-    console.log(
-      '[GRADE]',
-      `Compositions: ${compositions.map(c => `${c.categoryId}=${c.weight}`).join(', ')}`,
     );
 
     if (compositions.length === 0) {
@@ -78,11 +73,6 @@ export class GradeCalculationService {
       weight: compositions.find(c => c.categoryId === cg.categoryId)?.weight ?? 0,
       displayGrade: normalizedToGrade(cg.mean),
     }));
-
-    console.log(
-      '[GRADE]',
-      `Result: rawScore=${result.rawScore.toFixed(4)}, displayGrade=${displayGrade}`,
-    );
 
     return Result.ok({ rawScore: result.rawScore, displayGrade, categoryGrades });
   }

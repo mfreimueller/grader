@@ -3,6 +3,7 @@ import { SchoolClassRepository } from '../domain/student/SchoolClassRepository';
 import { Course } from '../domain/grade/Course';
 import { AssessmentCategory } from '../domain/grade/AssessmentCategory';
 import { GradeComposition } from '../domain/grade/GradeComposition';
+import { SubWeightType } from '../domain/grade/SubWeightType';
 import { SchoolYear } from '../domain/student/SchoolYear';
 import { Result } from '../domain/shared/Result';
 import { NotFoundError } from '../shared/errors';
@@ -18,6 +19,7 @@ export interface AssessmentCategoryRefDto {
 export interface GradeCompositionDto {
   categoryId: string;
   weight: number;
+  subWeightType?: 'NONE' | 'CHRONOLOGICAL';
 }
 
 export interface SchoolClassRefDto {
@@ -98,7 +100,7 @@ export class CourseService {
           matchingCat.gradingType,
           matchingCat.displayAsGrade,
         );
-        const compResult = GradeComposition.create(newCat, gc.weight);
+        const compResult = GradeComposition.create(newCat, gc.weight, gc.subWeightType);
         if (!compResult.ok) throw compResult.error;
         return compResult.value;
       }),
@@ -121,7 +123,10 @@ export class CourseService {
       ? input.gradeCompositions.map(gc => {
           const cat = existing.assessmentCategories.find(c => c.id === gc.categoryId);
           if (!cat) throw new Error(`Category ${gc.categoryId} not found in course ${id}`);
-          const result = GradeComposition.create(cat, gc.weight);
+          const subWeightType = gc.subWeightType === 'CHRONOLOGICAL'
+            ? SubWeightType.CHRONOLOGICAL
+            : SubWeightType.NONE;
+          const result = GradeComposition.create(cat, gc.weight, subWeightType);
           if (!result.ok) throw result.error;
           return result.value;
         })
@@ -160,6 +165,7 @@ function toDto(c: Course): CourseDto {
     gradeCompositions: c.gradeCompositions.map(gc => ({
       categoryId: gc.assessmentCategory.id,
       weight: gc.weight,
+      subWeightType: gc.subWeightType,
     })),
   };
 }

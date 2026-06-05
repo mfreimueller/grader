@@ -129,16 +129,13 @@ export class GradingService {
     const course = await this.courseRepo.findById(input.courseId);
     if (!course) return Result.fail(new NotFoundError('Course', input.courseId));
 
-    console.log(
-      '[GRADE]',
-      `Manual grade: student=${student.name.firstName} ${student.name.lastName}, course=${course.title}, score=${input.score}`,
-    );
+    const existing = await this.gradeRepo.findByCourseAndStudent(course.id, student.id);
+    const id = existing?.id ?? generateId();
 
-    const gradeResult = Grade.create(generateId(), student, course, input.score);
+    const gradeResult = Grade.create(id, student, course, input.score);
     if (!gradeResult.ok) return Result.fail(gradeResult.error);
 
     await this.gradeRepo.save(gradeResult.value);
-    console.log('[GRADE]', `Saved manual grade: id=${gradeResult.value.id}, score=${input.score}`);
     return Result.ok({
       id: gradeResult.value.id,
       studentId: input.studentId,

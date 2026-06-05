@@ -18,6 +18,7 @@
           <th>Bewertungstyp</th>
           <th>Als Note anzeigen</th>
           <th class="col-weight">Gewichtung</th>
+          <th class="col-subweight">Untergewichtung</th>
           <th class="col-actions">Aktionen</th>
         </tr>
       </thead>
@@ -35,6 +36,12 @@
               class="weight-input"
               placeholder="−"
             />
+          </td>
+          <td class="cell-subweight">
+            <select v-model="subWeightEdits[cat.id]" class="subweight-select">
+              <option value="NONE">Keine</option>
+              <option value="CHRONOLOGICAL">Chronologisch</option>
+            </select>
           </td>
           <td class="cell-actions">
             <button class="btn btn-secondary btn-sm" @click="openEdit(cat)">Bearbeiten</button>
@@ -128,7 +135,9 @@ const form = reactive({
 });
 
 const weightEdits = reactive<Record<string, number | undefined>>({});
+const subWeightEdits = reactive<Record<string, 'NONE' | 'CHRONOLOGICAL'>>({});
 const weightSnapshot = ref<Record<string, number>>({});
+const subWeightSnapshot = ref<Record<string, 'NONE' | 'CHRONOLOGICAL'>>({});
 const savingWeights = ref(false);
 
 const hasWeightChanges = computed(() => {
@@ -141,17 +150,29 @@ const hasWeightChanges = computed(() => {
     if (a === undefined || b === undefined) return true;
     if (a !== b) return true;
   }
+  const subSnap = subWeightSnapshot.value;
+  for (const key of Object.keys(subSnap)) {
+    if (subWeightEdits[key] !== subSnap[key]) return true;
+  }
+  for (const key of Object.keys(subWeightEdits)) {
+    if (subWeightEdits[key] !== subSnap[key]) return true;
+  }
   return false;
 });
 
 function initWeights(): void {
   const w: Record<string, number> = {};
+  const sw: Record<string, 'NONE' | 'CHRONOLOGICAL'> = {};
   for (const gc of props.course.gradeCompositions) {
     w[gc.categoryId] = gc.weight;
+    sw[gc.categoryId] = gc.subWeightType ?? 'NONE';
   }
   weightSnapshot.value = { ...w };
+  subWeightSnapshot.value = { ...sw };
   for (const key of Object.keys(weightEdits)) delete weightEdits[key];
   for (const [key, val] of Object.entries(w)) weightEdits[key] = val;
+  for (const key of Object.keys(subWeightEdits)) delete subWeightEdits[key];
+  for (const [key, val] of Object.entries(sw)) subWeightEdits[key] = val;
 }
 
 async function saveWeights(): Promise<void> {
@@ -159,10 +180,15 @@ async function saveWeights(): Promise<void> {
   try {
     const gradeCompositions: GradeCompositionDto[] = Object.entries(weightEdits)
       .filter(([, w]) => w !== undefined && w !== null)
-      .map(([categoryId, weight]) => ({ categoryId, weight: weight! }));
+      .map(([categoryId, weight]) => ({
+        categoryId,
+        weight: weight!,
+        subWeightType: subWeightEdits[categoryId],
+      }));
     const result = await window.grdr.course.update(props.course.id, { gradeCompositions });
     if (result.ok) {
       weightSnapshot.value = { ...weightEdits as Record<string, number> };
+      subWeightSnapshot.value = { ...subWeightEdits };
       emit('update:course', result.value);
     }
   } finally {
@@ -332,6 +358,17 @@ async function doDelete(): Promise<void> {
   box-shadow: 0 0 0 2px rgba(26,115,232,0.15);
 }
 
+.subweight-select {
+  width: 130px;
+  padding: 4px 6px;
+  border: 1px solid var(--color-border);
+  border-radius: 4px;
+  font-size: 12px;
+  background: var(--color-surface);
+  color: var(--color-text);
+  cursor: pointer;
+}
+
 .weight-actions {
   display: flex;
   align-items: center;
@@ -351,6 +388,7 @@ async function doDelete(): Promise<void> {
 
 .col-actions { width: 180px; }
 .col-weight { width: 100px; }
+.col-subweight { width: 140px; }
 
 .cell-actions {
   display: flex;

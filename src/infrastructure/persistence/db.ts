@@ -153,7 +153,15 @@ const MIGRATION_005: Migration = {
   `,
 };
 
-const ALL_MIGRATIONS: Migration[] = [MIGRATION_001, MIGRATION_002, MIGRATION_003, MIGRATION_004, MIGRATION_005];
+const MIGRATION_006: Migration = {
+  id: '006',
+  description: 'Add sub_weight_type to grade_compositions for granular grading',
+  sql: `
+    ALTER TABLE grade_compositions ADD COLUMN sub_weight_type TEXT NOT NULL DEFAULT 'NONE' CHECK(sub_weight_type IN ('NONE', 'CHRONOLOGICAL'));
+  `,
+};
+
+const ALL_MIGRATIONS: Migration[] = [MIGRATION_001, MIGRATION_002, MIGRATION_003, MIGRATION_004, MIGRATION_005, MIGRATION_006];
 
 export function runMigrations(db: Db): void {
   db.exec(`

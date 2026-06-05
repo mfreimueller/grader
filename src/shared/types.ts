@@ -61,6 +61,7 @@ export interface AssessmentCategoryRefDto {
 export interface GradeCompositionDto {
   categoryId: string;
   weight: number;
+  subWeightType?: 'NONE' | 'CHRONOLOGICAL';
 }
 
 export interface CourseDto {
@@ -217,6 +218,7 @@ export interface GradeCalculationResultDto {
 }
 
 export type ReportMode = 'full' | 'reduced';
+export type ReportFormat = 'pdf' | 'adoc';
 
 export interface ImportResultDto {
   classesCreated: number;
@@ -313,6 +315,7 @@ export interface IpcApi {
   };
   report: {
     generate: (courseId: string, mode: ReportMode) => Promise<ResultDto<{ filePath: string }>>;
+    generateSingle: (courseId: string, studentId: string, mode: ReportMode, format: ReportFormat) => Promise<ResultDto<{ filePath: string }>>;
   };
   settings: {
     getDbPath: () => Promise<string>;

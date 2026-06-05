@@ -30,6 +30,7 @@ import { ReportService } from '../application/ReportService';
 import { GradeImportService } from '../application/GradeImportService';
 import { GradeCalculationService } from '../domain/grade/GradeCalculationService';
 import { PdfReportGenerator } from '../infrastructure/pdf/PdfReportGenerator';
+import { AsciidocReportGenerator } from '../infrastructure/asciidoc/AsciidocReportGenerator';
 import { BinService } from '../application/BinService';
 
 import { registerStudentHandlers } from './ipc/student.ipc';
@@ -57,6 +58,7 @@ app.on('ready', () => {
 
   const gradeCalculationService = new GradeCalculationService();
   const pdfGenerator = new PdfReportGenerator();
+  const adocGenerator = new AsciidocReportGenerator();
 
   const studentService = new StudentService(studentRepo, classRepo);
   const csvImportService = new CsvImportService(classRepo, studentRepo);
@@ -67,9 +69,9 @@ app.on('ready', () => {
   const assessmentService = new AssessmentService(assessmentRepo, sessionRepo, courseRepo);
   const gradingService = new GradingService(gradeRepo, courseRepo, gradeRepo, studentRepo, assessmentRepo, sessionRepo);
   const findingService = new FindingService(findingRepo);
-  const calcService = new GradeCalculationAppService(courseRepo, gradeRepo, gradeCalculationService);
+  const calcService = new GradeCalculationAppService(courseRepo, gradeRepo, sessionRepo, gradeCalculationService);
   const impromptuService = new ImpromptuAssessmentService(assessmentService, gradingService);
-  const reportService = new ReportService(reportRepo, pdfGenerator, calcService);
+  const reportService = new ReportService(reportRepo, pdfGenerator, adocGenerator, calcService);
   const gradeImportService = new GradeImportService(sessionRepo, assessmentRepo, gradeRepo, studentRepo, courseRepo);
   const binService = new BinService(studentRepo, classRepo);
 

@@ -143,3 +143,5 @@ vite.config.ts.timestamp-*
 .vite/
 
 build/
+.scratch/
+.DS_Store

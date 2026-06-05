@@ -3,6 +3,8 @@
     <h2>Berichte</h2>
 
     <div class="config-card">
+      <h3>Kursbericht</h3>
+
       <div class="form-group">
         <label class="form-label">Schuljahr auswählen</label>
         <select v-model="selectedSchoolYear" class="form-select">
@@ -39,33 +41,89 @@
         </div>
       </div>
 
-      <div class="form-actions">
-        <button
-          class="btn btn-primary"
-          :disabled="!selectedSchoolYear || !selectedCourseId || generating"
-          @click="generateReport"
-        >
-          {{ generating ? 'Wird erstellt...' : 'PDF erstellen' }}
-        </button>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Format</label>
+          <select v-model="reportFormat" class="form-select">
+            <option value="pdf">PDF</option>
+            <option value="adoc">AsciiDoc</option>
+          </select>
+        </div>
+
+        <div class="form-group btn-group">
+          <label class="form-label">&nbsp;</label>
+          <button
+            class="btn btn-primary"
+            :disabled="!selectedSchoolYear || !selectedCourseId || generating"
+            @click="generateReport"
+          >
+            {{ generating ? 'Wird erstellt...' : `${formatLabel(reportFormat)} erstellen` }}
+          </button>
+        </div>
       </div>
 
       <p v-if="errorMsg" class="error-msg">{{ errorMsg }}</p>
       <p v-if="successMsg" class="success-msg">{{ successMsg }}</p>
+    </div>
+
+    <div class="config-card" v-if="selectedCourseId">
+      <h3>Einzelschüler-Export</h3>
+
+      <div class="form-group">
+        <label class="form-label">Schüler/in auswählen</label>
+        <select v-model="selectedStudentId" class="form-select">
+          <option value="" disabled>— Schüler/in wählen —</option>
+          <option v-for="s in students" :key="s.id" :value="s.id">
+            {{ s.lastName }}, {{ s.firstName }}
+          </option>
+        </select>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Format</label>
+          <select v-model="singleFormat" class="form-select">
+            <option value="pdf">PDF</option>
+            <option value="adoc">AsciiDoc</option>
+          </select>
+        </div>
+
+        <div class="form-group btn-group">
+          <label class="form-label">&nbsp;</label>
+          <button
+            class="btn btn-primary"
+            :disabled="!selectedStudentId || generatingSingle"
+            @click="generateSingleReport"
+          >
+            {{ generatingSingle ? 'Wird erstellt...' : `${formatLabel(singleFormat)} erstellen` }}
+          </button>
+        </div>
+      </div>
+
+      <p v-if="singleErrorMsg" class="error-msg">{{ singleErrorMsg }}</p>
+      <p v-if="singleSuccessMsg" class="success-msg">{{ singleSuccessMsg }}</p>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, computed, watch, onMounted } from 'vue';
-import type { CourseDto } from '../../shared/types';
+import type { CourseDto, StudentDto, ReportMode, ReportFormat } from '../../shared/types';
 
 const courses = ref<CourseDto[]>([]);
+const students = ref<StudentDto[]>([]);
 const selectedSchoolYear = ref('');
 const selectedCourseId = ref('');
-const reportMode = ref<'full' | 'reduced'>('reduced');
+const selectedStudentId = ref('');
+const reportMode = ref<ReportMode>('reduced');
+const reportFormat = ref<ReportFormat>('pdf');
+const singleFormat = ref<ReportFormat>('pdf');
 const generating = ref(false);
+const generatingSingle = ref(false);
 const errorMsg = ref('');
 const successMsg = ref('');
+const singleErrorMsg = ref('');
+const singleSuccessMsg = ref('');
 
 const schoolYears = computed(() => {
   const years = new Set(courses.value.map(c => c.schoolClass.schoolYear));
@@ -77,8 +135,30 @@ const filteredCourses = computed(() => {
   return courses.value.filter(c => c.schoolClass.schoolYear === selectedSchoolYear.value);
 });
 
+const selectedCourse = computed(() =>
+  courses.value.find(c => c.id === selectedCourseId.value)
+);
+
+function formatLabel(fmt: ReportFormat): string {
+  return fmt === 'pdf' ? 'PDF' : 'AsciiDoc';
+}
+
 watch(selectedSchoolYear, () => {
   selectedCourseId.value = '';
+});
+
+watch(selectedCourseId, async () => {
+  selectedStudentId.value = '';
+  students.value = [];
+  if (!selectedCourseId.value) return;
+  const course = selectedCourse.value;
+  if (!course) return;
+  const all = await window.grdr.student.list(course.schoolClass.id);
+  students.value = all.sort((a, b) => {
+    const cmp = a.lastName.localeCompare(b.lastName);
+    if (cmp !== 0) return cmp;
+    return a.firstName.localeCompare(b.firstName);
+  });
 });
 
 onMounted(async () => {
@@ -93,7 +173,7 @@ async function generateReport(): Promise<void> {
   try {
     const result = await window.grdr.report.generate(selectedCourseId.value, reportMode.value);
     if (result.ok) {
-      successMsg.value = `PDF gespeichert unter: ${result.value.filePath}`;
+      successMsg.value = `${formatLabel(reportFormat.value)} gespeichert unter: ${result.value.filePath}`;
     } else {
       if (result.error.name !== 'CanceledError') {
         errorMsg.value = result.error.message;
@@ -101,6 +181,30 @@ async function generateReport(): Promise<void> {
     }
   } finally {
     generating.value = false;
+  }
+}
+
+async function generateSingleReport(): Promise<void> {
+  if (!selectedCourseId.value || !selectedStudentId.value) return;
+  generatingSingle.value = true;
+  singleErrorMsg.value = '';
+  singleSuccessMsg.value = '';
+  try {
+    const result = await window.grdr.report.generateSingle(
+      selectedCourseId.value,
+      selectedStudentId.value,
+      reportMode.value,
+      singleFormat.value,
+    );
+    if (result.ok) {
+      singleSuccessMsg.value = `${formatLabel(singleFormat.value)} gespeichert unter: ${result.value.filePath}`;
+    } else {
+      if (result.error.name !== 'CanceledError') {
+        singleErrorMsg.value = result.error.message;
+      }
+    }
+  } finally {
+    generatingSingle.value = false;
   }
 }
 </script>
@@ -119,6 +223,12 @@ h2 {
   border: 1px solid var(--color-border);
   border-radius: 8px;
   padding: 24px;
+  margin-bottom: 20px;
+}
+
+.config-card h3 {
+  font-size: 16px;
+  margin-bottom: 16px;
 }
 
 .form-group {
@@ -149,6 +259,21 @@ h2 {
   box-shadow: 0 0 0 2px rgba(26,115,232,0.15);
 }
 
+.form-row {
+  display: flex;
+  gap: 16px;
+  align-items: flex-end;
+}
+
+.form-row .form-group {
+  flex: 1;
+  margin-bottom: 0;
+}
+
+.form-row .btn-group {
+  flex: 0 0 auto;
+}
+
 .radio-group {
   display: flex;
   flex-direction: column;
@@ -163,10 +288,6 @@ h2 {
   cursor: pointer;
 }
 
-.form-actions {
-  margin-top: 24px;
-}
-
 .btn {
   padding: 8px 16px;
   border-radius: 6px;
@@ -174,6 +295,7 @@ h2 {
   font-size: 14px;
   cursor: pointer;
   font-weight: 500;
+  white-space: nowrap;
 }
 
 .btn-primary {

@@ -36,13 +36,16 @@ export class SqliteReportRepository implements ReportRepository {
 
       const perfRows = this.db
         .prepare(
-          `SELECT a.title AS assessment_title, ses.date AS assessment_date,
-                  cat.title AS category_title, sp.score, sp.symbol, a.max_points
+          `SELECT sp.id, a.title AS assessment_title, ses.date AS assessment_date,
+                  cat.title AS category_title, sp.score, sp.symbol, a.max_points,
+                  GROUP_CONCAT(f.text_content, '||') AS finding_notes
            FROM student_performances sp
            JOIN assessments a ON sp.assessment_id = a.id
            JOIN sessions ses ON a.session_id = ses.id
            JOIN assessment_categories cat ON a.category_id = cat.id
-           WHERE sp.student_id = ?
+           LEFT JOIN findings f ON f.student_performance_id = sp.id AND f.deleted_at IS NULL
+           WHERE sp.student_id = ? AND sp.deleted_at IS NULL
+           GROUP BY sp.id
            ORDER BY ses.date`,
         )
         .all(s.id) as {
@@ -52,6 +55,7 @@ export class SqliteReportRepository implements ReportRepository {
           score: number | null;
           symbol: string | null;
           max_points: number | null;
+          finding_notes: string | null;
         }[];
 
       const performances: PerformanceReportEntry[] = perfRows.map(p => ({
@@ -61,6 +65,7 @@ export class SqliteReportRepository implements ReportRepository {
         rawScore: p.score,
         maxPoints: p.max_points,
         symbol: p.symbol,
+        notes: p.finding_notes ? p.finding_notes.split('||').filter(Boolean) : [],
       }));
 
       return {

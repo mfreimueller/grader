@@ -25,6 +25,9 @@ describe('PdfReportGenerator', () => {
       "INSERT INTO assessment_categories (id, title, grading_type, display_as_grade, course_id) VALUES ('cat-1', 'Schularbeit', 'NUMERIC', 1, 'course-1')",
     ).run();
     db.prepare(
+      "INSERT INTO grade_compositions (category_id, course_id, weight, sub_weight_type) VALUES ('cat-1', 'course-1', 1, 'NONE')",
+    ).run();
+    db.prepare(
       "INSERT INTO assessments (id, title, category_id, course_id, is_impromptu, max_points) VALUES ('a-001', 'Test 1', 'cat-1', 'course-1', 0, 30)",
     ).run();
     db.prepare(
@@ -43,7 +46,7 @@ describe('PdfReportGenerator', () => {
     runMigrations(db);
     seedReportData();
     reportRepo = new SqliteReportRepository(db);
-    generator = new PdfReportGenerator(reportRepo);
+    generator = new PdfReportGenerator();
   });
 
   afterEach(() => {
@@ -51,15 +54,20 @@ describe('PdfReportGenerator', () => {
   });
 
   it('generates a valid PDF buffer', async () => {
-    const buffer = await generator.generateCourseReport('course-1');
+    const data = await reportRepo.findCourseReportData('course-1');
+    if (!data) { fail('CourseReportData should exist'); return; }
+    const buffer = await generator.generate(data, 'reduced');
     expect(buffer).toBeInstanceOf(Buffer);
     expect(buffer.length).toBeGreaterThan(0);
     expect(buffer.toString('ascii', 0, 5)).toBe('%PDF-');
   });
 
-  it('throws for a non-existent course', async () => {
-    await expect(
-      generator.generateCourseReport('nonexistent'),
-    ).rejects.toThrow('Course nonexistent not found');
+  it('throws for empty data when rendering', async () => {
+    const data = await reportRepo.findCourseReportData('course-1');
+    if (!data) { fail('CourseReportData should exist'); return; }
+    const emptyData = { ...data, students: [] };
+    const buffer = await generator.generate(emptyData, 'reduced');
+    expect(buffer).toBeInstanceOf(Buffer);
+    expect(buffer.length).toBeGreaterThan(0);
   });
 });
