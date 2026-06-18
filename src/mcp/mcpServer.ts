@@ -1,4 +1,6 @@
 import http from 'node:http';
+import path from 'path';
+import { z } from 'zod';
 import { McpService } from './mcpService';
 
 const DEFAULT_PORT = 43882;
@@ -42,8 +44,14 @@ export class GraderMcpServer {
   async start(): Promise<void> {
     if (this._running) return;
 
-    const { McpServer } = await import('@modelcontextprotocol/sdk/server/mcp');
-    const { StreamableHTTPServerTransport } = await import('@modelcontextprotocol/sdk/server/streamableHttp');
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const { McpServer } = require(
+      path.resolve(__dirname, '../../../node_modules/@modelcontextprotocol/sdk/dist/cjs/server/mcp.js')
+    );
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const { StreamableHTTPServerTransport } = require(
+      path.resolve(__dirname, '../../../node_modules/@modelcontextprotocol/sdk/dist/cjs/server/streamableHttp.js')
+    );
 
     const mcpServer = new McpServer({
       name: 'Grader',
@@ -130,13 +138,9 @@ export class GraderMcpServer {
       'list_students_by_class',
       {
         description: 'Listet alle Schüler einer Klasse auf',
-        inputSchema: {
-          type: 'object',
-          properties: {
-            classId: { type: 'string', description: 'ID der Klasse' },
-          },
-          required: ['classId'],
-        },
+        inputSchema: z.object({
+          classId: z.string().describe('ID der Klasse'),
+        }),
       },
       async (args: Record<string, unknown>) => {
         const students = await this.mcpService.listStudentsByClass(String(args.classId));
@@ -150,13 +154,9 @@ export class GraderMcpServer {
       'list_courses_by_class',
       {
         description: 'Listet alle Kurse einer Klasse auf',
-        inputSchema: {
-          type: 'object',
-          properties: {
-            classId: { type: 'string', description: 'ID der Klasse' },
-          },
-          required: ['classId'],
-        },
+        inputSchema: z.object({
+          classId: z.string().describe('ID der Klasse'),
+        }),
       },
       async (args: Record<string, unknown>) => {
         const courses = await this.mcpService.listCoursesByClass(String(args.classId));
@@ -170,14 +170,10 @@ export class GraderMcpServer {
       'get_student_gradings',
       {
         description: 'Ruft die Benotungsdetails eines Schülers ab (optional gefiltert nach Kurs)',
-        inputSchema: {
-          type: 'object',
-          properties: {
-            studentId: { type: 'string', description: 'ID des Schülers' },
-            courseId: { type: 'string', description: 'ID des Kurses (optional)' },
-          },
-          required: ['studentId'],
-        },
+        inputSchema: z.object({
+          studentId: z.string().describe('ID des Schülers'),
+          courseId: z.string().optional().describe('ID des Kurses (optional)'),
+        }),
       },
       async (args: Record<string, unknown>) => {
         const result = await this.mcpService.getStudentGradings(
@@ -194,13 +190,9 @@ export class GraderMcpServer {
       'get_grading_formula',
       {
         description: 'Ruft die Notenformel eines Kurses ab (Kategorien, Gewichtung, Algorithmus)',
-        inputSchema: {
-          type: 'object',
-          properties: {
-            courseId: { type: 'string', description: 'ID des Kurses' },
-          },
-          required: ['courseId'],
-        },
+        inputSchema: z.object({
+          courseId: z.string().describe('ID des Kurses'),
+        }),
       },
       async (args: Record<string, unknown>) => {
         const result = await this.mcpService.getGradingFormula(String(args.courseId));
@@ -214,13 +206,9 @@ export class GraderMcpServer {
       'get_course_summary',
       {
         description: 'Ruft eine Übersicht aller Schüler eines Kurses mit berechneten Noten ab',
-        inputSchema: {
-          type: 'object',
-          properties: {
-            courseId: { type: 'string', description: 'ID des Kurses' },
-          },
-          required: ['courseId'],
-        },
+        inputSchema: z.object({
+          courseId: z.string().describe('ID des Kurses'),
+        }),
       },
       async (args: Record<string, unknown>) => {
         const result = await this.mcpService.getCourseSummary(String(args.courseId));
