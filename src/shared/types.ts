@@ -334,4 +334,10 @@ export interface IpcApi {
     hardDelete: (type: 'student' | 'class', id: string) => Promise<void>;
     empty: () => Promise<void>;
   };
+  mcp: {
+    getUrl: () => Promise<string | null>;
+    getSettings: () => Promise<{ enabled: boolean; port: number }>;
+    setEnabled: (enabled: boolean) => Promise<void>;
+    onStatusChange: (callback: (status: { running: boolean; url: string | null }) => void) => () => void;
+  };
 }

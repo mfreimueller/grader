@@ -25,10 +25,38 @@
         <span>Papierkorb</span>
       </router-link>
     </nav>
+    <div class="sidebar-footer">
+      <div class="mcp-status" :class="{ 'mcp-status--active': mcpRunning }">
+        <span class="mcp-dot"></span>
+        <span class="mcp-label">MCP</span>
+        <span v-if="mcpUrl" class="mcp-url">{{ mcpUrl }}</span>
+        <span v-else class="mcp-url">inaktiv</span>
+      </div>
+    </div>
   </aside>
 </template>
 
 <script setup lang="ts">
+import { ref, onMounted, onUnmounted } from 'vue';
+
+const mcpRunning = ref(false);
+const mcpUrl = ref<string | null>(null);
+let cleanup: (() => void) | undefined;
+
+onMounted(async () => {
+  const url = await window.grdr.mcp.getUrl();
+  mcpRunning.value = url !== null;
+  mcpUrl.value = url;
+
+  cleanup = window.grdr.mcp.onStatusChange((status) => {
+    mcpRunning.value = status.running;
+    mcpUrl.value = status.url;
+  });
+});
+
+onUnmounted(() => {
+  cleanup?.();
+});
 </script>
 
 <style scoped>
@@ -61,6 +89,7 @@
   flex-direction: column;
   padding: 8px;
   gap: 2px;
+  flex: 1;
 }
 
 .nav-item {
@@ -89,5 +118,48 @@
   font-size: 16px;
   width: 20px;
   text-align: center;
+}
+
+.sidebar-footer {
+  padding: 12px 16px;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.mcp-status {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.mcp-status--active {
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.mcp-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.3);
+  flex-shrink: 0;
+}
+
+.mcp-status--active .mcp-dot {
+  background: #22c55e;
+  box-shadow: 0 0 4px rgba(34, 197, 94, 0.5);
+}
+
+.mcp-label {
+  font-weight: 600;
+  flex-shrink: 0;
+}
+
+.mcp-url {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: monospace;
+  font-size: 11px;
 }
 </style>

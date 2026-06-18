@@ -32,6 +32,10 @@ import { GradeCalculationService } from '../domain/grade/GradeCalculationService
 import { PdfReportGenerator } from '../infrastructure/pdf/PdfReportGenerator';
 import { AsciidocReportGenerator } from '../infrastructure/asciidoc/AsciidocReportGenerator';
 import { BinService } from '../application/BinService';
+import { GraderMcpServer } from '../mcp/mcpServer';
+import { McpService } from '../mcp/mcpService';
+import { loadSettings } from './settings';
+import { IPC } from '../shared/ipc-channels';
 
 import { registerStudentHandlers } from './ipc/student.ipc';
 import { registerCourseHandlers } from './ipc/course.ipc';
@@ -40,6 +44,8 @@ import { registerGradeHandlers } from './ipc/grade.ipc';
 import { registerReportHandlers } from './ipc/report.ipc';
 import { registerSettingsHandlers } from './ipc/settings.ipc';
 import { registerBinHandlers } from './ipc/bin.ipc';
+
+let mcpServer: GraderMcpServer;
 
 app.on('ready', () => {
   const dbPath = resolveDbPath();
@@ -75,6 +81,11 @@ app.on('ready', () => {
   const gradeImportService = new GradeImportService(sessionRepo, assessmentRepo, gradeRepo, studentRepo, courseRepo);
   const binService = new BinService(studentRepo, classRepo);
 
+  const mcpService = new McpService(
+    studentRepo, classRepo, courseRepo, gradeRepo, gradeRepo, calcService,
+  );
+  mcpServer = new GraderMcpServer(mcpService);
+
   registerStudentHandlers(studentService, csvImportService);
   registerCourseHandlers(classService, courseService, categoryService);
   registerSessionHandlers(sessionService);
@@ -83,9 +94,22 @@ app.on('ready', () => {
   registerBinHandlers(binService);
 
   const win = createMainWindow();
-  registerSettingsHandlers(win);
+  registerSettingsHandlers(win, mcpServer);
   createAppMenu(win);
   win.loadFile('build/renderer/index.html');
+
+  const settings = loadSettings();
+  if (settings.mcpEnabled) {
+    mcpServer.start().catch((err) => {
+      console.error('MCP server start failed:', err);
+    });
+    win.webContents.on('did-finish-load', () => {
+      win.webContents.send(IPC.MCP_STATUS_CHANGE, {
+        running: true,
+        url: mcpServer.url,
+      });
+    });
+  }
 
   autoUpdater.autoDownload = false;
 
@@ -135,6 +159,10 @@ app.on('ready', () => {
       });
     });
   }
+});
+
+app.on('before-quit', () => {
+  mcpServer.stop().catch(() => {});
 });
 
 app.on('window-all-closed', () => {

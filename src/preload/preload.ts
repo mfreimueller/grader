@@ -65,6 +65,11 @@ const IPC = {
   BIN_RESTORE: 'bin:restore',
   BIN_HARD_DELETE: 'bin:hardDelete',
   BIN_EMPTY: 'bin:empty',
+
+  MCP_GET_URL: 'mcp:getUrl',
+  MCP_GET_SETTINGS: 'mcp:getSettings',
+  MCP_SET_ENABLED: 'mcp:setEnabled',
+  MCP_STATUS_CHANGE: 'mcp:statusChange',
 } as const;
 
 const api: IpcApi = {
@@ -144,6 +149,15 @@ const api: IpcApi = {
     restore: (type, id) => ipcRenderer.invoke(IPC.BIN_RESTORE, { type, id }),
     hardDelete: (type, id) => ipcRenderer.invoke(IPC.BIN_HARD_DELETE, { type, id }),
     empty: () => ipcRenderer.invoke(IPC.BIN_EMPTY),
+  },
+  mcp: {
+    getUrl: () => ipcRenderer.invoke(IPC.MCP_GET_URL),
+    getSettings: () => ipcRenderer.invoke(IPC.MCP_GET_SETTINGS),
+    setEnabled: (enabled) => ipcRenderer.invoke(IPC.MCP_SET_ENABLED, enabled),
+    onStatusChange: (callback) => {
+      ipcRenderer.on(IPC.MCP_STATUS_CHANGE, (_event, status) => callback(status));
+      return () => ipcRenderer.removeAllListeners(IPC.MCP_STATUS_CHANGE);
+    },
   },
 };
 

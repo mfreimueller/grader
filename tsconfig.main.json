@@ -6,5 +6,5 @@
     "outDir": "build/main",
     "rootDir": "src"
   },
-  "include": ["src/main/**/*", "src/application/**/*", "src/domain/**/*", "src/infrastructure/**/*", "src/shared/**/*", "src/preload/**/*"]
+  "include": ["src/main/**/*", "src/application/**/*", "src/domain/**/*", "src/infrastructure/**/*", "src/shared/**/*", "src/preload/**/*", "src/mcp/**/*"]
 }

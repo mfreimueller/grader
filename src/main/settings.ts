@@ -4,6 +4,8 @@ import { join, dirname } from 'node:path';
 
 export interface Settings {
   dbPath?: string;
+  mcpEnabled?: boolean;
+  mcpPort?: number;
 }
 
 function settingsPath(): string {

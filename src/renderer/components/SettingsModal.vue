@@ -11,14 +11,26 @@
         </div>
         <p class="hint">Wählen Sie einen Speicherort für die Datenbankdatei (grdr.db).</p>
 
+        <hr class="separator" />
+
+        <label class="form-label">MCP-Server</label>
+        <div class="mcp-row">
+          <label class="toggle-label">
+            <input v-model="mcpEnabled" type="checkbox" class="toggle-input" @change="toggleMcp" />
+            <span class="toggle-text">MCP-Server aktivieren</span>
+          </label>
+        </div>
+        <p class="hint">
+          Ermöglicht KI-Assistenten (z.&thinsp;B. Claude Desktop) den Zugriff auf Notendaten
+          über den MCP-Read-Only-Server. Port: {{ mcpPort }}.
+        </p>
+        <p v-if="mcpUrl" class="mcp-url">Aktiv unter: <code>{{ mcpUrl }}</code></p>
+
         <p v-if="saveSuccess" class="success-msg">{{ saveSuccess }}</p>
         <p v-if="error" class="error-msg">{{ error }}</p>
 
         <div class="modal-actions">
-          <button class="btn btn-secondary" @click="close">Abbrechen</button>
-          <button class="btn btn-primary" :disabled="!dbPath || saving" @click="save">
-            {{ saving ? 'Speichert…' : 'Speichern' }}
-          </button>
+          <button class="btn btn-secondary" @click="close">Schliessen</button>
         </div>
       </div>
     </div>
@@ -35,10 +47,17 @@ const dbPath = ref('');
 const saving = ref(false);
 const saveSuccess = ref('');
 const error = ref('');
+const mcpEnabled = ref(false);
+const mcpPort = ref(43882);
+const mcpUrl = ref<string | null>(null);
 
 watch(() => props.visible, async (open) => {
   if (open) {
     dbPath.value = await window.grdr.settings.getDbPath();
+    const mcpSettings = await window.grdr.mcp.getSettings();
+    mcpEnabled.value = mcpSettings.enabled;
+    mcpPort.value = mcpSettings.port;
+    mcpUrl.value = await window.grdr.mcp.getUrl();
     saveSuccess.value = '';
     error.value = '';
   }
@@ -54,6 +73,21 @@ async function pickPath(): Promise<void> {
   const path = await window.grdr.settings.pickDbPath();
   if (path) {
     dbPath.value = path;
+  }
+}
+
+async function toggleMcp(): Promise<void> {
+  error.value = '';
+  saveSuccess.value = '';
+  try {
+    await window.grdr.mcp.setEnabled(mcpEnabled.value);
+    mcpUrl.value = mcpEnabled.value ? await window.grdr.mcp.getUrl() : null;
+    saveSuccess.value = mcpEnabled.value
+      ? 'MCP-Server gestartet. Verbinden Sie Ihren KI-Assistenten mit der angezeigten URL.'
+      : 'MCP-Server gestoppt.';
+  } catch (e: unknown) {
+    error.value = e instanceof Error ? e.message : 'Fehler beim Umschalten des MCP-Servers';
+    mcpEnabled.value = !mcpEnabled.value;
   }
 }
 
@@ -130,9 +164,51 @@ h3 {
 }
 
 .hint {
-  margin-top: 8px;
+  margin-top: 4px;
   font-size: 12px;
   color: var(--color-text-secondary);
+}
+
+.separator {
+  margin: 20px 0;
+  border: none;
+  border-top: 1px solid var(--color-border);
+}
+
+.mcp-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.toggle-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+}
+
+.toggle-input {
+  width: 18px;
+  height: 18px;
+  cursor: pointer;
+}
+
+.toggle-text {
+  font-size: 14px;
+}
+
+.mcp-url {
+  margin-top: 8px;
+  font-size: 12px;
+  color: var(--color-success);
+}
+
+.mcp-url code {
+  font-size: 12px;
+  padding: 2px 6px;
+  background: var(--color-bg);
+  border-radius: 4px;
 }
 
 .modal-actions {

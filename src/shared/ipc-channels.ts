@@ -62,4 +62,9 @@ export const IPC = {
   BIN_RESTORE: 'bin:restore',
   BIN_HARD_DELETE: 'bin:hardDelete',
   BIN_EMPTY: 'bin:empty',
+
+  MCP_GET_URL: 'mcp:getUrl',
+  MCP_GET_SETTINGS: 'mcp:getSettings',
+  MCP_SET_ENABLED: 'mcp:setEnabled',
+  MCP_STATUS_CHANGE: 'mcp:statusChange',
 } as const;
