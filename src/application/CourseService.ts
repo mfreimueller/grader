@@ -90,6 +90,7 @@ export class CourseService {
         cat.title,
         cat.gradingType,
         cat.displayAsGrade,
+        cat.isHidden,
       )),
       source.gradeCompositions.map(gc => {
         const matchingCat = source.assessmentCategories.find(c => c.id === gc.assessmentCategory.id);
@@ -99,6 +100,7 @@ export class CourseService {
           matchingCat.title,
           matchingCat.gradingType,
           matchingCat.displayAsGrade,
+          matchingCat.isHidden,
         );
         const compResult = GradeComposition.create(newCat, gc.weight, gc.subWeightType);
         if (!compResult.ok) throw compResult.error;
@@ -161,6 +163,7 @@ function toDto(c: Course): CourseDto {
       title: cat.title,
       gradingType: cat.gradingType,
       displayAsGrade: cat.displayAsGrade,
+      isHidden: cat.isHidden,
     })),
     gradeCompositions: c.gradeCompositions.map(gc => ({
       categoryId: gc.assessmentCategory.id,

@@ -83,6 +83,10 @@
             <input v-model="form.displayAsGrade" type="checkbox" />
             Als Note (1–5) auf Zeugnis anzeigen
           </label>
+          <label class="checkbox-label">
+            <input v-model="form.isHidden" type="checkbox" />
+            In Benotungstabelle ausblenden
+          </label>
           <div class="modal-actions">
             <button type="button" class="btn btn-secondary" @click="showForm = false">Abbrechen</button>
             <button type="submit" class="btn btn-primary" :disabled="saving">
@@ -132,6 +136,7 @@ const form = reactive({
   title: '',
   gradingType: 'TERTIARY',
   displayAsGrade: false,
+  isHidden: false,
 });
 
 const weightEdits = reactive<Record<string, number | undefined>>({});
@@ -215,6 +220,7 @@ function openCreate(): void {
   form.title = '';
   form.gradingType = 'TERTIARY';
   form.displayAsGrade = false;
+  form.isHidden = false;
   formError.value = '';
   showForm.value = true;
 }
@@ -224,6 +230,7 @@ function openEdit(cat: AssessmentCategoryDto): void {
   form.title = cat.title;
   form.gradingType = cat.gradingType;
   form.displayAsGrade = cat.displayAsGrade;
+  form.isHidden = cat.isHidden;
   formError.value = '';
   showForm.value = true;
 }
@@ -237,18 +244,20 @@ async function handleSave(): Promise<void> {
         title: form.title,
         gradingType: form.gradingType,
         displayAsGrade: form.displayAsGrade,
+        isHidden: form.isHidden,
       });
       if (!result.ok) {
         formError.value = result.error.message;
         return;
       }
     } else {
-      console.log(props.course.id, form.title, form.gradingType, form.displayAsGrade);
+      console.log(props.course.id, form.title, form.gradingType, form.displayAsGrade, form.isHidden);
       const result = await window.grdr.assessmentCategory.create({
         courseId: props.course.id,
         title: form.title,
         gradingType: form.gradingType,
         displayAsGrade: form.displayAsGrade,
+        isHidden: form.isHidden,
       });
       if (!result.ok) {
         formError.value = result.error.message;
@@ -257,8 +266,16 @@ async function handleSave(): Promise<void> {
     }
     showForm.value = false;
     await loadCategories();
+    await refreshCourse();
   } finally {
     saving.value = false;
+  }
+}
+
+async function refreshCourse(): Promise<void> {
+  const result = await window.grdr.course.get(props.course.id);
+  if (result.ok) {
+    emit('update:course', result.value);
   }
 }
 
@@ -272,6 +289,7 @@ async function doDelete(): Promise<void> {
   if (result.ok) {
     deleting.value = null;
     await loadCategories();
+    await refreshCourse();
   } else {
     const errMsg = result.error.message;
     deleting.value = null;

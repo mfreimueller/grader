@@ -63,12 +63,14 @@ export const createCategorySchema = z.object({
   title: z.string().min(1),
   gradingType: z.enum(['NUMERIC', 'TERTIARY']),
   displayAsGrade: z.boolean(),
+  isHidden: z.boolean().optional(),
 });
 
 export const updateCategorySchema = z.object({
   title: z.string().min(1).optional(),
   gradingType: z.enum(['NUMERIC', 'TERTIARY']).optional(),
   displayAsGrade: z.boolean().optional(),
+  isHidden: z.boolean().optional(),
 });
 
 export const createSessionSchema = z.object({

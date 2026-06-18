@@ -14,6 +14,7 @@ const IPC = {
   CLASS_DELETE: 'class:delete',
 
   COURSE_LIST: 'course:list',
+  COURSE_GET: 'course:get',
   COURSE_CREATE: 'course:create',
   COURSE_CLONE: 'course:clone',
   COURSE_UPDATE: 'course:update',
@@ -83,6 +84,7 @@ const api: IpcApi = {
   },
   course: {
     list: (params) => ipcRenderer.invoke(IPC.COURSE_LIST, params),
+    get: (id) => ipcRenderer.invoke(IPC.COURSE_GET, id),
     create: (data) => ipcRenderer.invoke(IPC.COURSE_CREATE, data),
     clone: (id, targetClassId) => ipcRenderer.invoke(IPC.COURSE_CLONE, id, targetClassId),
     update: (id, data) => ipcRenderer.invoke(IPC.COURSE_UPDATE, id, data),

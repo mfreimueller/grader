@@ -140,7 +140,7 @@ export class SqliteSessionRepository implements SessionRepository {
     const rows = this.db
       .prepare(
         `SELECT a.id, a.title, a.category_id, a.course_id, a.is_impromptu, a.max_points,
-                cat.title AS category_title, cat.grading_type, cat.display_as_grade,
+                cat.title AS category_title, cat.grading_type, cat.display_as_grade, cat.is_hidden,
                 c.title AS course_title, c.school_class_id,
                 sc.name AS class_name, sc.school_year
          FROM assessments a
@@ -189,6 +189,7 @@ export class SqliteSessionRepository implements SessionRepository {
       row.category_title as string,
       gradingTypeResult.value,
       (row.display_as_grade as number) === 1,
+      (row.is_hidden as number) === 1,
     );
 
     const yearResult = SchoolYear.create(row.school_year as string);

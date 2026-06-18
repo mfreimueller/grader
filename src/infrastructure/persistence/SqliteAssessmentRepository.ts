@@ -19,6 +19,7 @@ interface AssessmentRow {
   category_title: string;
   grading_type: string;
   display_as_grade: number;
+  is_hidden: number;
   course_title: string;
   school_class_id: string;
   class_name: string;
@@ -85,6 +86,7 @@ export class SqliteAssessmentRepository implements AssessmentRepository {
       row.category_title,
       gradingTypeResult.value,
       row.display_as_grade === 1,
+      row.is_hidden === 1,
     );
 
     const yearResult = SchoolYear.create(row.school_year);
@@ -133,7 +135,7 @@ export class SqliteAssessmentRepository implements AssessmentRepository {
 
 const assessmentQuery = `
   SELECT a.id, a.title, a.category_id, a.course_id, a.is_impromptu, a.max_points, a.session_id,
-         cat.title AS category_title, cat.grading_type, cat.display_as_grade,
+         cat.title AS category_title, cat.grading_type, cat.display_as_grade, cat.is_hidden,
          c.title AS course_title, c.school_class_id,
          sc.name AS class_name, sc.school_year
   FROM assessments a

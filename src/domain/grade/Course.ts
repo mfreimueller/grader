@@ -30,6 +30,7 @@ export class Course extends Entity<string> {
       'Mitarbeit',
       GradingType.TERTIARY,
       false,
+      false,
     );
     return new Course(id, title, schoolClass, [mitarbeit], []);
   }

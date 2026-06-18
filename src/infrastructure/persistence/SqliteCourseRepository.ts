@@ -21,6 +21,7 @@ interface CategoryRow {
   title: string;
   grading_type: string;
   display_as_grade: number;
+  is_hidden: number;
   course_id: string;
 }
 
@@ -98,7 +99,7 @@ export class SqliteCourseRepository implements CourseRepository {
     console.log(`Saved course ${course.id} to repository`);
 
     const insertCategory = this.db.prepare(
-      'INSERT OR REPLACE INTO assessment_categories (id, title, grading_type, display_as_grade, course_id) VALUES (?, ?, ?, ?, ?)',
+      'INSERT OR REPLACE INTO assessment_categories (id, title, grading_type, display_as_grade, is_hidden, course_id) VALUES (?, ?, ?, ?, ?, ?)',
     );
 
     for (const cat of course.assessmentCategories) {
@@ -107,6 +108,7 @@ export class SqliteCourseRepository implements CourseRepository {
         cat.title,
         cat.gradingType,
         cat.displayAsGrade ? 1 : 0,
+        cat.isHidden ? 1 : 0,
         course.id,
       );
       console.log(`Saved assessment category ${cat.id} for course ${course.id}`);
@@ -160,7 +162,7 @@ export class SqliteCourseRepository implements CourseRepository {
 
     const categoryRows = this.db
       .prepare(
-        'SELECT id, title, grading_type, display_as_grade, course_id FROM assessment_categories WHERE course_id = ?',
+        'SELECT id, title, grading_type, display_as_grade, is_hidden, course_id FROM assessment_categories WHERE course_id = ?',
       )
       .all(row.id) as CategoryRow[];
 
@@ -172,6 +174,7 @@ export class SqliteCourseRepository implements CourseRepository {
         cr.title,
         gradingTypeResult.value,
         cr.display_as_grade === 1,
+        cr.is_hidden === 1,
       );
     });
 

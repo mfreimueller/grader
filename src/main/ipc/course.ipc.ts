@@ -42,6 +42,11 @@ export function registerCourseHandlers(
     return await courseService.list(schoolYear);
   });
 
+  ipcMain.handle(IPC.COURSE_GET, async (_event, id: string) => {
+    studentIdParam.parse({ id });
+    return await courseService.findById(id);
+  });
+
   ipcMain.handle(IPC.COURSE_CREATE, async (_event, data: unknown) => {
     const input = createCourseSchema.parse(data);
     return await courseService.create(input);
@@ -71,7 +76,7 @@ export function registerCourseHandlers(
 
   ipcMain.handle(IPC.ASSESSMENT_CATEGORY_CREATE, async (_event, data: unknown) => {
     const input = createCategorySchema.parse(data);
-    return await categoryService.create(input);
+    return await categoryService.create(input as Parameters<AssessmentCategoryService['create']>[0]);
   });
 
   ipcMain.handle(IPC.ASSESSMENT_CATEGORY_UPDATE, async (_event, id: string, data: unknown) => {

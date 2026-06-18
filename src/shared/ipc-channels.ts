@@ -11,6 +11,7 @@ export const IPC = {
   CLASS_DELETE: 'class:delete',
 
   COURSE_LIST: 'course:list',
+  COURSE_GET: 'course:get',
   COURSE_CREATE: 'course:create',
   COURSE_CLONE: 'course:clone',
   COURSE_UPDATE: 'course:update',

@@ -35,6 +35,7 @@ interface PerformanceRow extends Record<string, unknown> {
   category_title: string;
   grading_type: string;
   display_as_grade: number;
+  is_hidden: number;
   first_name: string;
   last_name: string;
   student_class_id: string;
@@ -200,6 +201,7 @@ export class SqliteGradeRepository implements GradeRepository, StudentPerformanc
       row.category_title,
       gradingTypeResult.value,
       row.display_as_grade === 1,
+      row.is_hidden === 1,
     );
 
     const sessionId = row.session_id ?? '';
@@ -271,7 +273,7 @@ const performanceQuery = `
          a.max_points, a.title AS assessment_title, a.session_id,
          a.category_id, a.course_id, a.is_impromptu,
          c.title AS course_title, c.school_class_id,
-         cat.title AS category_title, cat.grading_type, cat.display_as_grade,
+         cat.title AS category_title, cat.grading_type, cat.display_as_grade, cat.is_hidden,
          s.first_name, s.last_name, s.school_class_id AS student_class_id,
          sc.name AS class_name, sc.school_year
   FROM student_performances sp

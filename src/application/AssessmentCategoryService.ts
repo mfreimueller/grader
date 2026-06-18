@@ -11,6 +11,7 @@ export interface AssessmentCategoryDto {
   title: string;
   gradingType: string;
   displayAsGrade: boolean;
+  isHidden: boolean;
   courseId: string;
 }
 
@@ -19,6 +20,7 @@ export interface CreateAssessmentCategoryInput {
   title: string;
   gradingType: string;
   displayAsGrade: boolean;
+  isHidden?: boolean;
 }
 
 export class AssessmentCategoryService {
@@ -33,6 +35,7 @@ export class AssessmentCategoryService {
       title: cat.title,
       gradingType: cat.gradingType,
       displayAsGrade: cat.displayAsGrade,
+      isHidden: cat.isHidden,
       courseId: course.id,
     }));
   }
@@ -53,6 +56,7 @@ export class AssessmentCategoryService {
       input.title,
       gradingResult.value,
       input.displayAsGrade,
+      input.isHidden ?? false,
     );
     console.log("Created category entity:", category);
 
@@ -73,11 +77,12 @@ export class AssessmentCategoryService {
       title: category.title,
       gradingType: category.gradingType,
       displayAsGrade: category.displayAsGrade,
+      isHidden: category.isHidden,
       courseId: course.id,
     });
   }
 
-  async update(id: string, input: { title?: string; gradingType?: string; displayAsGrade?: boolean }): Promise<Result<AssessmentCategoryDto>> {
+  async update(id: string, input: { title?: string; gradingType?: string; displayAsGrade?: boolean; isHidden?: boolean }): Promise<Result<AssessmentCategoryDto>> {
     const course = await this.findCourseByCategoryId(id);
     if (!course) return Result.fail(new NotFoundError('AssessmentCategory', id));
 
@@ -94,8 +99,9 @@ export class AssessmentCategoryService {
         })()
       : existing.gradingType;
     const displayAsGrade = input.displayAsGrade ?? existing.displayAsGrade;
+    const isHidden = input.isHidden ?? existing.isHidden;
 
-    const updatedCat = new AssessmentCategory(id, title, gradingType, displayAsGrade);
+    const updatedCat = new AssessmentCategory(id, title, gradingType, displayAsGrade, isHidden);
 
     const categories = [...course.assessmentCategories];
     categories[catIndex] = updatedCat;
@@ -114,6 +120,7 @@ export class AssessmentCategoryService {
       title: updatedCat.title,
       gradingType: updatedCat.gradingType,
       displayAsGrade: updatedCat.displayAsGrade,
+      isHidden: updatedCat.isHidden,
       courseId: course.id,
     });
   }

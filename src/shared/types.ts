@@ -56,6 +56,7 @@ export interface AssessmentCategoryRefDto {
   title: string;
   gradingType: string;
   displayAsGrade: boolean;
+  isHidden: boolean;
 }
 
 export interface GradeCompositionDto {
@@ -86,12 +87,14 @@ export interface CreateAssessmentCategoryInput {
   title: string;
   gradingType: string;
   displayAsGrade: boolean;
+  isHidden?: boolean;
 }
 
 export interface UpdateAssessmentCategoryInput {
   title?: string;
   gradingType?: string;
   displayAsGrade?: boolean;
+  isHidden?: boolean;
 }
 
 export interface AssessmentCategoryDto {
@@ -274,6 +277,7 @@ export interface IpcApi {
   };
   course: {
     list: (params?: CourseListParams) => Promise<CourseDto[]>;
+    get: (id: string) => Promise<ResultDto<CourseDto>>;
     create: (data: CreateCourseInput) => Promise<ResultDto<CourseDto>>;
     clone: (id: string, targetClassId: string) => Promise<ResultDto<CourseDto>>;
     update: (id: string, data: { title?: string; gradeCompositions?: GradeCompositionDto[] }) => Promise<ResultDto<CourseDto>>;
