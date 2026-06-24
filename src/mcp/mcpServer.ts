@@ -6,22 +6,14 @@ import { McpService } from './mcpService';
 const DEFAULT_PORT = 43882;
 const HOST = '127.0.0.1';
 
-type ToolCallback = (args: Record<string, unknown>) => Promise<{
-  content: { type: 'text'; text: string }[];
-  isError?: boolean;
-}>;
-
-interface McpServerHandle {
-  registerTool(name: string, config: Record<string, unknown>, cb: ToolCallback): void;
-}
-
 export class GraderMcpServer {
-  private server: McpServerHandle | null = null;
+  private mcpServerInstance: unknown = null;
   private httpServer: http.Server | null = null;
   private transportHandle: unknown = null;
   private readonly mcpService: McpService;
   private _port: number;
   private _running = false;
+  private _sessionActive = false;
 
   constructor(mcpService: McpService, port: number = DEFAULT_PORT) {
     this.mcpService = mcpService;
@@ -59,7 +51,7 @@ export class GraderMcpServer {
     });
 
     this.registerTools(mcpServer);
-    this.server = mcpServer as unknown as McpServerHandle;
+    this.mcpServerInstance = mcpServer;
 
     const transport = new StreamableHTTPServerTransport({
       sessionIdGenerator: () => crypto.randomUUID(),
@@ -79,12 +71,37 @@ export class GraderMcpServer {
         let parsedBody: unknown = undefined;
         try {
           parsedBody = JSON.parse(body);
+          const messages = Array.isArray(parsedBody) ? parsedBody : [parsedBody];
+          const isInitialize = messages.some(
+            m => typeof m === 'object' && m !== null && (m as Record<string, unknown>).method === 'initialize'
+          );
+          if (isInitialize && this._sessionActive && this.mcpServerInstance) {
+            // New client re-initializing — close the old transport and create a fresh one
+            // so the SDK accepts the new initialize request.
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            await (this.mcpServerInstance as any).close();
+            // eslint-disable-next-line @typescript-eslint/no-require-imports
+            const { StreamableHTTPServerTransport } = require(
+              path.resolve(__dirname, '../../../node_modules/@modelcontextprotocol/sdk/dist/cjs/server/streamableHttp.js')
+            );
+            const newTransport = new StreamableHTTPServerTransport({
+              sessionIdGenerator: () => crypto.randomUUID(),
+            });
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            await (this.mcpServerInstance as any).connect(newTransport);
+            this.transportHandle = newTransport;
+          }
         } catch {
           // let transport handle invalid body
         }
-        await transport.handleRequest(req, res, parsedBody);
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        await (this.transportHandle as any).handleRequest(req, res, parsedBody);
+        if (!this._sessionActive) {
+          this._sessionActive = true;
+        }
       } else {
-        await transport.handleRequest(req, res);
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        await (this.transportHandle as any).handleRequest(req, res);
       }
     });
 
@@ -109,18 +126,24 @@ export class GraderMcpServer {
   async stop(): Promise<void> {
     this._running = false;
     if (this.transportHandle) {
-      const transport = this.transportHandle as { close(): Promise<void> };
-      await transport.close();
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      await (this.transportHandle as any).close();
       this.transportHandle = null;
     }
     if (this.httpServer) {
       this.httpServer.close();
       this.httpServer = null;
     }
-    this.server = null;
+    this.mcpServerInstance = null;
+    this._sessionActive = false;
   }
 
-  private registerTools(mcpServer: McpServerHandle): void {
+  private registerTools(mcpServer: {
+    registerTool(name: string, config: Record<string, unknown>, cb: (args: Record<string, unknown>) => Promise<{
+      content: { type: 'text'; text: string }[];
+      isError?: boolean;
+    }>): void;
+  }): void {
     mcpServer.registerTool(
       'list_classes',
       {
