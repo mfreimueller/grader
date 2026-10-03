@@ -22,7 +22,7 @@
               type="checkbox"
               :checked="entry.included"
               :disabled="busy"
-              @change="onToggle(entry, ($event.target as HTMLInputElement).checked)"
+              @change="onToggle(entry, $event.target as HTMLInputElement)"
             />
             <span class="swatch" :style="{ background: entry.color ?? 'transparent' }" aria-hidden="true"></span>
             <span class="name">{{ entry.lastName }} {{ entry.firstName }}</span>
@@ -76,13 +76,14 @@ async function load(): Promise<void> {
   }
 }
 
-async function onToggle(entry: CourseRosterEntryDto, included: boolean): Promise<void> {
-  if (!included && entry.entryCount > 0) {
+async function onToggle(entry: CourseRosterEntryDto, checkbox: HTMLInputElement): Promise<void> {
+  if (!checkbox.checked && entry.entryCount > 0) {
+    // Vue does not re-render an unchanged :checked binding, so put the box back by hand until confirmed.
+    checkbox.checked = true;
     confirming.value = entry;
-    await load(); // puts the checkbox back until the teacher confirms
     return;
   }
-  await apply(entry.studentId, included);
+  await apply(entry.studentId, checkbox.checked);
 }
 
 async function apply(studentId: string, included: boolean): Promise<void> {
