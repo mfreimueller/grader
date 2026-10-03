@@ -99,4 +99,16 @@ describe('SchoolYear', () => {
       expect(a.ok && b.ok && a.value.compareTo(b.value)).toBe(0);
     });
   });
+
+  describe('next', () => {
+    it('returns the following school year', () => {
+      const year = SchoolYear.create('2025/26');
+      expect(year.ok && year.value.next().toString()).toBe('2026/27');
+    });
+
+    it('rolls over the decade in the short end year', () => {
+      const year = SchoolYear.create('2029/30');
+      expect(year.ok && year.value.next().toString()).toBe('2030/31');
+    });
+  });
 });

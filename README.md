@@ -16,6 +16,11 @@ komplett offline, alle Daten bleiben auf dem eigenen Rechner.
 - **Papierkorb** – Soft-Delete statt hartem Löschen: versehentlich gelöschte Einträge sind
   wiederherstellbar.
 - **CSV-Import** – Schülerlisten lassen sich bequem aus CSV-Dateien importieren.
+- **Schülerauswahl** – zufällige Auswahl per Farbrad mit Fair-Modus (wer am seltesten aufgerufen wurde,
+  kommt zuerst), eigenen Schülerfarben, Aufrufzählern und direktem Eintragen der Mitarbeit (+ / ~ / −).
+- **Schuljahreswechsel** – alle Klassen auf einmal ins neue Schuljahr übernehmen (z. B. 4EHIF → 5EHIF),
+  Abgänger entfernen und auf Wunsch alle Kurse archivieren.
+- **digigrade-Import** – Daten aus der Webanwendung digigrade (JSON-Export) übernehmen.
 - **MCP-Server** – optionaler, lokaler Server, der KI-Agenten einen gelesenen Zugriff auf die
   Notendaten ermöglicht.
 
@@ -36,6 +41,36 @@ Grader ist eine **Local-First**-Anwendung: Alle Schüler-, Noten- und Kursdaten 
 in einer lokalen SQLite-Datenbank auf Ihrem Rechner. Es gibt keine Konten, keine Cloud-Synchronisation
 und keine Serverkommunikation (ausgenommen die optionale Update-Prüfung). Damit eignet sich Grader
 auch für personenbezogene Schülerdaten ohne Abhängigkeit von Drittanbietern.
+
+## Datenbank & Schuljahr
+
+**Datenbank öffnen:** Unter *Datei → Datenbank öffnen…* (Cmd/Strg+O) oder in den Einstellungen lässt sich
+eine vorhandene Datenbankdatei auswählen. Grader prüft die Datei, merkt sich den Pfad und startet neu.
+„Neue Datenbank…“ in den Einstellungen legt an einem frei wählbaren Ort eine neue Datei an.
+Die Reihenfolge, in der der Datenbankpfad ermittelt wird: Einstellungen (`settings.json`) →
+`--db-path=…` → Umgebungsvariable `GRDR_DB_PATH` → Standardpfad im Benutzerdatenordner. Sobald in den
+Einstellungen ein Pfad gespeichert ist, hat er Vorrang vor Kommandozeile und Umgebungsvariable.
+
+**Empfohlener Ablauf zum Schuljahresbeginn:** Datenbankdatei des alten Jahres kopieren, die Kopie in Grader
+öffnen und unter *Klassen → Schuljahreswechsel* die Klassen umbenennen bzw. Abgänger entfernen. Mit der
+Option „Alle Kurse archivieren“ beginnt das neue Jahr ohne Kurse und Noten, die Schüler bleiben erhalten.
+Das alte Jahr bleibt unverändert in der ursprünglichen Datei (z. B. für Einsprüche).
+
+**Klassen löschen:** Eine gelöschte Klasse wandert samt ihrer Schüler und Kurse in den Papierkorb und wird
+von dort auch gemeinsam wiederhergestellt.
+
+## digigrade-Import
+
+In digigrade unter *Mein Profil → Daten exportieren* eine JSON-Datei herunterladen und in Grader unter
+*Klassen → digigrade-Import* (oder *Datei → digigrade-Import…*) auswählen. Der Import ergänzt vorhandene Daten:
+
+- Klassen werden über Name und Schuljahr, Schüler über Name innerhalb der Klasse und Kurse über Titel
+  innerhalb der Klasse zugeordnet. Bereits Vorhandenes wird nie überschrieben; ein vorhandener Kurs wird
+  komplett übersprungen. Ein erneuter Import derselben Datei ändert daher nichts.
+- Übernommen werden Klassen, Schüler (inkl. Farbe), Kurse mit Kategorien und Gewichtungen, Sitzungen,
+  Leistungen, Notizen und Links, manuelle Noten sowie Aufrufzähler. Dezimale Gewichtungen werden gerundet.
+- Dokumente (Dateien auf dem digigrade-Server) werden nicht übernommen.
+- Der Import läuft in einer Transaktion: Bei einem Fehler bleibt die Datenbank unverändert.
 
 ## Entwicklung
 

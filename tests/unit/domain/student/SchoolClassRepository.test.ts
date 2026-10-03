@@ -11,6 +11,9 @@ describe('SchoolClassRepository', () => {
       delete: async () => {},
       restore: async (_id: string) => {},
       hardDelete: async (_id: string) => {},
+      countDependents: async () => ({ students: 0, courses: 0 }),
+      softDeleteWithDependents: async () => {},
+      restoreWithDependents: async () => {},
     };
     expect(typeof repo.findAll).toBe('function');
     expect(typeof repo.findById).toBe('function');

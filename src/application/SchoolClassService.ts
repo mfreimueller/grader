@@ -1,4 +1,4 @@
-import { SchoolClassRepository } from '../domain/student/SchoolClassRepository';
+import { ClassDependentsCount, SchoolClassRepository } from '../domain/student/SchoolClassRepository';
 import { SchoolClass } from '../domain/student/SchoolClass';
 import { SchoolYear } from '../domain/student/SchoolYear';
 import { Result } from '../domain/shared/Result';
@@ -54,10 +54,17 @@ export class SchoolClassService {
     return Result.ok(toDto(updated));
   }
 
+  async dependents(id: string): Promise<Result<ClassDependentsCount>> {
+    const existing = await this.schoolClassRepo.findById(id);
+    if (!existing) return Result.fail(new NotFoundError('SchoolClass', id));
+    return Result.ok(await this.schoolClassRepo.countDependents(id));
+  }
+
+  /** Moves the class with all its students and courses into the bin. */
   async delete(id: string): Promise<Result<void>> {
     const existing = await this.schoolClassRepo.findById(id);
     if (!existing) return Result.fail(new NotFoundError('SchoolClass', id));
-    await this.schoolClassRepo.delete(id);
+    await this.schoolClassRepo.softDeleteWithDependents(id);
     return Result.ok(undefined as void);
   }
 }

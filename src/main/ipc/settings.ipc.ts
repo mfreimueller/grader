@@ -2,7 +2,31 @@ import { ipcMain, dialog, app, BrowserWindow } from 'electron';
 import { IPC } from '../../shared/ipc-channels';
 import { loadSettings, saveSettings } from '../settings';
 import { resolveDbPath } from '../config';
+import { withDbPath } from '../settings-update';
+import { validateDbFile } from '../../infrastructure/persistence/dbFileValidation';
+import type { ResultDto } from '../../shared/types';
 import type { GraderMcpServer } from '../../mcp/mcpServer';
+
+/** Lets the user pick an existing database, validates it and stores its path. null = dialog cancelled. */
+export async function openDatabaseViaDialog(
+  win: BrowserWindow,
+): Promise<ResultDto<{ path: string; changed: boolean }> | null> {
+  const picked = await dialog.showOpenDialog(win, {
+    filters: [{ name: 'Datenbank', extensions: ['db'] }],
+    properties: ['openFile'],
+  });
+  const path = picked.filePaths[0];
+  if (picked.canceled || !path) return null;
+
+  const validation = validateDbFile(path);
+  if (!validation.ok) {
+    return { ok: false, error: { name: validation.error.name, message: validation.error.message } };
+  }
+
+  const update = withDbPath(loadSettings(), path);
+  if (update.changed) saveSettings(update.settings);
+  return { ok: true, value: { path, changed: update.changed } };
+}
 
 export function registerSettingsHandlers(win: BrowserWindow, mcpServer?: GraderMcpServer): void {
   ipcMain.handle(IPC.SETTINGS_GET_DB_PATH, () => {
@@ -19,9 +43,13 @@ export function registerSettingsHandlers(win: BrowserWindow, mcpServer?: GraderM
     return result.filePath;
   });
 
-  ipcMain.handle(IPC.SETTINGS_SAVE_DB_PATH, async (_event, path: string) => {
-    saveSettings({ dbPath: path });
+  ipcMain.handle(IPC.SETTINGS_SAVE_DB_PATH, async (_event, path: string): Promise<boolean> => {
+    const update = withDbPath(loadSettings(), path);
+    if (update.changed) saveSettings(update.settings);
+    return update.changed;
   });
+
+  ipcMain.handle(IPC.SETTINGS_OPEN_DB, () => openDatabaseViaDialog(win));
 
   ipcMain.handle(IPC.SETTINGS_RESTART_APP, () => {
     app.relaunch();

@@ -4,11 +4,19 @@
       <h2>Klassen</h2>
       <div class="toolbar-actions">
         <button class="btn btn-primary" @click="openCreate">+ Klasse anlegen</button>
+        <button class="btn btn-secondary" :disabled="classes.length === 0" @click="showRollover = true">
+          Schuljahreswechsel
+        </button>
+        <button class="btn btn-secondary" :disabled="importingDigigrade" @click="importDigigrade">
+          {{ importingDigigrade ? 'Importiere...' : 'digigrade-Import' }}
+        </button>
         <button class="btn btn-secondary" @click="importCsv" :disabled="importing">
           {{ importing ? 'Importiere...' : 'CSV importieren' }}
         </button>
       </div>
     </div>
+
+    <p v-if="digigradeError" class="delete-error">{{ digigradeError }}</p>
 
     <div v-if="loading" class="loading">Lade Klassen...</div>
 
@@ -40,6 +48,12 @@
       :class-item="editingClass"
       @close="showEdit = false"
       @saved="onSaved"
+    />
+
+    <SchoolYearRolloverModal
+      v-if="showRollover"
+      @close="showRollover = false"
+      @done="onRolloverDone"
     />
 
     <CsvFormatDialog
@@ -76,9 +90,33 @@
           </div>
         </div>
       </div>
+      <div v-if="digigradeResult" class="overlay" @click.self="digigradeResult = null">
+        <div class="confirm-dialog">
+          <h3>digigrade-Import abgeschlossen</h3>
+          <ul class="import-stats">
+            <li><strong>{{ digigradeResult.classes.created }}</strong> Klassen angelegt, {{ digigradeResult.classes.skipped }} vorhanden</li>
+            <li><strong>{{ digigradeResult.students.created }}</strong> Schüler angelegt, {{ digigradeResult.students.skipped }} vorhanden</li>
+            <li><strong>{{ digigradeResult.courses.created }}</strong> Kurse angelegt, {{ digigradeResult.courses.skipped }} übersprungen</li>
+            <li><strong>{{ digigradeResult.sessionsCreated }}</strong> Sitzungen, <strong>{{ digigradeResult.performancesCreated }}</strong> Leistungen</li>
+          </ul>
+          <div v-if="digigradeResult.warnings.length > 0" class="import-warnings">
+            <h4>Warnungen ({{ digigradeResult.warnings.length }})</h4>
+            <ul>
+              <li v-for="(w, i) in digigradeResult.warnings" :key="i">{{ w }}</li>
+            </ul>
+          </div>
+          <div class="modal-actions">
+            <button class="btn btn-primary" @click="digigradeResult = null">OK</button>
+          </div>
+        </div>
+      </div>
       <div v-if="deleting" class="overlay" @click.self="deleting = null">
         <div class="confirm-dialog">
           <p>{{ deleting.name }} ({{ deleting.schoolYear }}) wirklich löschen?</p>
+          <p v-if="dependents" class="delete-hint">
+            Dabei werden {{ dependents.students }} Schüler und {{ dependents.courses }} Kurse
+            mit in den Papierkorb verschoben und können dort wiederhergestellt werden.
+          </p>
           <p v-if="deleteError" class="delete-error">{{ deleteError }}</p>
           <div class="modal-actions">
             <button class="btn btn-secondary" @click="deleting = null">Abbrechen</button>
@@ -94,7 +132,8 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue';
-import type { SchoolClassDto, ImportResultDto } from '../../shared/types';
+import type { SchoolClassDto, ImportResultDto, DigigradeImportResultDto } from '../../shared/types';
+import SchoolYearRolloverModal from '../components/classes/SchoolYearRolloverModal.vue';
 import ClassFormModal from '../components/classes/ClassFormModal.vue';
 import CsvFormatDialog from '../components/CsvFormatDialog.vue';
 
@@ -105,10 +144,15 @@ const showEdit = ref(false);
 const editingClass = ref<SchoolClassDto | null>(null);
 const deleting = ref<SchoolClassDto | null>(null);
 const deleteError = ref('');
+const dependents = ref<{ students: number; courses: number } | null>(null);
 const deletingSubmitting = ref(false);
 const importing = ref(false);
 const importResult = ref<ImportResultDto | null>(null);
 const showCsvFormat = ref(false);
+const showRollover = ref(false);
+const importingDigigrade = ref(false);
+const digigradeResult = ref<DigigradeImportResultDto | null>(null);
+const digigradeError = ref('');
 
 const grouped = computed(() => {
   const groups: Record<string, SchoolClassDto[]> = {};
@@ -130,6 +174,28 @@ async function loadClasses(): Promise<void> {
   console.log('new classes', classes.value);
 }
 
+async function importDigigrade(): Promise<void> {
+  digigradeError.value = '';
+  importingDigigrade.value = true;
+  try {
+    const outcome = await window.grdr.digigrade.import();
+    if (!outcome) return;
+    if (outcome.ok) {
+      digigradeResult.value = outcome.value;
+      await loadClasses();
+    } else {
+      digigradeError.value = outcome.error.message;
+    }
+  } finally {
+    importingDigigrade.value = false;
+  }
+}
+
+async function onRolloverDone(): Promise<void> {
+  showRollover.value = false;
+  await loadClasses();
+}
+
 function openCreate(): void {
   showCreate.value = true;
 }
@@ -139,9 +205,12 @@ function editClass(klasse: SchoolClassDto): void {
   showEdit.value = true;
 }
 
-function confirmDelete(klasse: SchoolClassDto): void {
+async function confirmDelete(klasse: SchoolClassDto): Promise<void> {
   deleteError.value = '';
+  dependents.value = null;
   deleting.value = klasse;
+  const result = await window.grdr.class.dependents(klasse.id);
+  if (result.ok) dependents.value = result.value;
 }
 
 async function doDelete(): Promise<void> {
@@ -354,6 +423,12 @@ async function onSaved(): Promise<void> {
 .confirm-dialog p {
   margin-bottom: 16px;
   font-size: 15px;
+}
+
+.delete-hint {
+  font-size: 13px;
+  color: var(--color-text-secondary, #666);
+  margin-top: 8px;
 }
 
 .delete-error {

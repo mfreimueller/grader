@@ -4,11 +4,21 @@ export const IPC = {
   STUDENT_CREATE: 'student:create',
   STUDENT_UPDATE: 'student:update',
   STUDENT_DELETE: 'student:delete',
+  STUDENT_SET_COLOR: 'student:setColor',
+  PICKER_LIST: 'picker:list',
+  PICKER_PICK_RANDOM: 'picker:pickRandom',
+  PICKER_PICK_STUDENT: 'picker:pickStudent',
+  PICKER_SET_COUNT: 'picker:setCount',
+  PICKER_RESET: 'picker:reset',
+  PICKER_RECORD_MITARBEIT: 'picker:recordMitarbeit',
 
   CLASS_LIST: 'class:list',
   CLASS_CREATE: 'class:create',
   CLASS_UPDATE: 'class:update',
   CLASS_DELETE: 'class:delete',
+  CLASS_DEPENDENTS: 'class:dependents',
+  SCHOOLYEAR_PREVIEW: 'schoolyear:preview',
+  SCHOOLYEAR_ROLLOVER: 'schoolyear:rollover',
 
   COURSE_LIST: 'course:list',
   COURSE_GET: 'course:get',
@@ -42,6 +52,7 @@ export const IPC = {
   GRADE_RECORD_IMPROMPTU: 'grade:recordImpromptu',
 
   STUDENT_IMPORT_CSV: 'student:importCsv',
+  IMPORT_DIGIGRADE: 'import:digigrade',
 
   FINDING_ADD: 'finding:add',
   FINDING_REMOVE: 'finding:remove',
@@ -56,6 +67,7 @@ export const IPC = {
   SETTINGS_GET_DB_PATH: 'settings:getDbPath',
   SETTINGS_PICK_DB_PATH: 'settings:pickDbPath',
   SETTINGS_SAVE_DB_PATH: 'settings:saveDbPath',
+  SETTINGS_OPEN_DB: 'settings:openDb',
   SETTINGS_RESTART_APP: 'settings:restartApp',
 
   BIN_LIST: 'bin:list',

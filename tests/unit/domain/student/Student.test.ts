@@ -3,6 +3,7 @@ import { StudentId } from '../../../../src/domain/student/StudentId';
 import { Name } from '../../../../src/domain/student/Name';
 import { SchoolClass } from '../../../../src/domain/student/SchoolClass';
 import { SchoolYear } from '../../../../src/domain/student/SchoolYear';
+import { Color } from '../../../../src/domain/student/Color';
 import { AdditionalInformation } from '../../../../src/domain/student/AdditionalInformation';
 
 let validYear: SchoolYear;
@@ -94,6 +95,34 @@ describe('Student', () => {
       const a = Student.create(validId, validName, validClass);
       const b = Student.create(id2.value, validName, validClass);
       expect(a.equals(b)).toBe(false);
+    });
+  });
+
+  describe('color', () => {
+    const aColor = (raw: string): Color => {
+      const color = Color.create(raw);
+      if (!color.ok) throw new Error('Test setup failed');
+      return color.value;
+    };
+
+    it('has no color by default', () => {
+      expect(Student.create(validId, validName, validClass).color).toBeNull();
+    });
+
+    it('keeps a color given at creation', () => {
+      const student = Student.create(validId, validName, validClass, null, aColor('#ed1943'));
+
+      expect(student.color?.value).toBe('#ed1943');
+    });
+
+    it('can change and clear its color', () => {
+      const student = Student.create(validId, validName, validClass);
+
+      student.changeColor(aColor('#004a8d'));
+      expect(student.color?.value).toBe('#004a8d');
+
+      student.changeColor(null);
+      expect(student.color).toBeNull();
     });
   });
 });

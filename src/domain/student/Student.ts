@@ -2,12 +2,14 @@ import { Entity } from '../shared/Entity';
 import { StudentId } from './StudentId';
 import { Name } from './Name';
 import { SchoolClass } from './SchoolClass';
+import { Color } from './Color';
 import { AdditionalInformation } from './AdditionalInformation';
 
 export class Student extends Entity<StudentId> {
   private _name: Name;
   private _schoolClass: SchoolClass;
   private _additionalInformation: AdditionalInformation[];
+  private _color: Color | null;
   public readonly deletedAt: string | null;
 
   private constructor(
@@ -16,12 +18,14 @@ export class Student extends Entity<StudentId> {
     schoolClass: SchoolClass,
     additionalInformation: AdditionalInformation[],
     deletedAt: string | null,
+    color: Color | null,
   ) {
     super(id);
     this._name = name;
     this._schoolClass = schoolClass;
     this._additionalInformation = [...additionalInformation];
     this.deletedAt = deletedAt;
+    this._color = color;
   }
 
   static create(
@@ -29,8 +33,9 @@ export class Student extends Entity<StudentId> {
     name: Name,
     schoolClass: SchoolClass,
     deletedAt?: string | null,
+    color?: Color | null,
   ): Student {
-    return new Student(id, name, schoolClass, [], deletedAt ?? null);
+    return new Student(id, name, schoolClass, [], deletedAt ?? null, color ?? null);
   }
 
   get name(): Name {
@@ -39,6 +44,14 @@ export class Student extends Entity<StudentId> {
 
   get schoolClass(): SchoolClass {
     return this._schoolClass;
+  }
+
+  get color(): Color | null {
+    return this._color;
+  }
+
+  changeColor(color: Color | null): void {
+    this._color = color;
   }
 
   get additionalInformation(): readonly AdditionalInformation[] {

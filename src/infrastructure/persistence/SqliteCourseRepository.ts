@@ -1,5 +1,5 @@
 import type { Db } from './db';
-import { CourseRepository } from '../../domain/grade/CourseRepository';
+import { CourseRepository, DeletedCourseRecord } from '../../domain/grade/CourseRepository';
 import { Course } from '../../domain/grade/Course';
 import { AssessmentCategory } from '../../domain/grade/AssessmentCategory';
 import { GradeComposition } from '../../domain/grade/GradeComposition';
@@ -42,7 +42,7 @@ export class SqliteCourseRepository implements CourseRepository {
                 sc.name AS class_name, sc.school_year
          FROM courses c
          JOIN school_classes sc ON c.school_class_id = sc.id
-         WHERE c.id = ?`,
+         WHERE c.id = ? AND c.deleted_at IS NULL AND sc.deleted_at IS NULL`,
       )
       .get(id) as CourseRow | undefined;
 
@@ -56,7 +56,8 @@ export class SqliteCourseRepository implements CourseRepository {
         `SELECT c.id, c.title, c.school_class_id,
                 sc.name AS class_name, sc.school_year
          FROM courses c
-         JOIN school_classes sc ON c.school_class_id = sc.id`,
+         JOIN school_classes sc ON c.school_class_id = sc.id
+         WHERE c.deleted_at IS NULL AND sc.deleted_at IS NULL`,
       )
       .all() as CourseRow[];
 
@@ -70,7 +71,7 @@ export class SqliteCourseRepository implements CourseRepository {
                 sc.name AS class_name, sc.school_year
          FROM courses c
          JOIN school_classes sc ON c.school_class_id = sc.id
-         WHERE sc.school_year = ?`,
+         WHERE sc.school_year = ? AND c.deleted_at IS NULL AND sc.deleted_at IS NULL`,
       )
       .all(schoolYear.toString()) as CourseRow[];
 
@@ -148,6 +149,59 @@ export class SqliteCourseRepository implements CourseRepository {
     this.db.prepare('DELETE FROM grade_compositions WHERE course_id = ?').run(id);
     this.db.prepare('DELETE FROM assessment_categories WHERE course_id = ?').run(id);
     this.db.prepare('DELETE FROM courses WHERE id = ?').run(id);
+  }
+
+  async softDelete(id: string, deletedAt: string): Promise<void> {
+    this.db.prepare('UPDATE courses SET deleted_at = ? WHERE id = ?').run(deletedAt, id);
+  }
+
+  async findDeleted(): Promise<DeletedCourseRecord[]> {
+    const rows = this.db
+      .prepare(
+        `SELECT c.id, c.title, c.deleted_at, sc.name AS class_name, sc.school_year
+         FROM courses c
+         JOIN school_classes sc ON c.school_class_id = sc.id
+         WHERE c.deleted_at IS NOT NULL`,
+      )
+      .all() as { id: string; title: string; deleted_at: string; class_name: string; school_year: string }[];
+
+    return rows.map((r) => ({
+      id: r.id,
+      title: r.title,
+      className: r.class_name,
+      schoolYear: r.school_year,
+      deletedAt: r.deleted_at,
+    }));
+  }
+
+  async restore(id: string): Promise<void> {
+    this.db.prepare('UPDATE courses SET deleted_at = NULL WHERE id = ?').run(id);
+  }
+
+  async hardDelete(id: string): Promise<void> {
+    const remove = this.db.transaction((courseId: string) => {
+      const assessments = '(SELECT id FROM assessments WHERE course_id = ?)';
+      this.db
+        .prepare(
+          `DELETE FROM findings WHERE student_performance_id IN
+             (SELECT id FROM student_performances WHERE assessment_id IN ${assessments})`,
+        )
+        .run(courseId);
+      this.db
+        .prepare(`DELETE FROM student_performances WHERE assessment_id IN ${assessments}`)
+        .run(courseId);
+      this.db.prepare('DELETE FROM assessments WHERE course_id = ?').run(courseId);
+      this.db
+        .prepare('DELETE FROM session_students WHERE session_id IN (SELECT id FROM sessions WHERE course_id = ?)')
+        .run(courseId);
+      this.db.prepare('DELETE FROM sessions WHERE course_id = ?').run(courseId);
+      this.db.prepare('DELETE FROM grades WHERE course_id = ?').run(courseId);
+      this.db.prepare('DELETE FROM course_student_picks WHERE course_id = ?').run(courseId);
+      this.db.prepare('DELETE FROM grade_compositions WHERE course_id = ?').run(courseId);
+      this.db.prepare('DELETE FROM assessment_categories WHERE course_id = ?').run(courseId);
+      this.db.prepare('DELETE FROM courses WHERE id = ?').run(courseId);
+    });
+    remove(id);
   }
 
   private rowToCourse(row: CourseRow): Course {

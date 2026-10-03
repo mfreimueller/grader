@@ -4,12 +4,12 @@ import { BinService } from '../../application/BinService';
 import { z } from 'zod';
 
 const restoreSchema = z.object({
-  type: z.enum(['student', 'class']),
+  type: z.enum(['student', 'class', 'course']),
   id: z.string().min(1),
 });
 
 const hardDeleteSchema = z.object({
-  type: z.enum(['student', 'class']),
+  type: z.enum(['student', 'class', 'course']),
   id: z.string().min(1),
 });
 
@@ -22,6 +22,8 @@ export function registerBinHandlers(service: BinService): void {
     const { type, id } = restoreSchema.parse(data);
     if (type === 'student') {
       await service.restoreStudent(id);
+    } else if (type === 'course') {
+      await service.restoreCourse(id);
     } else {
       await service.restoreClass(id);
     }
@@ -31,6 +33,8 @@ export function registerBinHandlers(service: BinService): void {
     const { type, id } = hardDeleteSchema.parse(data);
     if (type === 'student') {
       await service.hardDeleteStudent(id);
+    } else if (type === 'course') {
+      await service.hardDeleteCourse(id);
     } else {
       await service.hardDeleteClass(id);
     }

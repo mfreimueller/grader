@@ -89,4 +89,65 @@ describe('StudentService', () => {
     const list = await service.list();
     expect(list).toHaveLength(0);
   });
+
+  describe('color', () => {
+    const createStudent = async (): Promise<string> => {
+      const created = await service.create({ firstName: 'Max', lastName: 'Muster', schoolClassId: classId });
+      if (!created.ok) throw created.error;
+      return created.value.id;
+    };
+
+    it('exposes no color for a new student', async () => {
+      const id = await createStudent();
+
+      const found = await service.findById(id);
+
+      expect(found.ok && found.value.color).toBeNull();
+    });
+
+    it('sets a color and exposes it in the dto', async () => {
+      const id = await createStudent();
+
+      const result = await service.setColor(id, '#ED1943');
+
+      expect(result.ok && result.value.color).toBe('#ed1943');
+      const found = await service.findById(id);
+      expect(found.ok && found.value.color).toBe('#ed1943');
+    });
+
+    it('clears a color with null', async () => {
+      const id = await createStudent();
+      await service.setColor(id, '#ed1943');
+
+      const result = await service.setColor(id, null);
+
+      expect(result.ok && result.value.color).toBeNull();
+    });
+
+    it('rejects an invalid color and keeps the old one', async () => {
+      const id = await createStudent();
+      await service.setColor(id, '#ed1943');
+
+      const result = await service.setColor(id, 'red');
+
+      expect(result.ok).toBe(false);
+      const found = await service.findById(id);
+      expect(found.ok && found.value.color).toBe('#ed1943');
+    });
+
+    it('fails for an unknown student', async () => {
+      const result = await service.setColor('00000000-0000-0000-0000-000000000000', '#ed1943');
+
+      expect(result.ok).toBe(false);
+    });
+
+    it('keeps the color when the student is renamed', async () => {
+      const id = await createStudent();
+      await service.setColor(id, '#ed1943');
+
+      const updated = await service.update(id, { firstName: 'Moritz' });
+
+      expect(updated.ok && updated.value.color).toBe('#ed1943');
+    });
+  });
 });

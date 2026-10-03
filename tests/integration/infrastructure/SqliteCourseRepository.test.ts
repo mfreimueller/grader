@@ -112,6 +112,79 @@ describe('SqliteCourseRepository', () => {
     });
   });
 
+  describe('soft delete', () => {
+    it('hides a soft-deleted course from findById, findAll and findBySchoolYear', async () => {
+      await repo.save(Course.create('course-1', 'Mathematik', schoolClass));
+
+      await repo.softDelete('course-1', '2026-10-03T10:00:00.000Z');
+
+      const year = SchoolYear.create('2025/26');
+      if (!year.ok) throw new Error('SchoolYear creation failed');
+      expect(await repo.findById('course-1')).toBeNull();
+      expect(await repo.findAll()).toHaveLength(0);
+      expect(await repo.findBySchoolYear(year.value)).toHaveLength(0);
+    });
+
+    it('hides courses whose class is soft-deleted', async () => {
+      await repo.save(Course.create('course-1', 'Mathematik', schoolClass));
+      db.prepare("UPDATE school_classes SET deleted_at = datetime('now') WHERE id = 'class-1'").run();
+
+      expect(await repo.findById('course-1')).toBeNull();
+      expect(await repo.findAll()).toHaveLength(0);
+    });
+
+    it('lists soft-deleted courses with class info and deletion timestamp', async () => {
+      await repo.save(Course.create('course-1', 'Mathematik', schoolClass));
+      await repo.softDelete('course-1', '2026-10-03T10:00:00.000Z');
+
+      const deleted = await repo.findDeleted();
+
+      expect(deleted).toEqual([
+        {
+          id: 'course-1',
+          title: 'Mathematik',
+          className: '1A',
+          schoolYear: '2025/26',
+          deletedAt: '2026-10-03T10:00:00.000Z',
+        },
+      ]);
+    });
+
+    it('restores a soft-deleted course', async () => {
+      await repo.save(Course.create('course-1', 'Mathematik', schoolClass));
+      await repo.softDelete('course-1', '2026-10-03T10:00:00.000Z');
+
+      await repo.restore('course-1');
+
+      expect(await repo.findById('course-1')).not.toBeNull();
+      expect(await repo.findDeleted()).toHaveLength(0);
+    });
+
+    it('permanently removes a course with its sessions, assessments, performances and grades', async () => {
+      await repo.save(Course.create('course-1', 'Mathematik', schoolClass));
+      db.exec(`
+        INSERT INTO students (id, first_name, last_name, school_class_id) VALUES ('s-1', 'Max', 'Muster', 'class-1');
+        INSERT INTO sessions (id, date, course_id) VALUES ('sess-1', '2026-01-01', 'course-1');
+        INSERT INTO session_students (session_id, student_id) VALUES ('sess-1', 's-1');
+        INSERT INTO assessments (id, title, category_id, course_id, session_id)
+          VALUES ('a-1', 'Mündlich', 'course-1:mitarbeit', 'course-1', 'sess-1');
+        INSERT INTO student_performances (id, student_id, assessment_id, symbol, type)
+          VALUES ('p-1', 's-1', 'a-1', 'PLUS', 'participation');
+        INSERT INTO findings (id, student_performance_id, type, text_content) VALUES ('f-1', 'p-1', 'note', 'x');
+        INSERT INTO grades (id, student_id, course_id, score) VALUES ('g-1', 's-1', 'course-1', 2);
+      `);
+
+      await repo.hardDelete('course-1');
+
+      for (const table of ['courses', 'sessions', 'assessments', 'student_performances', 'findings', 'grades', 'assessment_categories']) {
+        const row = db.prepare(`SELECT COUNT(*) AS cnt FROM ${table}`).get() as { cnt: number };
+        expect(row.cnt).toBe(0);
+      }
+      const students = db.prepare('SELECT COUNT(*) AS cnt FROM students').get() as { cnt: number };
+      expect(students.cnt).toBe(1);
+    });
+  });
+
   describe('assessment categories', () => {
     it('persists and loads auto-seeded Mitarbeit category', async () => {
       const course = Course.create('course-1', 'Mathematik', schoolClass);

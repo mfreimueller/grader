@@ -9,6 +9,10 @@ describe('CourseRepository', () => {
       save: async () => {},
       delete: async () => {},
       deleteCategory: async () => {},
+      softDelete: async () => {},
+      findDeleted: async () => [],
+      restore: async () => {},
+      hardDelete: async () => {},
     };
     expect(typeof repo.findById).toBe('function');
     expect(typeof repo.findAll).toBe('function');

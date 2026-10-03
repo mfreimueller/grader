@@ -1,4 +1,5 @@
 import { StudentRepository } from '../domain/student/StudentRepository';
+import { CourseRepository } from '../domain/grade/CourseRepository';
 import { SchoolClassRepository } from '../domain/student/SchoolClassRepository';
 import { StudentId } from '../domain/student/StudentId';
 import { NotFoundError } from '../shared/errors';
@@ -18,21 +19,32 @@ export interface DeletedClassDto {
   deletedAt: string;
 }
 
+export interface DeletedCourseDto {
+  id: string;
+  title: string;
+  className: string;
+  schoolYear: string;
+  deletedAt: string;
+}
+
 export interface BinListDto {
   students: DeletedStudentDto[];
   classes: DeletedClassDto[];
+  courses: DeletedCourseDto[];
 }
 
 export class BinService {
   constructor(
     private readonly studentRepo: StudentRepository,
     private readonly classRepo: SchoolClassRepository,
+    private readonly courseRepo: CourseRepository,
   ) {}
 
   async listAll(): Promise<BinListDto> {
-    const [students, classes] = await Promise.all([
+    const [students, classes, courses] = await Promise.all([
       this.studentRepo.findDeleted(),
       this.classRepo.findDeleted(),
+      this.courseRepo.findDeleted(),
     ]);
 
     return {
@@ -49,6 +61,7 @@ export class BinService {
         schoolYear: c.schoolYear.toString(),
         deletedAt: c.deletedAt ?? '',
       })),
+      courses,
     };
   }
 
@@ -59,7 +72,22 @@ export class BinService {
   }
 
   async restoreClass(id: string): Promise<void> {
-    await this.classRepo.restore(id);
+    await this.classRepo.restoreWithDependents(id);
+  }
+
+  async restoreCourse(id: string): Promise<void> {
+    await this.requireDeletedCourse(id);
+    await this.courseRepo.restore(id);
+  }
+
+  async hardDeleteCourse(id: string): Promise<void> {
+    await this.requireDeletedCourse(id);
+    await this.courseRepo.hardDelete(id);
+  }
+
+  private async requireDeletedCourse(id: string): Promise<void> {
+    const deleted = await this.courseRepo.findDeleted();
+    if (!deleted.some((c) => c.id === id)) throw new NotFoundError('Course', id);
   }
 
   async hardDeleteStudent(id: string): Promise<void> {
@@ -85,6 +113,11 @@ export class BinService {
     const students = await this.studentRepo.findDeleted();
     for (const s of students) {
       await this.studentRepo.hardDelete(s.id);
+    }
+
+    const courses = await this.courseRepo.findDeleted();
+    for (const c of courses) {
+      await this.courseRepo.hardDelete(c.id);
     }
 
     const classes = await this.classRepo.findDeleted();

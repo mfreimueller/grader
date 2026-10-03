@@ -5,6 +5,7 @@ import { StudentId } from '../../../src/domain/student/StudentId';
 import { Name } from '../../../src/domain/student/Name';
 import { SchoolClass } from '../../../src/domain/student/SchoolClass';
 import { SchoolYear } from '../../../src/domain/student/SchoolYear';
+import { Color } from '../../../src/domain/student/Color';
 import { AdditionalInformation } from '../../../src/domain/student/AdditionalInformation';
 import type { Db } from '../../../src/infrastructure/persistence/db';
 
@@ -144,6 +145,73 @@ describe('SqliteStudentRepository', () => {
       const found = await repo.findById(id.value);
       expect(found).not.toBeNull();
       expect(found!.additionalInformation).toHaveLength(2);
+    });
+  });
+
+  describe('students of a soft-deleted class', () => {
+    const insertStudent = (): void => {
+      db.prepare(
+        "INSERT INTO students (id, first_name, last_name, school_class_id) VALUES ('s-001', 'Max', 'Mustermann', 'class-1')",
+      ).run();
+    };
+
+    it('are hidden from findAll, findById and findByName', async () => {
+      insertStudent();
+      db.prepare("UPDATE school_classes SET deleted_at = datetime('now') WHERE id = 'class-1'").run();
+
+      const id = StudentId.create('s-001');
+      if (!id.ok) throw new Error('creation failed');
+      expect(await repo.findAll()).toHaveLength(0);
+      expect(await repo.findAll('class-1')).toHaveLength(0);
+      expect(await repo.findById(id.value)).toBeNull();
+      expect(await repo.findByName('Max', 'Mustermann')).toHaveLength(0);
+    });
+
+    it('stay listed in the bin once they are soft-deleted themselves', async () => {
+      insertStudent();
+      db.prepare("UPDATE students SET deleted_at = datetime('now') WHERE id = 's-001'").run();
+      db.prepare("UPDATE school_classes SET deleted_at = datetime('now') WHERE id = 'class-1'").run();
+
+      expect(await repo.findDeleted()).toHaveLength(1);
+    });
+  });
+
+  describe('color', () => {
+    const aStudent = (color?: Color | null): Student => {
+      const id = StudentId.create('s-color');
+      const name = Name.create('Max', 'Mustermann');
+      if (!id.ok || !name.ok) throw new Error('creation failed');
+      return Student.create(id.value, name.value, schoolClass, null, color);
+    };
+
+    it('persists and loads a color', async () => {
+      const color = Color.create('#ed1943');
+      if (!color.ok) throw new Error('creation failed');
+      const student = aStudent(color.value);
+      await repo.save(student);
+
+      const found = await repo.findById(student.id);
+
+      expect(found?.color?.value).toBe('#ed1943');
+    });
+
+    it('loads null when no color was set', async () => {
+      const student = aStudent();
+      await repo.save(student);
+
+      expect((await repo.findById(student.id))?.color).toBeNull();
+    });
+
+    it('clears a color on save', async () => {
+      const color = Color.create('#ed1943');
+      if (!color.ok) throw new Error('creation failed');
+      const student = aStudent(color.value);
+      await repo.save(student);
+
+      student.changeColor(null);
+      await repo.save(student);
+
+      expect((await repo.findById(student.id))?.color).toBeNull();
     });
   });
 });

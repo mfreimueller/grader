@@ -73,6 +73,35 @@
           </tbody>
         </table>
       </div>
+
+      <div v-if="data.courses.length > 0" class="bin-group">
+        <h3 class="group-header">Kurse ({{ data.courses.length }})</h3>
+        <table class="bin-table">
+          <thead>
+            <tr>
+              <th>Titel</th>
+              <th>Klasse</th>
+              <th>Gelöscht am</th>
+              <th class="col-actions">Aktionen</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="c in data.courses" :key="c.id">
+              <td>{{ c.title }}</td>
+              <td>{{ c.className }} ({{ c.schoolYear }})</td>
+              <td>{{ formatDate(c.deletedAt) }}</td>
+              <td class="col-actions">
+                <button class="btn btn-small btn-secondary" @click="restore('course', c.id)">
+                  Wiederherstellen
+                </button>
+                <button class="btn btn-small btn-danger" @click="confirmHardDelete('course', c)">
+                  Endgültig löschen
+                </button>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
     </div>
 
     <Teleport to="body">
@@ -92,14 +121,16 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue';
-import type { BinListDto, DeletedStudentDto, DeletedClassDto } from '../../shared/types';
+import type { BinListDto, DeletedStudentDto, DeletedClassDto, DeletedCourseDto } from '../../shared/types';
 
-const data = ref<BinListDto>({ students: [], classes: [] });
+const data = ref<BinListDto>({ students: [], classes: [], courses: [] });
 const loading = ref(true);
 const confirmMsg = ref<string | null>(null);
 let pendingAction: (() => Promise<void>) | null = null;
 
-const isEmpty = computed(() => data.value.students.length === 0 && data.value.classes.length === 0);
+const isEmpty = computed(
+  () => data.value.students.length === 0 && data.value.classes.length === 0 && data.value.courses.length === 0,
+);
 
 onMounted(async () => {
   await loadBin();
@@ -126,7 +157,7 @@ function formatDate(iso: string): string {
   });
 }
 
-async function restore(type: 'student' | 'class', id: string): Promise<void> {
+async function restore(type: 'student' | 'class' | 'course', id: string): Promise<void> {
   try {
     await window.grdr.bin.restore(type, id);
     await loadBin();
@@ -135,10 +166,15 @@ async function restore(type: 'student' | 'class', id: string): Promise<void> {
   }
 }
 
-function confirmHardDelete(type: 'student' | 'class', item: DeletedStudentDto | DeletedClassDto): void {
+function confirmHardDelete(
+  type: 'student' | 'class' | 'course',
+  item: DeletedStudentDto | DeletedClassDto | DeletedCourseDto,
+): void {
   const label = type === 'student'
     ? `"${(item as DeletedStudentDto).lastName}, ${(item as DeletedStudentDto).firstName}"`
-    : `"${(item as DeletedClassDto).name}"`;
+    : type === 'course'
+      ? `"${(item as DeletedCourseDto).title}"`
+      : `"${(item as DeletedClassDto).name}"`;
   confirmMsg.value = `${label} endgültig löschen? Dieser Vorgang kann nicht rückgängig gemacht werden.`;
   pendingAction = async () => {
     await window.grdr.bin.hardDelete(type, item.id);

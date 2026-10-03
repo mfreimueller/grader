@@ -44,13 +44,24 @@ import { registerGradeHandlers } from './ipc/grade.ipc';
 import { registerReportHandlers } from './ipc/report.ipc';
 import { registerSettingsHandlers } from './ipc/settings.ipc';
 import { registerBinHandlers } from './ipc/bin.ipc';
+import { registerDigigradeImportHandlers } from './ipc/digigrade-import.ipc';
+import { DigigradeImportService } from '../application/DigigradeImportService';
+import { registerPickerHandlers } from './ipc/picker.ipc';
+import { StudentPickerService } from '../application/StudentPickerService';
+import { MitarbeitPickService } from '../application/MitarbeitPickService';
+import { SqliteStudentPickCountRepository } from '../infrastructure/persistence/SqliteStudentPickCountRepository';
+import { registerSchoolYearHandlers } from './ipc/schoolyear.ipc';
+import { SchoolYearRolloverService } from '../application/SchoolYearRolloverService';
+import { SqliteUnitOfWork } from '../infrastructure/persistence/SqliteUnitOfWork';
 
 let mcpServer: GraderMcpServer;
+let database: ReturnType<typeof createFileDb> | undefined;
 
 app.on('ready', () => {
   const dbPath = resolveDbPath();
   ensureDbDirectory(dbPath);
   const db = createFileDb(dbPath);
+  database = db;
   runMigrations(db);
 
   const studentRepo = new SqliteStudentRepository(db);
@@ -79,7 +90,14 @@ app.on('ready', () => {
   const impromptuService = new ImpromptuAssessmentService(assessmentService, gradingService);
   const reportService = new ReportService(reportRepo, pdfGenerator, adocGenerator, calcService);
   const gradeImportService = new GradeImportService(sessionRepo, assessmentRepo, gradeRepo, studentRepo, courseRepo);
-  const binService = new BinService(studentRepo, classRepo);
+  const rolloverService = new SchoolYearRolloverService(classRepo, courseRepo, new SqliteUnitOfWork(db));
+  const pickerService = new StudentPickerService(courseRepo, studentRepo, new SqliteStudentPickCountRepository(db));
+  const mitarbeitPickService = new MitarbeitPickService(courseRepo, sessionRepo, studentRepo, gradingService);
+  const digigradeImportService = new DigigradeImportService(
+    classRepo, studentRepo, courseRepo, sessionRepo, gradeRepo, findingRepo, gradeRepo,
+    new SqliteStudentPickCountRepository(db), new SqliteUnitOfWork(db),
+  );
+  const binService = new BinService(studentRepo, classRepo, courseRepo);
 
   const mcpService = new McpService(
     studentRepo, classRepo, courseRepo, gradeRepo, gradeRepo, calcService,
@@ -92,10 +110,13 @@ app.on('ready', () => {
   registerGradeHandlers(assessmentService, gradingService, findingService, calcService, impromptuService, gradeImportService);
   registerReportHandlers(reportService);
   registerBinHandlers(binService);
+  registerSchoolYearHandlers(rolloverService);
+  registerPickerHandlers(pickerService, mitarbeitPickService);
 
   const win = createMainWindow();
   registerSettingsHandlers(win, mcpServer);
-  createAppMenu(win);
+  registerDigigradeImportHandlers(win, digigradeImportService);
+  createAppMenu(win, digigradeImportService);
   win.loadFile('build/renderer/index.html');
 
   const settings = loadSettings();
@@ -163,6 +184,7 @@ app.on('ready', () => {
 
 app.on('before-quit', () => {
   mcpServer.stop().catch(() => {});
+  database?.close();
 });
 
 app.on('window-all-closed', () => {

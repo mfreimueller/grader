@@ -6,10 +6,21 @@
 
         <label class="form-label">Datenbankpfad</label>
         <div class="path-row">
-          <input v-model="dbPath" type="text" class="form-input" readonly @click="pickPath" />
-          <button class="btn btn-secondary" @click="pickPath">Durchsuchen</button>
+          <input v-model="dbPath" type="text" class="form-input" readonly />
+          <button class="btn btn-secondary" @click="openDb">Datenbank öffnen…</button>
+          <button class="btn btn-secondary" @click="pickPath">Neue Datenbank…</button>
         </div>
-        <p class="hint">Wählen Sie einen Speicherort für die Datenbankdatei (grdr.db).</p>
+        <p class="hint">
+          Öffnen Sie eine vorhandene Datenbank oder legen Sie an einem neuen Speicherort eine Datenbankdatei an.
+        </p>
+
+        <div v-if="restartPending" class="restart-prompt">
+          <p>Die Anwendung muss neu gestartet werden, um die neue Datenbank zu verwenden.</p>
+          <div class="restart-actions">
+            <button class="btn btn-secondary" @click="restartPending = false">Später</button>
+            <button class="btn btn-primary" @click="restartNow">Jetzt neu starten</button>
+          </div>
+        </div>
 
         <hr class="separator" />
 
@@ -44,7 +55,7 @@ const props = defineProps<{ visible: boolean }>();
 const emit = defineEmits<{ (e: 'close'): void }>();
 
 const dbPath = ref('');
-const saving = ref(false);
+const restartPending = ref(false);
 const saveSuccess = ref('');
 const error = ref('');
 const mcpEnabled = ref(false);
@@ -60,20 +71,53 @@ watch(() => props.visible, async (open) => {
     mcpUrl.value = await window.grdr.mcp.getUrl();
     saveSuccess.value = '';
     error.value = '';
+    restartPending.value = false;
   }
 });
 
 function close(): void {
-  if (!saving.value) {
-    emit('close');
-  }
+  emit('close');
 }
 
 async function pickPath(): Promise<void> {
+  error.value = '';
+  saveSuccess.value = '';
   const path = await window.grdr.settings.pickDbPath();
-  if (path) {
+  if (!path) return;
+  try {
+    const changed = await window.grdr.settings.saveDbPath(path);
     dbPath.value = path;
+    restartPending.value = changed;
+    if (!changed) {
+      saveSuccess.value = 'Dieser Pfad ist bereits eingestellt.';
+    }
+  } catch (e: unknown) {
+    error.value = e instanceof Error ? e.message : 'Fehler beim Speichern';
   }
+}
+
+async function openDb(): Promise<void> {
+  error.value = '';
+  saveSuccess.value = '';
+  try {
+    const result = await window.grdr.settings.openDb();
+    if (!result) return;
+    if (!result.ok) {
+      error.value = result.error.message;
+      return;
+    }
+    dbPath.value = result.value.path;
+    restartPending.value = result.value.changed;
+    if (!result.value.changed) {
+      saveSuccess.value = 'Diese Datenbank ist bereits geöffnet.';
+    }
+  } catch (e: unknown) {
+    error.value = e instanceof Error ? e.message : 'Fehler beim Öffnen';
+  }
+}
+
+async function restartNow(): Promise<void> {
+  await window.grdr.settings.restartApp();
 }
 
 async function toggleMcp(): Promise<void> {
@@ -88,28 +132,6 @@ async function toggleMcp(): Promise<void> {
   } catch (e: unknown) {
     error.value = e instanceof Error ? e.message : 'Fehler beim Umschalten des MCP-Servers';
     mcpEnabled.value = !mcpEnabled.value;
-  }
-}
-
-async function save(): Promise<void> {
-  if (!dbPath.value) return;
-  saving.value = true;
-  error.value = '';
-  saveSuccess.value = '';
-  try {
-    await window.grdr.settings.saveDbPath(dbPath.value);
-    const restart = window.confirm(
-      'Die Anwendung muss neu gestartet werden, um die neue Datenbank zu verwenden. Jetzt neu starten?',
-    );
-    if (restart) {
-      await window.grdr.settings.restartApp();
-    } else {
-      saveSuccess.value = 'Pfad gespeichert. Starten Sie die Anwendung neu, um die Änderung zu übernehmen.';
-    }
-  } catch (e: unknown) {
-    error.value = e instanceof Error ? e.message : 'Fehler beim Speichern';
-  } finally {
-    saving.value = false;
   }
 }
 </script>
@@ -254,5 +276,20 @@ h3 {
   color: var(--color-success);
   margin-top: 8px;
   font-size: 13px;
+}
+
+.restart-prompt {
+  margin-top: 12px;
+  padding: 12px;
+  border-radius: 6px;
+  background: var(--color-bg, #f5f5f5);
+  font-size: 13px;
+}
+
+.restart-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 8px;
 }
 </style>

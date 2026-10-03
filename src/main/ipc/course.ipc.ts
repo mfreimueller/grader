@@ -32,6 +32,11 @@ export function registerCourseHandlers(
     return await classService.update(id, input as Parameters<SchoolClassService['update']>[1]);
   });
 
+  ipcMain.handle(IPC.CLASS_DEPENDENTS, async (_event, id: string) => {
+    studentIdParam.parse({ id });
+    return await classService.dependents(id);
+  });
+
   ipcMain.handle(IPC.CLASS_DELETE, async (_event, id: string) => {
     studentIdParam.parse({ id });
     return await classService.delete(id);

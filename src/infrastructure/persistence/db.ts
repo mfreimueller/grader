@@ -169,7 +169,32 @@ const MIGRATION_007: Migration = {
   `,
 };
 
-const ALL_MIGRATIONS: Migration[] = [MIGRATION_001, MIGRATION_002, MIGRATION_003, MIGRATION_004, MIGRATION_005, MIGRATION_006, MIGRATION_007];
+const MIGRATION_008: Migration = {
+  id: '008',
+  description: 'Add deleted_at to courses for soft delete',
+  sql: `
+    ALTER TABLE courses ADD COLUMN deleted_at TEXT;
+  `,
+};
+
+const MIGRATION_009: Migration = {
+  id: '009',
+  description: 'Add student color and per-course student pick counts',
+  sql: `
+    ALTER TABLE students ADD COLUMN color TEXT;
+
+    CREATE TABLE IF NOT EXISTS course_student_picks (
+      course_id TEXT NOT NULL REFERENCES courses(id),
+      student_id TEXT NOT NULL REFERENCES students(id),
+      pick_count INTEGER NOT NULL DEFAULT 0 CHECK(pick_count >= 0),
+      PRIMARY KEY (course_id, student_id)
+    );
+  `,
+};
+
+const ALL_MIGRATIONS: Migration[] = [MIGRATION_001, MIGRATION_002, MIGRATION_003, MIGRATION_004, MIGRATION_005, MIGRATION_006, MIGRATION_007, MIGRATION_008, MIGRATION_009];
+
+export const KNOWN_MIGRATION_IDS: readonly string[] = ALL_MIGRATIONS.map((m) => m.id);
 
 export function runMigrations(db: Db): void {
   db.exec(`

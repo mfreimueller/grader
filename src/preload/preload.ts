@@ -7,11 +7,21 @@ const IPC = {
   STUDENT_CREATE: 'student:create',
   STUDENT_UPDATE: 'student:update',
   STUDENT_DELETE: 'student:delete',
+  STUDENT_SET_COLOR: 'student:setColor',
+  PICKER_LIST: 'picker:list',
+  PICKER_PICK_RANDOM: 'picker:pickRandom',
+  PICKER_PICK_STUDENT: 'picker:pickStudent',
+  PICKER_SET_COUNT: 'picker:setCount',
+  PICKER_RESET: 'picker:reset',
+  PICKER_RECORD_MITARBEIT: 'picker:recordMitarbeit',
 
   CLASS_LIST: 'class:list',
   CLASS_CREATE: 'class:create',
   CLASS_UPDATE: 'class:update',
   CLASS_DELETE: 'class:delete',
+  CLASS_DEPENDENTS: 'class:dependents',
+  SCHOOLYEAR_PREVIEW: 'schoolyear:preview',
+  SCHOOLYEAR_ROLLOVER: 'schoolyear:rollover',
 
   COURSE_LIST: 'course:list',
   COURSE_GET: 'course:get',
@@ -45,6 +55,7 @@ const IPC = {
   GRADE_RECORD_IMPROMPTU: 'grade:recordImpromptu',
 
   STUDENT_IMPORT_CSV: 'student:importCsv',
+  IMPORT_DIGIGRADE: 'import:digigrade',
 
   GRADE_IMPORT_CSV: 'grade:importCsv',
 
@@ -59,6 +70,7 @@ const IPC = {
   SETTINGS_GET_DB_PATH: 'settings:getDbPath',
   SETTINGS_PICK_DB_PATH: 'settings:pickDbPath',
   SETTINGS_SAVE_DB_PATH: 'settings:saveDbPath',
+  SETTINGS_OPEN_DB: 'settings:openDb',
   SETTINGS_RESTART_APP: 'settings:restartApp',
   SHOW_SETTINGS: 'show-settings',
   BIN_LIST: 'bin:list',
@@ -79,6 +91,7 @@ const api: IpcApi = {
     create: (data) => ipcRenderer.invoke(IPC.STUDENT_CREATE, data),
     update: (id, data) => ipcRenderer.invoke(IPC.STUDENT_UPDATE, id, data),
     delete: (id) => ipcRenderer.invoke(IPC.STUDENT_DELETE, id),
+    setColor: (id, color) => ipcRenderer.invoke(IPC.STUDENT_SET_COLOR, { id, color }),
     importCsv: (hasHeader) => ipcRenderer.invoke(IPC.STUDENT_IMPORT_CSV, hasHeader),
   },
   class: {
@@ -86,6 +99,23 @@ const api: IpcApi = {
     create: (data) => ipcRenderer.invoke(IPC.CLASS_CREATE, data),
     update: (id, data) => ipcRenderer.invoke(IPC.CLASS_UPDATE, id, data),
     delete: (id) => ipcRenderer.invoke(IPC.CLASS_DELETE, id),
+    dependents: (id) => ipcRenderer.invoke(IPC.CLASS_DEPENDENTS, id),
+  },
+  digigrade: {
+    import: () => ipcRenderer.invoke(IPC.IMPORT_DIGIGRADE),
+  },
+  picker: {
+    list: (courseId) => ipcRenderer.invoke(IPC.PICKER_LIST, courseId),
+    pickRandom: (courseId, fair) => ipcRenderer.invoke(IPC.PICKER_PICK_RANDOM, { courseId, fair }),
+    pickStudent: (courseId, studentId) => ipcRenderer.invoke(IPC.PICKER_PICK_STUDENT, { courseId, studentId }),
+    setCount: (courseId, studentId, count) =>
+      ipcRenderer.invoke(IPC.PICKER_SET_COUNT, { courseId, studentId, count }),
+    reset: (courseId) => ipcRenderer.invoke(IPC.PICKER_RESET, courseId),
+    recordMitarbeit: (data) => ipcRenderer.invoke(IPC.PICKER_RECORD_MITARBEIT, data),
+  },
+  schoolYear: {
+    preview: () => ipcRenderer.invoke(IPC.SCHOOLYEAR_PREVIEW),
+    rollover: (data) => ipcRenderer.invoke(IPC.SCHOOLYEAR_ROLLOVER, data),
   },
   course: {
     list: (params) => ipcRenderer.invoke(IPC.COURSE_LIST, params),
@@ -138,6 +168,7 @@ const api: IpcApi = {
     getDbPath: () => ipcRenderer.invoke(IPC.SETTINGS_GET_DB_PATH),
     pickDbPath: () => ipcRenderer.invoke(IPC.SETTINGS_PICK_DB_PATH),
     saveDbPath: (path) => ipcRenderer.invoke(IPC.SETTINGS_SAVE_DB_PATH, path),
+    openDb: () => ipcRenderer.invoke(IPC.SETTINGS_OPEN_DB),
     restartApp: () => ipcRenderer.invoke(IPC.SETTINGS_RESTART_APP),
     onOpenSettings: (callback) => {
       ipcRenderer.on(IPC.SHOW_SETTINGS, callback);

@@ -3,7 +3,7 @@ import { readFileSync } from 'node:fs';
 import { IPC } from '../../shared/ipc-channels';
 import { StudentService, CreateStudentInput, UpdateStudentInput } from '../../application/StudentService';
 import { CsvImportService } from '../../application/CsvImportService';
-import { createStudentSchema, updateStudentSchema, studentIdParam } from './schemas';
+import { createStudentSchema, updateStudentSchema, studentIdParam, setColorSchema } from './schemas';
 
 export function registerStudentHandlers(service: StudentService, csvImportService: CsvImportService): void {
   ipcMain.handle(IPC.STUDENT_LIST, async (_event, schoolClassId?: string) => {
@@ -24,6 +24,11 @@ export function registerStudentHandlers(service: StudentService, csvImportServic
     studentIdParam.parse({ id });
     const input = updateStudentSchema.parse(data) as UpdateStudentInput;
     return await service.update(id, input);
+  });
+
+  ipcMain.handle(IPC.STUDENT_SET_COLOR, async (_event, data: unknown) => {
+    const { id, color } = setColorSchema.parse(data);
+    return await service.setColor(id, color);
   });
 
   ipcMain.handle(IPC.STUDENT_DELETE, async (_event, id: string) => {

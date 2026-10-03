@@ -1,5 +1,5 @@
 import type { Db } from './db';
-import { SchoolClassRepository } from '../../domain/student/SchoolClassRepository';
+import { ClassDependentsCount, SchoolClassRepository } from '../../domain/student/SchoolClassRepository';
 import { SchoolClass } from '../../domain/student/SchoolClass';
 import { SchoolYear } from '../../domain/student/SchoolYear';
 
@@ -88,7 +88,58 @@ export class SqliteSchoolClassRepository implements SchoolClassRepository {
       );
     }
 
+    const courseCount = this.db
+      .prepare('SELECT COUNT(*) AS cnt FROM courses WHERE school_class_id = ?')
+      .get(id) as { cnt: number };
+
+    if (courseCount.cnt > 0) {
+      throw new Error(
+        `Klasse kann nicht endgültig gelöscht werden: ${courseCount.cnt} Kurs(e) vorhanden. Löschen Sie zuerst alle Kurse.`,
+      );
+    }
+
     this.db.prepare('DELETE FROM school_classes WHERE id = ?').run(id);
+  }
+
+  async countDependents(id: string): Promise<ClassDependentsCount> {
+    const students = this.db
+      .prepare('SELECT COUNT(*) AS cnt FROM students WHERE school_class_id = ? AND deleted_at IS NULL')
+      .get(id) as { cnt: number };
+    const courses = this.db
+      .prepare('SELECT COUNT(*) AS cnt FROM courses WHERE school_class_id = ? AND deleted_at IS NULL')
+      .get(id) as { cnt: number };
+    return { students: students.cnt, courses: courses.cnt };
+  }
+
+  async softDeleteWithDependents(id: string): Promise<void> {
+    const deletedAt = new Date().toISOString();
+    this.db.transaction(() => {
+      this.db
+        .prepare('UPDATE students SET deleted_at = ? WHERE school_class_id = ? AND deleted_at IS NULL')
+        .run(deletedAt, id);
+      this.db
+        .prepare('UPDATE courses SET deleted_at = ? WHERE school_class_id = ? AND deleted_at IS NULL')
+        .run(deletedAt, id);
+      this.db.prepare('UPDATE school_classes SET deleted_at = ? WHERE id = ?').run(deletedAt, id);
+    })();
+  }
+
+  async restoreWithDependents(id: string): Promise<void> {
+    const row = this.db
+      .prepare('SELECT deleted_at FROM school_classes WHERE id = ?')
+      .get(id) as { deleted_at: string | null } | undefined;
+    if (!row?.deleted_at) return;
+    const deletedAt = row.deleted_at;
+
+    this.db.transaction(() => {
+      this.db
+        .prepare('UPDATE students SET deleted_at = NULL WHERE school_class_id = ? AND deleted_at = ?')
+        .run(id, deletedAt);
+      this.db
+        .prepare('UPDATE courses SET deleted_at = NULL WHERE school_class_id = ? AND deleted_at = ?')
+        .run(id, deletedAt);
+      this.db.prepare('UPDATE school_classes SET deleted_at = NULL WHERE id = ?').run(id);
+    })();
   }
 
   private rowToSchoolClass(row: SchoolClassRow): SchoolClass {

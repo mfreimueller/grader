@@ -2,6 +2,7 @@ import { StudentRepository } from '../domain/student/StudentRepository';
 import { SchoolClassRepository } from '../domain/student/SchoolClassRepository';
 import { StudentId } from '../domain/student/StudentId';
 import { Student } from '../domain/student/Student';
+import { Color } from '../domain/student/Color';
 import { Name } from '../domain/student/Name';
 import { AdditionalInformation } from '../domain/student/AdditionalInformation';
 import { Result } from '../domain/shared/Result';
@@ -25,6 +26,7 @@ export interface StudentDto {
   lastName: string;
   schoolClass: SchoolClassRefDto;
   additionalInfo: AdditionalInfoEntry[];
+  color: string | null;
 }
 
 export interface CreateStudentInput {
@@ -102,7 +104,7 @@ export class StudentService {
       schoolClass = newClass;
     }
 
-    const updated = Student.create(sidResult.value, nameResult.value, schoolClass);
+    const updated = Student.create(sidResult.value, nameResult.value, schoolClass, null, existing.color);
 
     if (input.additionalInfo) {
       for (const entry of input.additionalInfo) {
@@ -112,6 +114,25 @@ export class StudentService {
 
     await this.studentRepo.save(updated);
     return Result.ok(toDto(updated));
+  }
+
+  async setColor(id: string, rawColor: string | null): Promise<Result<StudentDto>> {
+    const sidResult = StudentId.create(id);
+    if (!sidResult.ok) return Result.fail(sidResult.error);
+
+    const existing = await this.studentRepo.findById(sidResult.value);
+    if (!existing) return Result.fail(new NotFoundError('Student', id));
+
+    let color: Color | null = null;
+    if (rawColor !== null) {
+      const colorResult = Color.create(rawColor);
+      if (!colorResult.ok) return Result.fail(colorResult.error);
+      color = colorResult.value;
+    }
+
+    existing.changeColor(color);
+    await this.studentRepo.save(existing);
+    return Result.ok(toDto(existing));
   }
 
   async delete(id: string): Promise<Result<void>> {
@@ -140,5 +161,6 @@ function toDto(s: Student): StudentDto {
       key: info.key,
       value: info.value,
     })),
+    color: s.color?.value ?? null,
   };
 }

@@ -19,6 +19,7 @@ export interface StudentDto {
   lastName: string;
   schoolClass: SchoolClassRefDto;
   additionalInfo: AdditionalInfoEntry[];
+  color: string | null;
 }
 
 export interface CreateStudentInput {
@@ -245,18 +246,85 @@ export interface DeletedClassDto {
   deletedAt: string;
 }
 
+export interface DeletedCourseDto {
+  id: string;
+  title: string;
+  className: string;
+  schoolYear: string;
+  deletedAt: string;
+}
+
+export interface RolloverClassDto {
+  id: string;
+  name: string;
+  schoolYear: string;
+  suggestedName: string | null;
+}
+
+export interface RolloverPreviewDto {
+  targetSchoolYear: string;
+  classes: RolloverClassDto[];
+}
+
+export interface RolloverInput {
+  targetSchoolYear: string;
+  archiveCourses: boolean;
+  entries: { classId: string; action: { type: 'rename'; newName: string } | { type: 'drop' } }[];
+}
+
+export interface RolloverSummaryDto {
+  renamed: number;
+  dropped: number;
+  coursesArchived: number;
+}
+
+export interface StudentPickDto {
+  studentId: string;
+  firstName: string;
+  lastName: string;
+  pickCount: number;
+  color: string | null;
+}
+
+export interface RosterEntryDto extends StudentPickDto {
+  inFairPool: boolean;
+}
+
+export interface RecordMitarbeitPickInput {
+  courseId: string;
+  studentId: string;
+  symbol: string;
+  date: string;
+}
+
+export interface MitarbeitPickDto {
+  performanceId: string;
+  sessionId: string;
+  symbol: string;
+}
+
+export interface DigigradeImportResultDto {
+  classes: { created: number; skipped: number };
+  students: { created: number; skipped: number };
+  courses: { created: number; skipped: number };
+  sessionsCreated: number;
+  performancesCreated: number;
+  warnings: string[];
+}
+
 export interface BinListDto {
   students: DeletedStudentDto[];
   classes: DeletedClassDto[];
+  courses: DeletedCourseDto[];
 }
 
 export interface BinRestoreInput {
-  type: 'student' | 'class';
+  type: 'student' | 'class' | 'course';
   id: string;
 }
 
 export interface BinHardDeleteInput {
-  type: 'student' | 'class';
+  type: 'student' | 'class' | 'course';
   id: string;
 }
 
@@ -267,13 +335,30 @@ export interface IpcApi {
     create: (data: CreateStudentInput) => Promise<ResultDto<StudentDto>>;
     update: (id: string, data: UpdateStudentInput) => Promise<ResultDto<StudentDto>>;
     delete: (id: string) => Promise<ResultDto<void>>;
+    setColor: (id: string, color: string | null) => Promise<ResultDto<StudentDto>>;
     importCsv: (hasHeader: boolean) => Promise<ResultDto<ImportResultDto>>;
+  };
+  digigrade: {
+    import: () => Promise<ResultDto<DigigradeImportResultDto> | null>;
   };
   class: {
     list: () => Promise<SchoolClassDto[]>;
     create: (data: CreateSchoolClassInput) => Promise<ResultDto<SchoolClassDto>>;
     update: (id: string, data: UpdateSchoolClassInput) => Promise<ResultDto<SchoolClassDto>>;
     delete: (id: string) => Promise<ResultDto<void>>;
+    dependents: (id: string) => Promise<ResultDto<{ students: number; courses: number }>>;
+  };
+  picker: {
+    list: (courseId: string) => Promise<ResultDto<RosterEntryDto[]>>;
+    pickRandom: (courseId: string, fair: boolean) => Promise<ResultDto<StudentPickDto>>;
+    pickStudent: (courseId: string, studentId: string) => Promise<ResultDto<StudentPickDto>>;
+    setCount: (courseId: string, studentId: string, count: number) => Promise<ResultDto<StudentPickDto>>;
+    reset: (courseId: string) => Promise<ResultDto<void>>;
+    recordMitarbeit: (data: RecordMitarbeitPickInput) => Promise<ResultDto<MitarbeitPickDto>>;
+  };
+  schoolYear: {
+    preview: () => Promise<RolloverPreviewDto>;
+    rollover: (data: RolloverInput) => Promise<ResultDto<RolloverSummaryDto>>;
   };
   course: {
     list: (params?: CourseListParams) => Promise<CourseDto[]>;
@@ -324,14 +409,15 @@ export interface IpcApi {
   settings: {
     getDbPath: () => Promise<string>;
     pickDbPath: () => Promise<string | null>;
-    saveDbPath: (path: string) => Promise<void>;
+    saveDbPath: (path: string) => Promise<boolean>;
+    openDb: () => Promise<ResultDto<{ path: string; changed: boolean }> | null>;
     restartApp: () => Promise<void>;
     onOpenSettings: (callback: () => void) => () => void;
   };
   bin: {
     listAll: () => Promise<BinListDto>;
-    restore: (type: 'student' | 'class', id: string) => Promise<void>;
-    hardDelete: (type: 'student' | 'class', id: string) => Promise<void>;
+    restore: (type: 'student' | 'class' | 'course', id: string) => Promise<void>;
+    hardDelete: (type: 'student' | 'class' | 'course', id: string) => Promise<void>;
     empty: () => Promise<void>;
   };
   mcp: {

@@ -67,4 +67,51 @@ describe('SchoolClassService', () => {
     const result = await service.create({ name: '1A', schoolYear: 'invalid' });
     expect(result.ok).toBe(false);
   });
+
+  describe('deleting a class with its students and courses', () => {
+    const seedClass = (): void => {
+      db.exec(`
+        INSERT INTO school_classes (id, name, school_year) VALUES ('class-1', '4EHIF', '2025/26');
+        INSERT INTO students (id, first_name, last_name, school_class_id) VALUES ('s-1', 'Max', 'Muster', 'class-1');
+        INSERT INTO students (id, first_name, last_name, school_class_id) VALUES ('s-2', 'Anna', 'Gruber', 'class-1');
+        INSERT INTO courses (id, title, school_class_id) VALUES ('c-1', 'Mathematik', 'class-1');
+      `);
+    };
+
+    it('reports how many students and courses a deletion would remove', async () => {
+      seedClass();
+
+      const result = await service.dependents('class-1');
+
+      expect(result.ok).toBe(true);
+      if (result.ok) expect(result.value).toEqual({ students: 2, courses: 1 });
+    });
+
+    it('fails with NotFound when asking dependents of an unknown class', async () => {
+      const result = await service.dependents('nope');
+
+      expect(result.ok).toBe(false);
+    });
+
+    it('soft-deletes the class together with its students and courses', async () => {
+      seedClass();
+
+      const result = await service.delete('class-1');
+
+      expect(result.ok).toBe(true);
+      const live = (table: string): number =>
+        (db.prepare(`SELECT COUNT(*) AS cnt FROM ${table} WHERE deleted_at IS NULL`).get() as { cnt: number }).cnt;
+      expect(live('school_classes')).toBe(0);
+      expect(live('students')).toBe(0);
+      expect(live('courses')).toBe(0);
+      const rows = db.prepare('SELECT COUNT(*) AS cnt FROM students').get() as { cnt: number };
+      expect(rows.cnt).toBe(2);
+    });
+
+    it('fails with NotFound when deleting an unknown class', async () => {
+      const result = await service.delete('nope');
+
+      expect(result.ok).toBe(false);
+    });
+  });
 });

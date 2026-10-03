@@ -52,6 +52,10 @@ export class SchoolYear extends ValueObject<SchoolYearProps> {
     return `${this.startYear}/${endShort.toString().padStart(2, '0')}`;
   }
 
+  next(): SchoolYear {
+    return new SchoolYear(this.startYear + 1, this.endYear + 1);
+  }
+
   compareTo(other: SchoolYear): number {
     return this.startYear - other.startYear;
   }

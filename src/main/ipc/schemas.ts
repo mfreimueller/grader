@@ -143,3 +143,47 @@ export const reportGenerateSingleSchema = z.object({
   mode: z.enum(['full', 'reduced']),
   format: z.enum(['pdf', 'adoc']),
 });
+
+export const schoolYearRolloverSchema = z.object({
+  targetSchoolYear: z.string().min(1),
+  archiveCourses: z.boolean(),
+  entries: z.array(
+    z.object({
+      classId: z.string().min(1),
+      action: z.discriminatedUnion('type', [
+        z.object({ type: z.literal('rename'), newName: z.string() }),
+        z.object({ type: z.literal('drop') }),
+      ]),
+    }),
+  ),
+});
+
+export const courseIdParam = z.object({ courseId: z.string().min(1) });
+
+export const setColorSchema = z.object({
+  id: z.string().min(1),
+  color: z.string().nullable(),
+});
+
+export const pickRandomSchema = z.object({
+  courseId: z.string().min(1),
+  fair: z.boolean(),
+});
+
+export const pickStudentSchema = z.object({
+  courseId: z.string().min(1),
+  studentId: z.string().min(1),
+});
+
+export const setPickCountSchema = z.object({
+  courseId: z.string().min(1),
+  studentId: z.string().min(1),
+  count: z.number(),
+});
+
+export const recordMitarbeitPickSchema = z.object({
+  courseId: z.string().min(1),
+  studentId: z.string().min(1),
+  symbol: z.string().min(1),
+  date: z.string().min(1),
+});
