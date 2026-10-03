@@ -22,7 +22,8 @@ export class SqliteReportRepository implements ReportRepository {
         `SELECT s.id, s.first_name, s.last_name
          FROM students s
          JOIN courses c ON s.school_class_id = c.school_class_id
-         WHERE c.id = ?
+         WHERE c.id = ? AND s.deleted_at IS NULL
+           AND s.id NOT IN (SELECT student_id FROM course_excluded_students WHERE course_id = c.id)
          ORDER BY s.last_name, s.first_name`,
       )
       .all(courseId) as { id: string; first_name: string; last_name: string }[];

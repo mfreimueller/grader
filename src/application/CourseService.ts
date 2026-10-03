@@ -1,5 +1,6 @@
 import { CourseRepository } from '../domain/grade/CourseRepository';
 import { SchoolClassRepository } from '../domain/student/SchoolClassRepository';
+import { CourseRosterRepository } from '../domain/grade/CourseRosterRepository';
 import { Course } from '../domain/grade/Course';
 import { AssessmentCategory } from '../domain/grade/AssessmentCategory';
 import { GradeComposition } from '../domain/grade/GradeComposition';
@@ -45,6 +46,7 @@ export class CourseService {
   constructor(
     private readonly courseRepo: CourseRepository,
     private readonly schoolClassRepo: SchoolClassRepository,
+    private readonly rosterRepo: CourseRosterRepository,
   ) {}
 
   async list(schoolYearStr?: string): Promise<CourseDto[]> {
@@ -109,6 +111,10 @@ export class CourseService {
     );
 
     await this.courseRepo.save(cloned);
+    // Excluded students belong to one class: the list only carries over when the clone stays in it.
+    if (targetClass.id === source.schoolClass.id) {
+      await this.rosterRepo.replaceExcluded(newId, [...(await this.rosterRepo.findExcludedIds(source.id))]);
+    }
     return Result.ok(toDto(cloned));
   }
 

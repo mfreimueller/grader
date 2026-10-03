@@ -81,6 +81,22 @@ describe('SqliteReportRepository', () => {
     expect(anna!.performances[0]!.maxPoints).toBe(30);
   });
 
+  it('leaves out students who are not taught in the course', async () => {
+    db.prepare("INSERT INTO course_excluded_students (course_id, student_id) VALUES ('course-1', 's-002')").run();
+
+    const data = await repo.findCourseReportData('course-1');
+
+    expect(data!.students.map((s) => s.lastName)).toEqual(['Muster']);
+  });
+
+  it('leaves out deleted students', async () => {
+    db.prepare("UPDATE students SET deleted_at = datetime('now') WHERE id = 's-002'").run();
+
+    const data = await repo.findCourseReportData('course-1');
+
+    expect(data!.students.map((s) => s.lastName)).toEqual(['Muster']);
+  });
+
   it('returns null for non-existent course', async () => {
     const data = await repo.findCourseReportData('nonexistent');
     expect(data).toBeNull();

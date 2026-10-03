@@ -9,6 +9,7 @@ import { GradedPerformance } from '../domain/grade/GradedPerformance';
 import { ParticipationPerformance } from '../domain/grade/ParticipationPerformance';
 import { GradedAssessment } from '../domain/grade/GradedAssessment';
 
+import { CourseRosterService } from '../application/CourseRosterService';
 export interface ClassResult {
   id: string;
   name: string;
@@ -103,6 +104,7 @@ export class McpService {
     private readonly perfRepo: StudentPerformanceRepository,
     private readonly gradeRepo: GradeRepository,
     private readonly calcService: GradeCalculationAppService,
+    private readonly rosterService: CourseRosterService,
   ) {}
 
   async listClasses(): Promise<ClassResult[]> {
@@ -275,7 +277,7 @@ export class McpService {
     const course = await this.courseRepo.findById(courseId);
     if (!course) return { error: 'Course not found' };
 
-    const students = await this.studentRepo.findAll(course.schoolClass.id);
+    const students = await this.rosterService.rosterOfCourse(course);
     const entries: CourseSummaryEntry[] = [];
 
     for (const student of students) {

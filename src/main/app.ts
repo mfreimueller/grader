@@ -67,6 +67,7 @@ app.on('ready', () => {
   runMigrations(db);
 
   const studentRepo = new SqliteStudentRepository(db);
+  const courseRosterRepo = new SqliteCourseRosterRepository(db);
   const classRepo = new SqliteSchoolClassRepository(db);
   const courseRepo = new SqliteCourseRepository(db);
   const assessmentRepo = new SqliteAssessmentRepository(db);
@@ -82,7 +83,7 @@ app.on('ready', () => {
   const studentService = new StudentService(studentRepo, classRepo);
   const csvImportService = new CsvImportService(classRepo, studentRepo);
   const classService = new SchoolClassService(classRepo);
-  const courseService = new CourseService(courseRepo, classRepo);
+  const courseService = new CourseService(courseRepo, classRepo, courseRosterRepo);
   const categoryService = new AssessmentCategoryService(courseRepo);
   const sessionService = new SessionService(sessionRepo, courseRepo, studentRepo);
   const assessmentService = new AssessmentService(assessmentRepo, sessionRepo, courseRepo);
@@ -93,7 +94,7 @@ app.on('ready', () => {
   const reportService = new ReportService(reportRepo, pdfGenerator, adocGenerator, calcService);
   const gradeImportService = new GradeImportService(sessionRepo, assessmentRepo, gradeRepo, studentRepo, courseRepo);
   const rolloverService = new SchoolYearRolloverService(classRepo, courseRepo, new SqliteUnitOfWork(db));
-  const rosterService = new CourseRosterService(courseRepo, studentRepo, new SqliteCourseRosterRepository(db));
+  const rosterService = new CourseRosterService(courseRepo, studentRepo, courseRosterRepo);
   const pickerService = new StudentPickerService(courseRepo, rosterService, new SqliteStudentPickCountRepository(db));
   const mitarbeitPickService = new MitarbeitPickService(courseRepo, sessionRepo, studentRepo, gradingService, rosterService);
   const digigradeImportService = new DigigradeImportService(
@@ -103,7 +104,7 @@ app.on('ready', () => {
   const binService = new BinService(studentRepo, classRepo, courseRepo);
 
   const mcpService = new McpService(
-    studentRepo, classRepo, courseRepo, gradeRepo, gradeRepo, calcService,
+    studentRepo, classRepo, courseRepo, gradeRepo, gradeRepo, calcService, rosterService,
   );
   mcpServer = new GraderMcpServer(mcpService);
 

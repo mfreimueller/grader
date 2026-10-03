@@ -2,6 +2,7 @@ import { createInMemoryDb, runMigrations } from '../../../src/infrastructure/per
 import { SqliteCourseRepository } from '../../../src/infrastructure/persistence/SqliteCourseRepository';
 import { SqliteSchoolClassRepository } from '../../../src/infrastructure/persistence/SqliteSchoolClassRepository';
 import { CourseService } from '../../../src/application/CourseService';
+import { SqliteCourseRosterRepository } from '../../../src/infrastructure/persistence/SqliteCourseRosterRepository';
 import { SchoolClass } from '../../../src/domain/student/SchoolClass';
 import { SchoolYear } from '../../../src/domain/student/SchoolYear';
 import type { Db } from '../../../src/infrastructure/persistence/db';
@@ -17,7 +18,7 @@ describe('CourseService', () => {
 
     const classRepo = new SqliteSchoolClassRepository(db);
     const courseRepo = new SqliteCourseRepository(db);
-    service = new CourseService(courseRepo, classRepo);
+    service = new CourseService(courseRepo, classRepo, new SqliteCourseRosterRepository(db));
 
     const year = SchoolYear.create('2025/26');
     if (!year.ok) throw year.error;
@@ -67,6 +68,44 @@ describe('CourseService', () => {
     if (!cloned.ok) return;
     expect(cloned.value.title).toBe('Mathematik');
     expect(cloned.value.schoolClass.id).toBe('class-2');
+  });
+
+  describe('cloning the roster', () => {
+    beforeEach(() => {
+      db.exec(`
+        INSERT INTO students (id, first_name, last_name, school_class_id) VALUES ('s-1', 'Max', 'Muster', 'class-1');
+        INSERT INTO students (id, first_name, last_name, school_class_id) VALUES ('s-2', 'Anna', 'Gruber', 'class-1');
+      `);
+    });
+
+    const excludedOf = (courseId: string): string[] =>
+      (db.prepare('SELECT student_id FROM course_excluded_students WHERE course_id = ?').all(courseId) as { student_id: string }[])
+        .map((r) => r.student_id);
+
+    it('copies the exclusion list when the clone stays in the same class', async () => {
+      const created = await service.create({ title: 'Mathematik', schoolClassId: classId });
+      if (!created.ok) throw created.error;
+      db.prepare("INSERT INTO course_excluded_students (course_id, student_id) VALUES (?, 's-2')").run(created.value.id);
+
+      const cloned = await service.clone(created.value.id, classId);
+
+      expect(cloned.ok).toBe(true);
+      if (cloned.ok) expect(excludedOf(cloned.value.id)).toEqual(['s-2']);
+    });
+
+    it('starts with the whole class when the clone goes to another class', async () => {
+      const created = await service.create({ title: 'Mathematik', schoolClassId: classId });
+      if (!created.ok) throw created.error;
+      db.prepare("INSERT INTO course_excluded_students (course_id, student_id) VALUES (?, 's-2')").run(created.value.id);
+      const otherYear = SchoolYear.create('2026/27');
+      if (!otherYear.ok) throw otherYear.error;
+      new SqliteSchoolClassRepository(db).save(new SchoolClass('class-2', '2A', otherYear.value));
+
+      const cloned = await service.clone(created.value.id, 'class-2');
+
+      expect(cloned.ok).toBe(true);
+      if (cloned.ok) expect(excludedOf(cloned.value.id)).toEqual([]);
+    });
   });
 
   it('deletes a course', async () => {
