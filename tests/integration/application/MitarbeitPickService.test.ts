@@ -5,6 +5,8 @@ import { SqliteStudentRepository } from '../../../src/infrastructure/persistence
 import { SqliteAssessmentRepository } from '../../../src/infrastructure/persistence/SqliteAssessmentRepository';
 import { SqliteSessionRepository } from '../../../src/infrastructure/persistence/SqliteSessionRepository';
 import { GradingService } from '../../../src/application/GradingService';
+import { SqliteCourseRosterRepository } from '../../../src/infrastructure/persistence/SqliteCourseRosterRepository';
+import { CourseRosterService } from '../../../src/application/CourseRosterService';
 import { MitarbeitPickService } from '../../../src/application/MitarbeitPickService';
 import { Course } from '../../../src/domain/grade/Course';
 import { SchoolClass } from '../../../src/domain/student/SchoolClass';
@@ -15,6 +17,7 @@ describe('MitarbeitPickService', () => {
   let db: Db;
   let service: MitarbeitPickService;
   let grading: GradingService;
+  let rosterService: CourseRosterService;
 
   const count = (table: string): number =>
     (db.prepare(`SELECT COUNT(*) AS cnt FROM ${table}`).get() as { cnt: number }).cnt;
@@ -27,7 +30,8 @@ describe('MitarbeitPickService', () => {
     const sessionRepo = new SqliteSessionRepository(db);
     const gradeRepo = new SqliteGradeRepository(db);
     grading = new GradingService(gradeRepo, courseRepo, gradeRepo, studentRepo, new SqliteAssessmentRepository(db), sessionRepo);
-    service = new MitarbeitPickService(courseRepo, sessionRepo, studentRepo, grading);
+    rosterService = new CourseRosterService(courseRepo, studentRepo, new SqliteCourseRosterRepository(db));
+    service = new MitarbeitPickService(courseRepo, sessionRepo, studentRepo, grading, rosterService);
 
     const year = SchoolYear.create('2025/26');
     if (!year.ok) throw year.error;
@@ -114,6 +118,16 @@ describe('MitarbeitPickService', () => {
     ['an invalid date', input('s-1', 'PLUS', 'yesterday')],
   ])('fails for %s and creates nothing', async (_label, bad) => {
     const result = await service.record(bad);
+
+    expect(result.ok).toBe(false);
+    expect(count('sessions')).toBe(0);
+    expect(count('student_performances')).toBe(0);
+  });
+
+  it('rejects a student who is not taught in the course and creates nothing', async () => {
+    await rosterService.setIncluded('course-1', 's-1', false);
+
+    const result = await service.record(input('s-1', 'PLUS'));
 
     expect(result.ok).toBe(false);
     expect(count('sessions')).toBe(0);

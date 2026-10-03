@@ -2,6 +2,8 @@ import { createInMemoryDb, runMigrations } from '../../../src/infrastructure/per
 import { SqliteStudentRepository } from '../../../src/infrastructure/persistence/SqliteStudentRepository';
 import { SqliteCourseRepository } from '../../../src/infrastructure/persistence/SqliteCourseRepository';
 import { SqliteStudentPickCountRepository } from '../../../src/infrastructure/persistence/SqliteStudentPickCountRepository';
+import { SqliteCourseRosterRepository } from '../../../src/infrastructure/persistence/SqliteCourseRosterRepository';
+import { CourseRosterService } from '../../../src/application/CourseRosterService';
 import { StudentPickerService } from '../../../src/application/StudentPickerService';
 import type { Db } from '../../../src/infrastructure/persistence/db';
 
@@ -9,14 +11,21 @@ describe('StudentPickerService', () => {
   let db: Db;
   let random: () => number;
   let service: StudentPickerService;
+  let rosterService: CourseRosterService;
 
   beforeEach(() => {
     db = createInMemoryDb();
     runMigrations(db);
     random = () => 0;
-    service = new StudentPickerService(
-      new SqliteCourseRepository(db),
+    const courseRepo = new SqliteCourseRepository(db);
+    rosterService = new CourseRosterService(
+      courseRepo,
       new SqliteStudentRepository(db),
+      new SqliteCourseRosterRepository(db),
+    );
+    service = new StudentPickerService(
+      courseRepo,
+      rosterService,
       new SqliteStudentPickCountRepository(db),
       () => random(),
     );
@@ -77,6 +86,14 @@ describe('StudentPickerService', () => {
       expect(result.ok && result.value.every((s) => s.inFairPool)).toBe(true);
     });
 
+    it('leaves out students who are not taught in the course', async () => {
+      await rosterService.setIncluded('c-1', 's-1', false);
+
+      const result = await service.list('c-1');
+
+      expect(result.ok && result.value.map((s) => s.studentId)).toEqual(['s-2', 's-3']);
+    });
+
     it('fails for an unknown course', async () => {
       expect((await service.list('nope')).ok).toBe(false);
     });
@@ -118,6 +135,15 @@ describe('StudentPickerService', () => {
       }
     });
 
+    it('never picks a student who is not taught in the course', async () => {
+      await rosterService.setIncluded('c-1', 's-1', false);
+      random = () => 0.999;
+
+      for (let i = 0; i < 6; i++) {
+        expect(await picked(service.pickRandom('c-1', false))).not.toBe('s-1');
+      }
+    });
+
     it('fails when the class has no students', async () => {
       const result = await service.pickRandom('c-empty', true);
 
@@ -136,6 +162,12 @@ describe('StudentPickerService', () => {
 
       expect(result.ok).toBe(true);
       if (result.ok) expect(result.value).toMatchObject({ studentId: 's-3', pickCount: 2 });
+    });
+
+    it('rejects a student who is not taught in the course', async () => {
+      await rosterService.setIncluded('c-1', 's-2', false);
+
+      expect((await service.pickStudent('c-1', 's-2')).ok).toBe(false);
     });
 
     it.each(['s-gone', 'unknown'])('rejects %s because they are not on the roster', async (id) => {

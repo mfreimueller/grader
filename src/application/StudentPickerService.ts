@@ -1,5 +1,5 @@
 import { CourseRepository } from '../domain/grade/CourseRepository';
-import { StudentRepository } from '../domain/student/StudentRepository';
+import { CourseRosterService } from './CourseRosterService';
 import { StudentPickCountRepository } from '../domain/grade/StudentPickCountRepository';
 import { Student } from '../domain/student/Student';
 import { StudentPicker } from '../domain/grade/StudentPicker';
@@ -24,7 +24,7 @@ export interface RosterEntryDto extends StudentPickDto {
 export class StudentPickerService {
   constructor(
     private readonly courseRepo: CourseRepository,
-    private readonly studentRepo: StudentRepository,
+    private readonly rosterService: CourseRosterService,
     private readonly pickRepo: StudentPickCountRepository,
     private readonly random: () => number = Math.random,
   ) {}
@@ -89,16 +89,9 @@ export class StudentPickerService {
     return Result.ok(toDto(student, newCount));
   }
 
-  /** Everybody still in the courses class, sorted by name. Grader has no per-course roster. */
-  private async loadRoster(courseId: string): Promise<Result<Student[]>> {
-    const course = await this.courseRepo.findById(courseId);
-    if (!course) return Result.fail(new NotFoundError('Course', courseId));
-    const students = await this.studentRepo.findAll(course.schoolClass.id);
-    students.sort(
-      (a, b) =>
-        a.name.lastName.localeCompare(b.name.lastName) || a.name.firstName.localeCompare(b.name.firstName),
-    );
-    return Result.ok(students);
+  /** The students taught in the course, sorted by name. */
+  private loadRoster(courseId: string): Promise<Result<Student[]>> {
+    return this.rosterService.rosterOf(courseId);
   }
 }
 

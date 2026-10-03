@@ -46,6 +46,8 @@ import { registerSettingsHandlers } from './ipc/settings.ipc';
 import { registerBinHandlers } from './ipc/bin.ipc';
 import { registerDigigradeImportHandlers } from './ipc/digigrade-import.ipc';
 import { DigigradeImportService } from '../application/DigigradeImportService';
+import { CourseRosterService } from '../application/CourseRosterService';
+import { SqliteCourseRosterRepository } from '../infrastructure/persistence/SqliteCourseRosterRepository';
 import { registerPickerHandlers } from './ipc/picker.ipc';
 import { StudentPickerService } from '../application/StudentPickerService';
 import { MitarbeitPickService } from '../application/MitarbeitPickService';
@@ -91,8 +93,9 @@ app.on('ready', () => {
   const reportService = new ReportService(reportRepo, pdfGenerator, adocGenerator, calcService);
   const gradeImportService = new GradeImportService(sessionRepo, assessmentRepo, gradeRepo, studentRepo, courseRepo);
   const rolloverService = new SchoolYearRolloverService(classRepo, courseRepo, new SqliteUnitOfWork(db));
-  const pickerService = new StudentPickerService(courseRepo, studentRepo, new SqliteStudentPickCountRepository(db));
-  const mitarbeitPickService = new MitarbeitPickService(courseRepo, sessionRepo, studentRepo, gradingService);
+  const rosterService = new CourseRosterService(courseRepo, studentRepo, new SqliteCourseRosterRepository(db));
+  const pickerService = new StudentPickerService(courseRepo, rosterService, new SqliteStudentPickCountRepository(db));
+  const mitarbeitPickService = new MitarbeitPickService(courseRepo, sessionRepo, studentRepo, gradingService, rosterService);
   const digigradeImportService = new DigigradeImportService(
     classRepo, studentRepo, courseRepo, sessionRepo, gradeRepo, findingRepo, gradeRepo,
     new SqliteStudentPickCountRepository(db), new SqliteUnitOfWork(db),

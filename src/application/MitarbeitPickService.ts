@@ -8,6 +8,7 @@ import { Result } from '../domain/shared/Result';
 import { NotFoundError, ValidationError } from '../shared/errors';
 import { generateId } from '../domain/shared/IdGenerator';
 import { GradingService } from './GradingService';
+import { CourseRosterService } from './CourseRosterService';
 
 export interface RecordMitarbeitPickInput {
   courseId: string;
@@ -32,6 +33,7 @@ export class MitarbeitPickService {
     private readonly sessionRepo: SessionRepository,
     private readonly studentRepo: StudentRepository,
     private readonly gradingService: GradingService,
+    private readonly rosterService: CourseRosterService,
   ) {}
 
   async record(input: RecordMitarbeitPickInput): Promise<Result<MitarbeitPickDto>> {
@@ -52,6 +54,10 @@ export class MitarbeitPickService {
     if (!studentId.ok) return Result.fail(studentId.error);
     const student = await this.studentRepo.findById(studentId.value);
     if (!student) return Result.fail(new NotFoundError('Student', input.studentId));
+    const roster = await this.rosterService.rosterOfCourse(course);
+    if (!roster.some((s) => s.id.value === input.studentId)) {
+      return Result.fail(new ValidationError('Der Schüler gehört nicht zu diesem Kurs.'));
+    }
 
     const sessions = await this.sessionRepo.findByCourse(input.courseId);
     const session =
