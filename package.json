@@ -32,6 +32,7 @@
     "lint": "eslint .",
     "typecheck": "tsc -p tsconfig.main.json --noEmit && tsc -p tsconfig.renderer.json --noEmit",
     "package": "electron-builder build",
+    "build:win": "./scripts/build-windows.sh",
     "deploy": "./scripts/deploy.sh"
   },
   "devDependencies": {

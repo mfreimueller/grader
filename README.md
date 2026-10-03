@@ -70,6 +70,7 @@ npm run seed
 | `npm run lint` | ESLint ausführen |
 | `npm run typecheck` | TypeScript-Typen für Main- und Renderer-Prozess prüfen |
 | `npm run package` | Installierbares Paket bauen (electron-builder) |
+| `npm run build:win` | Windows-Installer (NSIS) via Docker bauen (kein Wine nötig) |
 | `npm run deploy` | Versionierung und Veröffentlichung (siehe `scripts/deploy.sh`) |
 
 ### Tests
