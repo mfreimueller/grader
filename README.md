@@ -16,6 +16,9 @@ komplett offline, alle Daten bleiben auf dem eigenen Rechner.
 - **Papierkorb** – Soft-Delete statt hartem Löschen: versehentlich gelöschte Einträge sind
   wiederherstellbar.
 - **CSV-Import** – Schülerlisten lassen sich bequem aus CSV-Dateien importieren.
+- **Kurs-Teilnehmer** – Wird eine Klasse in Gruppen geteilt, legt der Tab „Schüler“ fest, wen die Lehrperson im
+  Kurs unterrichtet. Nicht ausgewählte Schüler verschwinden aus Beurteilung, Sitzungen, Schülerauswahl und
+  Berichten; bereits erfasste Leistungen bleiben erhalten.
 - **Schülerauswahl** – zufällige Auswahl per Farbrad mit Fair-Modus (wer am seltesten aufgerufen wurde,
   kommt zuerst), eigenen Schülerfarben, Aufrufzählern und direktem Eintragen der Mitarbeit (+ / ~ / −).
 - **Schuljahreswechsel** – alle Klassen auf einmal ins neue Schuljahr übernehmen (z. B. 4EHIF → 5EHIF),
