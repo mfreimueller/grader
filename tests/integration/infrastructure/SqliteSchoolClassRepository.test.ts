@@ -2,6 +2,7 @@ import { createInMemoryDb, runMigrations } from '../../../src/infrastructure/per
 import { SqliteSchoolClassRepository } from '../../../src/infrastructure/persistence/SqliteSchoolClassRepository';
 import { SchoolClass } from '../../../src/domain/student/SchoolClass';
 import { SchoolYear } from '../../../src/domain/student/SchoolYear';
+import { rejectionMessage } from '../../helpers/rejection';
 import type { Db } from '../../../src/infrastructure/persistence/db';
 
 describe('SqliteSchoolClassRepository', () => {
@@ -141,7 +142,7 @@ describe('SqliteSchoolClassRepository', () => {
       db.exec(`CREATE TRIGGER fail_course_update BEFORE UPDATE ON courses
                BEGIN SELECT RAISE(ABORT, 'boom'); END;`);
 
-      await expect(repo.softDeleteWithDependents('class-1')).rejects.toThrow('boom');
+      expect(await rejectionMessage(repo.softDeleteWithDependents('class-1'))).toContain('boom');
 
       expect(deletedAt('school_classes', 'class-1')).toBeNull();
       expect(deletedAt('students', 's-1')).toBeNull();

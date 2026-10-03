@@ -12,6 +12,7 @@ import { SqliteCourseRosterRepository } from '../../../src/infrastructure/persis
 import { SqliteUnitOfWork } from '../../../src/infrastructure/persistence/SqliteUnitOfWork';
 import { DigigradeImportService } from '../../../src/application/DigigradeImportService';
 import type { DigigradeExport } from '../../../src/application/DigigradeExport';
+import { rejectionMessage } from '../../helpers/rejection';
 import type { Db } from '../../../src/infrastructure/persistence/db';
 
 const fixture = (): DigigradeExport =>
@@ -382,7 +383,7 @@ describe('DigigradeImportService', () => {
       db.exec(`CREATE TRIGGER fail_perf BEFORE INSERT ON student_performances
                BEGIN SELECT RAISE(ABORT, 'boom'); END;`);
 
-      await expect(service.import(fixture())).rejects.toThrow('boom');
+      expect(await rejectionMessage(service.import(fixture()))).toContain('boom');
 
       expect(snapshot()).toEqual([0, 0, 0, 0, 0, 0, 0, 0, 0]);
     });

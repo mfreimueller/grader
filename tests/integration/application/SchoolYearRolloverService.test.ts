@@ -3,6 +3,7 @@ import { SqliteSchoolClassRepository } from '../../../src/infrastructure/persist
 import { SqliteCourseRepository } from '../../../src/infrastructure/persistence/SqliteCourseRepository';
 import { SqliteUnitOfWork } from '../../../src/infrastructure/persistence/SqliteUnitOfWork';
 import { SchoolYearRolloverService } from '../../../src/application/SchoolYearRolloverService';
+import { rejectionMessage } from '../../helpers/rejection';
 import type { Db } from '../../../src/infrastructure/persistence/db';
 
 describe('SchoolYearRolloverService', () => {
@@ -166,13 +167,15 @@ describe('SchoolYearRolloverService', () => {
       db.exec(`CREATE TRIGGER fail_course_update BEFORE UPDATE ON courses
                BEGIN SELECT RAISE(ABORT, 'boom'); END;`);
 
-      await expect(
+      const message = await rejectionMessage(
         service.apply({
           targetSchoolYear: '2026/27',
           archiveCourses: true,
           entries: [{ classId: 'c1', action: { type: 'rename', newName: '2A' } }],
         }),
-      ).rejects.toThrow('boom');
+      );
+
+      expect(message).toContain('boom');
 
       expect(row('school_classes', 'c1')).toMatchObject({ name: '1A', school_year: '2025/26' });
     });
