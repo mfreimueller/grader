@@ -8,6 +8,7 @@ import { SqliteSessionRepository } from '../../../src/infrastructure/persistence
 import { SqliteGradeRepository } from '../../../src/infrastructure/persistence/SqliteGradeRepository';
 import { SqliteFindingRepository } from '../../../src/infrastructure/persistence/SqliteFindingRepository';
 import { SqliteStudentPickCountRepository } from '../../../src/infrastructure/persistence/SqliteStudentPickCountRepository';
+import { SqliteCourseRosterRepository } from '../../../src/infrastructure/persistence/SqliteCourseRosterRepository';
 import { SqliteUnitOfWork } from '../../../src/infrastructure/persistence/SqliteUnitOfWork';
 import { DigigradeImportService } from '../../../src/application/DigigradeImportService';
 import type { DigigradeExport } from '../../../src/application/DigigradeExport';
@@ -40,6 +41,7 @@ describe('DigigradeImportService', () => {
       new SqliteFindingRepository(db),
       gradeRepo,
       new SqliteStudentPickCountRepository(db),
+      new SqliteCourseRosterRepository(db),
       new SqliteUnitOfWork(db),
     );
   });
@@ -107,6 +109,17 @@ describe('DigigradeImportService', () => {
         )
         .all() as { last_name: string }[];
       expect(rows.map((r) => r.last_name)).toEqual(['Gruber', 'Muster']);
+    });
+
+    it('stores the excluded students as the roster of the imported course', async () => {
+      await service.import(fixture());
+
+      const excluded = db
+        .prepare(
+          `SELECT s.last_name FROM course_excluded_students e JOIN students s ON s.id = e.student_id`,
+        )
+        .all() as { last_name: string }[];
+      expect(excluded.map((e) => e.last_name)).toEqual(['Zimmer']);
     });
 
     it('imports assessments, performances, notes, links, grades and pick counts', async () => {

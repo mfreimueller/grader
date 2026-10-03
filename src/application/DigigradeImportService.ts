@@ -6,6 +6,7 @@ import { StudentPerformanceRepository } from '../domain/grade/StudentPerformance
 import { FindingRepository } from '../domain/grade/FindingRepository';
 import { GradeRepository } from '../domain/grade/GradeRepository';
 import { StudentPickCountRepository } from '../domain/grade/StudentPickCountRepository';
+import { CourseRosterRepository } from '../domain/grade/CourseRosterRepository';
 import { UnitOfWork } from '../domain/shared/UnitOfWork';
 import { generateId } from '../domain/shared/IdGenerator';
 import { SchoolClass } from '../domain/student/SchoolClass';
@@ -67,6 +68,7 @@ export class DigigradeImportService {
     private readonly findingRepo: FindingRepository,
     private readonly gradeRepo: GradeRepository,
     private readonly pickRepo: StudentPickCountRepository,
+    private readonly rosterRepo: CourseRosterRepository,
     private readonly unitOfWork: UnitOfWork,
   ) {}
 
@@ -194,6 +196,7 @@ export class DigigradeImportService {
     const excluded = new Set(
       exported.excludedStudentIds.map((id) => students.get(id)?.id.value).filter((id): id is string => !!id),
     );
+    await this.rosterRepo.replaceExcluded(course.id, [...excluded]);
     const roster = (await this.studentRepo.findAll(schoolClass.id)).filter((s) => !excluded.has(s.id.value));
 
     for (const session of exported.sessions) {

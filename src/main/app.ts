@@ -99,7 +99,7 @@ app.on('ready', () => {
   const mitarbeitPickService = new MitarbeitPickService(courseRepo, sessionRepo, studentRepo, gradingService, rosterService);
   const digigradeImportService = new DigigradeImportService(
     classRepo, studentRepo, courseRepo, sessionRepo, gradeRepo, findingRepo, gradeRepo,
-    new SqliteStudentPickCountRepository(db), new SqliteUnitOfWork(db),
+    new SqliteStudentPickCountRepository(db), courseRosterRepo, new SqliteUnitOfWork(db),
   );
   const binService = new BinService(studentRepo, classRepo, courseRepo);
 
