@@ -192,7 +192,19 @@ const MIGRATION_009: Migration = {
   `,
 };
 
-const ALL_MIGRATIONS: Migration[] = [MIGRATION_001, MIGRATION_002, MIGRATION_003, MIGRATION_004, MIGRATION_005, MIGRATION_006, MIGRATION_007, MIGRATION_008, MIGRATION_009];
+const MIGRATION_010: Migration = {
+  id: '010',
+  description: 'Add course_excluded_students so a course can cover only part of its class',
+  sql: `
+    CREATE TABLE IF NOT EXISTS course_excluded_students (
+      course_id TEXT NOT NULL REFERENCES courses(id),
+      student_id TEXT NOT NULL REFERENCES students(id),
+      PRIMARY KEY (course_id, student_id)
+    );
+  `,
+};
+
+const ALL_MIGRATIONS: Migration[] = [MIGRATION_001, MIGRATION_002, MIGRATION_003, MIGRATION_004, MIGRATION_005, MIGRATION_006, MIGRATION_007, MIGRATION_008, MIGRATION_009, MIGRATION_010];
 
 export const KNOWN_MIGRATION_IDS: readonly string[] = ALL_MIGRATIONS.map((m) => m.id);
 

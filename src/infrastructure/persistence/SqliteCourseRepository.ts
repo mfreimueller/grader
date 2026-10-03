@@ -146,6 +146,7 @@ export class SqliteCourseRepository implements CourseRepository {
   }
 
   async delete(id: string): Promise<void> {
+    this.db.prepare('DELETE FROM course_excluded_students WHERE course_id = ?').run(id);
     this.db.prepare('DELETE FROM grade_compositions WHERE course_id = ?').run(id);
     this.db.prepare('DELETE FROM assessment_categories WHERE course_id = ?').run(id);
     this.db.prepare('DELETE FROM courses WHERE id = ?').run(id);
@@ -197,6 +198,7 @@ export class SqliteCourseRepository implements CourseRepository {
       this.db.prepare('DELETE FROM sessions WHERE course_id = ?').run(courseId);
       this.db.prepare('DELETE FROM grades WHERE course_id = ?').run(courseId);
       this.db.prepare('DELETE FROM course_student_picks WHERE course_id = ?').run(courseId);
+      this.db.prepare('DELETE FROM course_excluded_students WHERE course_id = ?').run(courseId);
       this.db.prepare('DELETE FROM grade_compositions WHERE course_id = ?').run(courseId);
       this.db.prepare('DELETE FROM assessment_categories WHERE course_id = ?').run(courseId);
       this.db.prepare('DELETE FROM courses WHERE id = ?').run(courseId);
