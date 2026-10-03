@@ -112,6 +112,28 @@ describe('CourseRosterService', () => {
     });
   });
 
+  describe('members', () => {
+    it('returns the taught students as student dtos sorted by name', async () => {
+      await service.setIncluded('c-1', 's-3', false);
+
+      const result = await service.members('c-1');
+
+      expect(result.ok).toBe(true);
+      if (!result.ok) return;
+      expect(result.value.map((s) => s.id)).toEqual(['s-2', 's-1']);
+      expect(result.value[1]).toMatchObject({
+        firstName: 'Max',
+        lastName: 'Muster',
+        color: '#ed1943',
+        schoolClass: { id: 'class-1', name: '4A', schoolYear: '2026/27' },
+      });
+    });
+
+    it('fails for an unknown course', async () => {
+      expect((await service.members('nope')).ok).toBe(false);
+    });
+  });
+
   describe('rosterOf', () => {
     it('returns the students taught in the course, sorted by name', async () => {
       await service.setIncluded('c-1', 's-1', false);

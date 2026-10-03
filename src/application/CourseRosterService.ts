@@ -4,6 +4,7 @@ import { CourseRosterRepository } from '../domain/grade/CourseRosterRepository';
 import { CourseRoster } from '../domain/grade/CourseRoster';
 import { Course } from '../domain/grade/Course';
 import { Student } from '../domain/student/Student';
+import { StudentDto, toStudentDto } from './StudentService';
 import { Result } from '../domain/shared/Result';
 import { NotFoundError } from '../shared/errors';
 
@@ -56,6 +57,13 @@ export class CourseRosterService {
     const classStudents = await this.studentRepo.findAll(course.schoolClass.id);
     await this.rosterRepo.replaceExcluded(courseId, included ? [] : classStudents.map((s) => s.id.value));
     return Result.ok(undefined as void);
+  }
+
+  /** The taught students as dtos, for the course views that list students. */
+  async members(courseId: string): Promise<Result<StudentDto[]>> {
+    const roster = await this.rosterOf(courseId);
+    if (!roster.ok) return Result.fail(roster.error);
+    return Result.ok(roster.value.map(toStudentDto));
   }
 
   /** The students taught in the course: live class students minus the excluded ones, sorted by name. */

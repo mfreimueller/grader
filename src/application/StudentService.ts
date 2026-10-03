@@ -51,7 +51,7 @@ export class StudentService {
 
   async list(schoolClassId?: string): Promise<StudentDto[]> {
     const students = await this.studentRepo.findAll(schoolClassId);
-    return students.map(toDto);
+    return students.map(toStudentDto);
   }
 
   async findById(id: string): Promise<Result<StudentDto>> {
@@ -60,7 +60,7 @@ export class StudentService {
 
     const student = await this.studentRepo.findById(sidResult.value);
     if (!student) return Result.fail(new NotFoundError('Student', id));
-    return Result.ok(toDto(student));
+    return Result.ok(toStudentDto(student));
   }
 
   async create(input: CreateStudentInput): Promise<Result<StudentDto>> {
@@ -82,7 +82,7 @@ export class StudentService {
     }
 
     await this.studentRepo.save(student);
-    return Result.ok(toDto(student));
+    return Result.ok(toStudentDto(student));
   }
 
   async update(id: string, input: UpdateStudentInput): Promise<Result<StudentDto>> {
@@ -113,7 +113,7 @@ export class StudentService {
     }
 
     await this.studentRepo.save(updated);
-    return Result.ok(toDto(updated));
+    return Result.ok(toStudentDto(updated));
   }
 
   async setColor(id: string, rawColor: string | null): Promise<Result<StudentDto>> {
@@ -132,7 +132,7 @@ export class StudentService {
 
     existing.changeColor(color);
     await this.studentRepo.save(existing);
-    return Result.ok(toDto(existing));
+    return Result.ok(toStudentDto(existing));
   }
 
   async delete(id: string): Promise<Result<void>> {
@@ -147,7 +147,7 @@ export class StudentService {
   }
 }
 
-function toDto(s: Student): StudentDto {
+export function toStudentDto(s: Student): StudentDto {
   return {
     id: s.id.value,
     firstName: s.name.firstName,
