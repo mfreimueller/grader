@@ -8,6 +8,10 @@ const IPC = {
   STUDENT_UPDATE: 'student:update',
   STUDENT_DELETE: 'student:delete',
   STUDENT_SET_COLOR: 'student:setColor',
+  ROSTER_LIST: 'roster:list',
+  ROSTER_MEMBERS: 'roster:members',
+  ROSTER_SET_INCLUDED: 'roster:setIncluded',
+  ROSTER_SET_ALL: 'roster:setAll',
   PICKER_LIST: 'picker:list',
   PICKER_PICK_RANDOM: 'picker:pickRandom',
   PICKER_PICK_STUDENT: 'picker:pickStudent',
@@ -103,6 +107,13 @@ const api: IpcApi = {
   },
   digigrade: {
     import: () => ipcRenderer.invoke(IPC.IMPORT_DIGIGRADE),
+  },
+  roster: {
+    list: (courseId) => ipcRenderer.invoke(IPC.ROSTER_LIST, courseId),
+    members: (courseId) => ipcRenderer.invoke(IPC.ROSTER_MEMBERS, courseId),
+    setIncluded: (courseId, studentId, included) =>
+      ipcRenderer.invoke(IPC.ROSTER_SET_INCLUDED, { courseId, studentId, included }),
+    setAll: (courseId, included) => ipcRenderer.invoke(IPC.ROSTER_SET_ALL, { courseId, included }),
   },
   picker: {
     list: (courseId) => ipcRenderer.invoke(IPC.PICKER_LIST, courseId),

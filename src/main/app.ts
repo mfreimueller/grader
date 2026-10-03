@@ -48,6 +48,7 @@ import { registerDigigradeImportHandlers } from './ipc/digigrade-import.ipc';
 import { DigigradeImportService } from '../application/DigigradeImportService';
 import { CourseRosterService } from '../application/CourseRosterService';
 import { SqliteCourseRosterRepository } from '../infrastructure/persistence/SqliteCourseRosterRepository';
+import { registerRosterHandlers } from './ipc/roster.ipc';
 import { registerPickerHandlers } from './ipc/picker.ipc';
 import { StudentPickerService } from '../application/StudentPickerService';
 import { MitarbeitPickService } from '../application/MitarbeitPickService';
@@ -116,6 +117,7 @@ app.on('ready', () => {
   registerBinHandlers(binService);
   registerSchoolYearHandlers(rolloverService);
   registerPickerHandlers(pickerService, mitarbeitPickService);
+  registerRosterHandlers(rosterService);
 
   const win = createMainWindow();
   registerSettingsHandlers(win, mcpServer);

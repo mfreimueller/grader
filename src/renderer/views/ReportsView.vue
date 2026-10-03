@@ -153,7 +153,8 @@ watch(selectedCourseId, async () => {
   if (!selectedCourseId.value) return;
   const course = selectedCourse.value;
   if (!course) return;
-  const all = await window.grdr.student.list(course.schoolClass.id);
+  const members = await window.grdr.roster.members(course.id);
+  const all = members.ok ? members.value : [];
   students.value = all.sort((a, b) => {
     const cmp = a.lastName.localeCompare(b.lastName);
     if (cmp !== 0) return cmp;

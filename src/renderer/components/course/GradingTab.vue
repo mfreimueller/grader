@@ -452,7 +452,8 @@ onMounted(() => {
 
 async function loadData(): Promise<void> {
   try {
-    students.value = await window.grdr.student.list(props.course.schoolClass.id);
+    const members = await window.grdr.roster.members(props.course.id);
+    students.value = members.ok ? members.value : [];
 
     const sessions: SessionDto[] = await window.grdr.session.listByCourse(props.course.id);
     const allAssessments: AssessmentDto[] = [];

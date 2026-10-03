@@ -216,12 +216,12 @@ onMounted(async () => {
 });
 
 async function loadData(): Promise<void> {
-  const [allStudents, asses, cats] = await Promise.all([
-    window.grdr.student.list(props.schoolClassId),
+  const [members, asses, cats] = await Promise.all([
+    window.grdr.roster.members(props.courseId),
     window.grdr.assessment.listBySession(props.sessionId),
     window.grdr.assessmentCategory.listByCourse(props.courseId),
   ]);
-  students.value = allStudents;
+  students.value = members.ok ? members.value : [];
   assessments.value = asses;
   categories.value = cats;
 

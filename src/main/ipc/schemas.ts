@@ -187,3 +187,14 @@ export const recordMitarbeitPickSchema = z.object({
   symbol: z.string().min(1),
   date: z.string().min(1),
 });
+
+export const setRosterIncludedSchema = z.object({
+  courseId: z.string().min(1),
+  studentId: z.string().min(1),
+  included: z.boolean(),
+});
+
+export const setRosterAllSchema = z.object({
+  courseId: z.string().min(1),
+  included: z.boolean(),
+});

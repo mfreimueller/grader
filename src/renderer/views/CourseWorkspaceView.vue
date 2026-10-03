@@ -25,6 +25,7 @@
         <SessionsTab v-if="activeTab === 'sessions'" :course="course" />
         <GradingTab v-else-if="activeTab === 'grading'" :course="course" />
         <StudentPickerTab v-else-if="activeTab === 'picker'" :course="course" />
+        <RosterTab v-else-if="activeTab === 'roster'" :course="course" />
 
         <CategoriesTab v-else-if="activeTab === 'categories'" :course="course" @update:course="course = $event" />
       </div>
@@ -38,6 +39,7 @@ import { useRoute } from 'vue-router';
 import type { CourseDto } from '../../shared/types';
 import SessionsTab from '../components/course/SessionsTab.vue';
 import GradingTab from '../components/course/GradingTab.vue';
+import RosterTab from '../components/course/RosterTab.vue';
 import StudentPickerTab from '../components/course/StudentPickerTab.vue';
 import CategoriesTab from '../components/course/CategoriesTab.vue';
 
@@ -50,6 +52,7 @@ const tabs = [
   { key: 'sessions', label: 'Sitzungen' },
   { key: 'grading', label: 'Benotung' },
   { key: 'picker', label: 'Schülerauswahl' },
+  { key: 'roster', label: 'Schüler' },
   { key: 'categories', label: 'Kategorien' },
 ];
 

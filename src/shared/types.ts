@@ -286,6 +286,15 @@ export interface StudentPickDto {
   color: string | null;
 }
 
+export interface CourseRosterEntryDto {
+  studentId: string;
+  firstName: string;
+  lastName: string;
+  color: string | null;
+  included: boolean;
+  entryCount: number;
+}
+
 export interface RosterEntryDto extends StudentPickDto {
   inFairPool: boolean;
 }
@@ -347,6 +356,12 @@ export interface IpcApi {
     update: (id: string, data: UpdateSchoolClassInput) => Promise<ResultDto<SchoolClassDto>>;
     delete: (id: string) => Promise<ResultDto<void>>;
     dependents: (id: string) => Promise<ResultDto<{ students: number; courses: number }>>;
+  };
+  roster: {
+    list: (courseId: string) => Promise<ResultDto<CourseRosterEntryDto[]>>;
+    members: (courseId: string) => Promise<ResultDto<StudentDto[]>>;
+    setIncluded: (courseId: string, studentId: string, included: boolean) => Promise<ResultDto<CourseRosterEntryDto>>;
+    setAll: (courseId: string, included: boolean) => Promise<ResultDto<void>>;
   };
   picker: {
     list: (courseId: string) => Promise<ResultDto<RosterEntryDto[]>>;
