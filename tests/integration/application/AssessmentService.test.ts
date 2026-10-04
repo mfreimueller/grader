@@ -16,6 +16,7 @@ describe('AssessmentService', () => {
   let courseId: string;
   let categoryId: string;
   let sessionId: string;
+  let sessionRepo: SqliteSessionRepository;
 
   beforeEach(() => {
     db = createInMemoryDb();
@@ -23,7 +24,7 @@ describe('AssessmentService', () => {
 
     const classRepo = new SqliteSchoolClassRepository(db);
     const courseRepo = new SqliteCourseRepository(db);
-    const sessionRepo = new SqliteSessionRepository(db);
+    sessionRepo = new SqliteSessionRepository(db);
     const assessmentRepo = new SqliteAssessmentRepository(db);
     service = new AssessmentService(assessmentRepo, sessionRepo, courseRepo);
 
@@ -58,6 +59,22 @@ describe('AssessmentService', () => {
     if (!result.ok) return;
     expect(result.value.title).toBe('Test 1');
     expect(result.value.maxPoints).toBeNull();
+  });
+
+  it('keeps the absent students of the session when adding an assessment', async () => {
+    const stored = await sessionRepo.findById(sessionId);
+    if (!stored) throw new Error('session missing');
+    db.prepare('INSERT INTO students (id, first_name, last_name, school_class_id) VALUES (?, ?, ?, ?)')
+      .run('stu-1', 'Anna', 'Hoffmann', 'class-1');
+    await sessionRepo.save(
+      Session.reconstitute(stored.id, stored.date, stored.notes, stored.course, [], [], ['stu-1']),
+    );
+
+    const result = await service.create({ sessionId, title: 'Test 2', categoryId, courseId, isImpromptu: false });
+    expect(result.ok).toBe(true);
+
+    const reloaded = await sessionRepo.findById(sessionId);
+    expect(reloaded?.absentStudentIds).toEqual(['stu-1']);
   });
 
   it('creates a graded assessment with maxPoints', async () => {

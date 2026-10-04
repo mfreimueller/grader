@@ -131,6 +131,28 @@ describe('SqliteStudentRepository', () => {
     });
   });
 
+  describe('hardDelete', () => {
+    it('removes the absences of the student but keeps those of others and the session itself', async () => {
+      db.exec(`
+        INSERT INTO students (id, first_name, last_name, school_class_id) VALUES ('s-1', 'Max', 'Muster', 'class-1');
+        INSERT INTO students (id, first_name, last_name, school_class_id) VALUES ('s-2', 'Anna', 'Muster', 'class-1');
+        INSERT INTO courses (id, title, school_class_id) VALUES ('c-1', 'Mathe', 'class-1');
+        INSERT INTO sessions (id, date, course_id) VALUES ('sess-1', '2026-01-01', 'c-1');
+        INSERT INTO session_absences (session_id, student_id) VALUES ('sess-1', 's-1');
+        INSERT INTO session_absences (session_id, student_id) VALUES ('sess-1', 's-2');
+      `);
+      const id = StudentId.create('s-1');
+      if (!id.ok) throw new Error('creation failed');
+
+      await repo.hardDelete(id.value);
+
+      const rows = db.prepare('SELECT student_id FROM session_absences').all() as { student_id: string }[];
+      expect(rows).toEqual([{ student_id: 's-2' }]);
+      const sessions = db.prepare('SELECT COUNT(*) AS n FROM sessions').get() as { n: number };
+      expect(sessions.n).toBe(1);
+    });
+  });
+
   describe('additional information', () => {
     it('saves and retrieves additional information', async () => {
       const id = StudentId.create('s-001');

@@ -95,6 +95,74 @@ describe('Session', () => {
     });
   });
 
+  describe('absence', () => {
+    const aSession = (): Session => Session.create('sess-1', new Date(2025, 9, 15), '', validCourse);
+
+    it('starts with nobody absent', () => {
+      const session = aSession();
+      expect(session.absentStudentIds).toEqual([]);
+      expect(session.isAbsent(student1.id)).toBe(false);
+    });
+
+    it('marks a student as absent', () => {
+      const session = aSession();
+      session.markAbsent(student1.id);
+      expect(session.isAbsent(student1.id)).toBe(true);
+      expect(session.isAbsent(student2.id)).toBe(false);
+      expect(session.absentStudentIds).toEqual(['s-001']);
+    });
+
+    it('marks a student absent only once', () => {
+      const session = aSession();
+      session.markAbsent(student1.id);
+      session.markAbsent(student1.id);
+      expect(session.absentStudentIds).toEqual(['s-001']);
+    });
+
+    it('marks an absent student as present again', () => {
+      const session = aSession();
+      session.markAbsent(student1.id);
+      session.markAbsent(student2.id);
+      session.markPresent(student1.id);
+      expect(session.isAbsent(student1.id)).toBe(false);
+      expect(session.absentStudentIds).toEqual(['s-002']);
+    });
+
+    it('does nothing when marking a present student as present', () => {
+      const session = aSession();
+      session.markPresent(student1.id);
+      expect(session.absentStudentIds).toEqual([]);
+    });
+
+    it('keeps the absence when a student is added to or removed from the session', () => {
+      const session = aSession();
+      session.markAbsent(student1.id);
+      session.addStudent(student1);
+      session.removeStudent(student1.id);
+      expect(session.isAbsent(student1.id)).toBe(true);
+    });
+
+    it('does not expose its internal list to mutation', () => {
+      const session = aSession();
+      session.markAbsent(student1.id);
+      (session.absentStudentIds as string[]).push('s-002');
+      expect(session.absentStudentIds).toEqual(['s-001']);
+    });
+
+    it('restores the absent students when reconstituted', () => {
+      const session = Session.reconstitute(
+        'sess-1', new Date(2025, 9, 15), '', validCourse, [], [], ['s-001', 's-002', 's-001'],
+      );
+      expect(session.absentStudentIds).toEqual(['s-001', 's-002']);
+      expect(session.isAbsent(student2.id)).toBe(true);
+    });
+
+    it('reconstitutes without absent students by default', () => {
+      const session = Session.reconstitute('sess-1', new Date(2025, 9, 15), '', validCourse, [], []);
+      expect(session.absentStudentIds).toEqual([]);
+    });
+  });
+
   describe('equals', () => {
     it('returns true for sessions with same id', () => {
       const date = new Date(2025, 9, 15);

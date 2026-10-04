@@ -1,4 +1,4 @@
-import { createInMemoryDb, runMigrations } from '../../../../src/infrastructure/persistence/db';
+import { createInMemoryDb, runMigrations, KNOWN_MIGRATION_IDS } from '../../../../src/infrastructure/persistence/db';
 
 describe('createInMemoryDb', () => {
   it('creates an in-memory SQLite database', () => {
@@ -56,6 +56,63 @@ describe('runMigrations', () => {
       "SELECT name FROM sqlite_master WHERE type='table' ORDER BY name",
     ).all() as { name: string }[];
     expect(tables.length).toBeGreaterThan(1);
+    db.close();
+  });
+});
+
+describe('migration 011 (session_absences)', () => {
+  const seedSession = (db: ReturnType<typeof createInMemoryDb>): void => {
+    db.exec(`
+      INSERT INTO school_classes (id, name, school_year) VALUES ('cl-1', '1A', '2025/26');
+      INSERT INTO students (id, first_name, last_name, school_class_id) VALUES ('s-1', 'Max', 'Mustermann', 'cl-1');
+      INSERT INTO courses (id, title, school_class_id) VALUES ('co-1', 'Mathe', 'cl-1');
+      INSERT INTO sessions (id, date, notes, course_id) VALUES ('se-1', '2025-10-15T00:00:00.000Z', '', 'co-1');
+    `);
+  };
+
+  it('is a known migration', () => {
+    expect(KNOWN_MIGRATION_IDS).toContain('011');
+  });
+
+  it('creates the session_absences table with the expected columns', () => {
+    const db = createInMemoryDb();
+    runMigrations(db);
+    const cols = db.prepare('PRAGMA table_info(session_absences)').all() as { name: string; pk: number }[];
+    expect(cols.map((c) => c.name).sort()).toEqual(['session_id', 'student_id']);
+    expect(cols.every((c) => c.pk > 0)).toBe(true);
+    db.close();
+  });
+
+  it('rejects the same student twice for one session', () => {
+    const db = createInMemoryDb();
+    runMigrations(db);
+    seedSession(db);
+    const insert = db.prepare('INSERT INTO session_absences (session_id, student_id) VALUES (?, ?)');
+    insert.run('se-1', 's-1');
+    expect(() => insert.run('se-1', 's-1')).toThrow();
+    db.close();
+  });
+
+  it('enforces foreign keys to sessions and students', () => {
+    const db = createInMemoryDb();
+    runMigrations(db);
+    seedSession(db);
+    const insert = db.prepare('INSERT INTO session_absences (session_id, student_id) VALUES (?, ?)');
+    expect(() => insert.run('missing', 's-1')).toThrow();
+    expect(() => insert.run('se-1', 'missing')).toThrow();
+    db.close();
+  });
+
+  it('upgrades a database that is at migration 010 without touching existing data', () => {
+    const db = createInMemoryDb();
+    runMigrations(db);
+    seedSession(db);
+    db.exec("DROP TABLE session_absences; DELETE FROM _migrations WHERE id = '011';");
+    runMigrations(db);
+    const table = db.prepare("SELECT name FROM sqlite_master WHERE name = 'session_absences'").get();
+    expect(table).toBeDefined();
+    const sessions = db.prepare('SELECT COUNT(*) AS n FROM sessions').get() as { n: number };
+    expect(sessions.n).toBe(1);
     db.close();
   });
 });

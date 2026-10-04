@@ -10,6 +10,7 @@ export class Session extends Entity<string> {
   private _course: Course;
   private _students: Student[];
   private _assessments: Assessment[];
+  private _absentStudentIds: Set<string>;
 
   private constructor(
     id: string,
@@ -18,6 +19,7 @@ export class Session extends Entity<string> {
     course: Course,
     students: Student[],
     assessments: Assessment[],
+    absentStudentIds: readonly string[],
   ) {
     super(id);
     this._date = date;
@@ -25,6 +27,7 @@ export class Session extends Entity<string> {
     this._course = course;
     this._students = [...students];
     this._assessments = [...assessments];
+    this._absentStudentIds = new Set(absentStudentIds);
   }
 
   static create(id: string, date: Date, notes: string, course: Course): Session {
@@ -36,7 +39,7 @@ export class Session extends Entity<string> {
       course,
       id,
     );
-    return new Session(id, date, notes, course, [], [muendlich]);
+    return new Session(id, date, notes, course, [], [muendlich], []);
   }
 
   static reconstitute(
@@ -46,8 +49,9 @@ export class Session extends Entity<string> {
     course: Course,
     students: Student[],
     assessments: Assessment[],
+    absentStudentIds: readonly string[] = [],
   ): Session {
-    return new Session(id, date, notes, course, students, assessments);
+    return new Session(id, date, notes, course, students, assessments, absentStudentIds);
   }
 
   get date(): Date {
@@ -68,6 +72,22 @@ export class Session extends Entity<string> {
 
   get assessments(): readonly Assessment[] {
     return this._assessments;
+  }
+
+  get absentStudentIds(): readonly string[] {
+    return [...this._absentStudentIds];
+  }
+
+  isAbsent(studentId: StudentId): boolean {
+    return this._absentStudentIds.has(studentId.value);
+  }
+
+  markAbsent(studentId: StudentId): void {
+    this._absentStudentIds.add(studentId.value);
+  }
+
+  markPresent(studentId: StudentId): void {
+    this._absentStudentIds.delete(studentId.value);
   }
 
   addStudent(student: Student): void {

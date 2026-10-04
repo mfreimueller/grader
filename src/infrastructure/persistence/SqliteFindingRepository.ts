@@ -1,5 +1,5 @@
 import type { Db } from './db';
-import { FindingRepository } from '../../domain/grade/FindingRepository';
+import { FindingRepository, PerformanceNote } from '../../domain/grade/FindingRepository';
 import { Finding } from '../../domain/grade/Finding';
 import { Note } from '../../domain/grade/Note';
 import { Document } from '../../domain/grade/Document';
@@ -25,6 +25,33 @@ export class SqliteFindingRepository implements FindingRepository {
       .all(performanceId) as FindingRow[];
 
     return rows.map(r => this.rowToFinding(r));
+  }
+
+  async findNotesBySession(sessionId: string): Promise<PerformanceNote[]> {
+    const rows = this.db
+      .prepare(
+        `SELECT f.student_performance_id AS performance_id, f.id AS finding_id, f.text_content
+         FROM findings f
+         JOIN student_performances sp ON sp.id = f.student_performance_id
+         JOIN assessments a ON a.id = sp.assessment_id
+         WHERE a.session_id = ? AND f.type = 'note'
+           AND f.deleted_at IS NULL AND sp.deleted_at IS NULL
+         ORDER BY f.rowid`,
+      )
+      .all(sessionId) as Array<{ performance_id: string; finding_id: string; text_content: string | null }>;
+
+    return rows.map(r => ({
+      performanceId: r.performance_id,
+      findingId: r.finding_id,
+      text: r.text_content ?? '',
+    }));
+  }
+
+  async performanceExists(performanceId: string): Promise<boolean> {
+    const row = this.db
+      .prepare('SELECT 1 AS found FROM student_performances WHERE id = ? AND deleted_at IS NULL')
+      .get(performanceId);
+    return row !== undefined;
   }
 
   async save(finding: Finding, performanceId: string): Promise<void> {

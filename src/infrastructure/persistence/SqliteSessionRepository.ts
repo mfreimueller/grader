@@ -101,10 +101,21 @@ export class SqliteSessionRepository implements SessionRepository {
     for (const student of session.students) {
       insertStudent.run(session.id, student.id.value);
     }
+
+    this.db.prepare('DELETE FROM session_absences WHERE session_id = ?').run(session.id);
+
+    const insertAbsence = this.db.prepare(
+      'INSERT INTO session_absences (session_id, student_id) VALUES (?, ?)',
+    );
+
+    for (const studentId of session.absentStudentIds) {
+      insertAbsence.run(session.id, studentId);
+    }
   }
 
   async delete(id: string): Promise<void> {
     this.db.prepare('DELETE FROM session_students WHERE session_id = ?').run(id);
+    this.db.prepare('DELETE FROM session_absences WHERE session_id = ?').run(id);
     this.db
       .prepare('UPDATE assessments SET session_id = NULL WHERE session_id = ?')
       .run(id);
@@ -125,6 +136,7 @@ export class SqliteSessionRepository implements SessionRepository {
 
     const assessments = this.loadAssessments(row.id);
     const students = this.loadStudents(row.id);
+    const absentStudentIds = this.loadAbsentStudentIds(row.id);
 
     return Session.reconstitute(
       row.id,
@@ -133,6 +145,7 @@ export class SqliteSessionRepository implements SessionRepository {
       course,
       students,
       assessments,
+      absentStudentIds,
     );
   }
 
@@ -152,6 +165,13 @@ export class SqliteSessionRepository implements SessionRepository {
       .all(sessionId) as Array<Record<string, unknown>>;
 
     return rows.map(r => this.rowToAssessment(r, sessionId));
+  }
+
+  private loadAbsentStudentIds(sessionId: string): string[] {
+    const rows = this.db
+      .prepare('SELECT student_id FROM session_absences WHERE session_id = ? ORDER BY student_id')
+      .all(sessionId) as Array<{ student_id: string }>;
+    return rows.map(r => r.student_id);
   }
 
   private loadStudents(sessionId: string): Student[] {

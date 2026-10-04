@@ -10,6 +10,12 @@ komplett offline, alle Daten bleiben auf dem eigenen Rechner.
   pro Schüler und dem Klonen von Kursprofilen für ein neues Schuljahr.
 - **Kurs-Workspace** – Sitzungen anlegen, Leistungen pro Schüler erfassen und Beurteilungsarten
   (z. B. „Mitarbeit", „Schularbeit") mit eigener Gewichtung konfigurieren.
+- **Sitzungsraster** – eine aufgeklappte Sitzung zeigt ein Excel-ähnliches Raster (Schüler × Leistungen).
+  Bedienung per Tastatur: Pfeiltasten navigieren, `Enter` bearbeitet (Punkte direkt, Mitarbeit per Auswahl),
+  `+` `~` `-` setzen das Symbol, `Entf` setzt zurück, `Shift+F10` oder Rechtsklick öffnet das Menü (Notiz,
+  Ergebnis zurücksetzen, spontane Leistung löschen mit „Rückgängig“). Das `+` im Spaltenkopf legt eine
+  Leistung für alle an, das `+` am Zeilenende eine spontane Leistung für einen Schüler. Über die Checkbox
+  „Anw.“ lassen sich Schüler als abwesend markieren (Zellen werden gesperrt; die Berechnung bleibt unverändert).
 - **Beurteilungslogik nach LBVO** – gewichtete, rezenzbasierte Berechnung der Gesamtnote je Kurs.
   Die berechnete Note dient als Orientierung; die Endnote wird von der Lehrperson manuell vergeben.
 - **Berichte** – PDF-Berichte (Voll- oder Kurzversion), AsciiDoc-Ausgabe sowie CSV-Export.

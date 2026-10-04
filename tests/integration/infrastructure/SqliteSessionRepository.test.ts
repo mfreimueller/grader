@@ -108,6 +108,77 @@ describe('SqliteSessionRepository', () => {
     });
   });
 
+  describe('absences', () => {
+    const absentRows = (sessionId: string): string[] =>
+      (db.prepare('SELECT student_id FROM session_absences WHERE session_id = ? ORDER BY student_id').all(sessionId) as { student_id: string }[])
+        .map((r) => r.student_id);
+
+    beforeEach(() => {
+      db.prepare(
+        "INSERT INTO students (id, first_name, last_name, school_class_id) VALUES ('s-002', 'Anna', 'Musterfrau', 'class-1')",
+      ).run();
+    });
+
+    it('persists and loads absent students', async () => {
+      const session = Session.create('session-1', new Date('2025-10-01'), '', course);
+      session.markAbsent(student.id);
+      await repo.save(session);
+
+      expect((await repo.findById('session-1'))!.absentStudentIds).toEqual(['s-001']);
+      expect((await repo.findByCourse('course-1'))[0]!.absentStudentIds).toEqual(['s-001']);
+    });
+
+    it('loads no absences for a session without any', async () => {
+      await repo.save(Session.create('session-1', new Date('2025-10-01'), '', course));
+      expect((await repo.findById('session-1'))!.absentStudentIds).toEqual([]);
+    });
+
+    it('replaces the stored absences on every save', async () => {
+      const session = Session.create('session-1', new Date('2025-10-01'), '', course);
+      const other = StudentId.create('s-002');
+      if (!other.ok) throw new Error('StudentId creation failed');
+      session.markAbsent(student.id);
+      session.markAbsent(other.value);
+      await repo.save(session);
+      expect(absentRows('session-1')).toEqual(['s-001', 's-002']);
+
+      session.markPresent(student.id);
+      await repo.save(session);
+      expect(absentRows('session-1')).toEqual(['s-002']);
+      expect((await repo.findById('session-1'))!.absentStudentIds).toEqual(['s-002']);
+    });
+
+    it('stores absences independently of the session students', async () => {
+      const session = Session.create('session-1', new Date('2025-10-01'), '', course);
+      session.addStudent(student);
+      session.markAbsent(student.id);
+      await repo.save(session);
+
+      session.removeStudent(student.id);
+      await repo.save(session);
+
+      const found = await repo.findById('session-1');
+      expect(found!.students).toHaveLength(0);
+      expect(found!.absentStudentIds).toEqual(['s-001']);
+    });
+
+    it('keeps the absences of different sessions apart', async () => {
+      const a = Session.create('session-1', new Date('2025-10-01'), '', course);
+      const b = Session.create('session-2', new Date('2025-10-02'), '', course);
+      a.markAbsent(student.id);
+      await repo.save(a);
+      await repo.save(b);
+
+      expect((await repo.findById('session-1'))!.absentStudentIds).toEqual(['s-001']);
+      expect((await repo.findById('session-2'))!.absentStudentIds).toEqual([]);
+    });
+
+    it('rejects an absence for an unknown student', async () => {
+      const session = Session.reconstitute('session-1', new Date('2025-10-01'), '', course, [], [], ['nobody']);
+      await expect(repo.save(session)).rejects.toBeDefined();
+    });
+  });
+
   describe('findByCourse', () => {
     it('returns sessions sorted by date DESC', async () => {
       const s1 = Session.create('session-1', new Date('2025-10-01'), '', course);
@@ -135,6 +206,17 @@ describe('SqliteSessionRepository', () => {
       await repo.delete('session-1');
       const found = await repo.findById('session-1');
       expect(found).toBeNull();
+    });
+
+    it('removes the absences of the session as well', async () => {
+      const session = Session.create('session-1', new Date('2025-10-01'), '', course);
+      session.markAbsent(student.id);
+      await repo.save(session);
+
+      await repo.delete('session-1');
+
+      const rows = db.prepare('SELECT COUNT(*) AS n FROM session_absences').get() as { n: number };
+      expect(rows.n).toBe(0);
     });
   });
 });

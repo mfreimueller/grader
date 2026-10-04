@@ -9,7 +9,7 @@ import { ImpromptuAssessmentService } from '../../application/ImpromptuAssessmen
 import { GradeImportService } from '../../application/GradeImportService';
 import {
   createAssessmentSchema, recordPerformanceSchema, saveGradeSchema,
-  impromptuSchema, addNoteSchema, addDocumentSchema, addRemoteDocumentSchema,
+  impromptuSchema, addNoteSchema, setNoteSchema, addDocumentSchema, addRemoteDocumentSchema,
   studentIdParam,
 } from './schemas';
 
@@ -116,5 +116,15 @@ export function registerGradeHandlers(
   ipcMain.handle(IPC.FINDING_GET, async (_event, performanceId: string) => {
     studentIdParam.parse({ id: performanceId });
     return await findingService.getFindings(performanceId);
+  });
+
+  ipcMain.handle(IPC.FINDING_LIST_NOTES_BY_SESSION, async (_event, sessionId: string) => {
+    studentIdParam.parse({ id: sessionId });
+    return await findingService.listNotesBySession(sessionId);
+  });
+
+  ipcMain.handle(IPC.FINDING_SET_NOTE, async (_event, data: unknown) => {
+    const input = setNoteSchema.parse(data);
+    return await findingService.setNote(input.performanceId, input.text);
   });
 }

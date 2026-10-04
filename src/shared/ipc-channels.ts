@@ -40,6 +40,7 @@ export const IPC = {
   SESSION_CREATE: 'session:create',
   SESSION_UPDATE: 'session:update',
   SESSION_DELETE: 'session:delete',
+  SESSION_SET_ABSENCE: 'session:setAbsence',
 
   ASSESSMENT_LIST_BY_SESSION: 'assessment:listBySession',
   ASSESSMENT_CREATE: 'assessment:create',
@@ -61,6 +62,8 @@ export const IPC = {
   FINDING_ADD: 'finding:add',
   FINDING_REMOVE: 'finding:remove',
   FINDING_GET: 'finding:getFindings',
+  FINDING_LIST_NOTES_BY_SESSION: 'finding:listNotesBySession',
+  FINDING_SET_NOTE: 'finding:setNote',
 
   GRADE_IMPORT_CSV: 'grade:importCsv',
 

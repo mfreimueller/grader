@@ -1,12 +1,12 @@
 <template>
-  <div class="overlay" @click.self="$emit('close')">
+  <div class="overlay" @click.self="$emit('close')" @keydown.esc.prevent="$emit('close')">
     <div class="modal">
       <h3>Spontane Leistung — {{ student.lastName }}, {{ student.firstName }}</h3>
 
       <form @submit.prevent="handleSubmit">
         <label>
           Kategorie <span class="required">*</span>
-          <select v-model="categoryId" required @change="onCategoryChange">
+          <select ref="firstField" v-model="categoryId" required @change="onCategoryChange">
             <option value="" disabled>— Kategorie wählen —</option>
             <option v-for="cat in categories" :key="cat.id" :value="cat.id">
               {{ cat.title }}
@@ -61,7 +61,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue';
+import { ref, computed, onMounted } from 'vue';
 import type { StudentDto, AssessmentCategoryDto } from '../../../shared/types';
 
 const props = defineProps<{
@@ -81,6 +81,9 @@ const symbols = [
   { value: 'WELLE', icon: '~', label: 'Welle' },
   { value: 'MINUS', icon: '−', label: 'Minus' },
 ];
+
+const firstField = ref<HTMLSelectElement | null>(null);
+onMounted(() => firstField.value?.focus());
 
 const categoryId = ref('');
 const title = ref('');

@@ -100,11 +100,11 @@
           </template>
         </div>
         <div v-if="expandedId === session.id" class="session-detail">
-          <SessionAssessmentTable
+          <SessionGrid
             :course-id="course.id"
             :session-id="session.id"
-            :school-class-id="course.schoolClass.id"
-            :key="session.id + '-assessments'"
+            :session-date="session.date"
+            :key="session.id + '-grid'"
           />
         </div>
       </div>
@@ -115,7 +115,7 @@
 <script setup lang="ts">
 import { ref, reactive, onMounted } from 'vue';
 import type { CourseDto, GradeImportResultDto, SessionDto, UpdateSessionInput } from '../../shared/types';
-import SessionAssessmentTable from './SessionAssessmentTable.vue';
+import SessionGrid from './grid/SessionGrid.vue';
 import CsvFormatDialog from '../CsvFormatDialog.vue';
 
 const props = defineProps<{

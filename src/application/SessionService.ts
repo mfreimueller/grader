@@ -4,7 +4,8 @@ import { StudentRepository } from '../domain/student/StudentRepository';
 import { StudentId } from '../domain/student/StudentId';
 import { Session } from '../domain/grade/Session';
 import { Result } from '../domain/shared/Result';
-import { NotFoundError } from '../shared/errors';
+import { NotFoundError, ValidationError } from '../shared/errors';
+import { CourseRosterService } from './CourseRosterService';
 import { generateId } from '../domain/shared/IdGenerator';
 
 export interface SessionDto {
@@ -13,6 +14,7 @@ export interface SessionDto {
   notes: string;
   courseId: string;
   studentIds: string[];
+  absentStudentIds: string[];
 }
 
 export interface CreateSessionInput {
@@ -32,6 +34,7 @@ export class SessionService {
     private readonly sessionRepo: SessionRepository,
     private readonly courseRepo: CourseRepository,
     private readonly studentRepo: StudentRepository,
+    private readonly rosterService: CourseRosterService,
   ) {}
 
   async listByCourse(courseId: string): Promise<SessionDto[]> {
@@ -75,6 +78,30 @@ export class SessionService {
     return Result.ok(toDto(existing));
   }
 
+  /** Marks a student absent or present for one session. Only students taught in the course can be marked absent. */
+  async setAbsence(sessionId: string, studentId: string, absent: boolean): Promise<Result<SessionDto>> {
+    const session = await this.sessionRepo.findById(sessionId);
+    if (!session) return Result.fail(new NotFoundError('Session', sessionId));
+
+    const idResult = StudentId.create(studentId);
+    if (!idResult.ok) return Result.fail(idResult.error);
+
+    if (absent) {
+      const student = await this.studentRepo.findById(idResult.value);
+      if (!student) return Result.fail(new NotFoundError('Student', studentId));
+      const roster = await this.rosterService.rosterOfCourse(session.course);
+      if (!roster.some(s => s.id.equals(idResult.value))) {
+        return Result.fail(new ValidationError('Der Schüler gehört nicht zu diesem Kurs.'));
+      }
+      session.markAbsent(idResult.value);
+    } else {
+      session.markPresent(idResult.value);
+    }
+
+    await this.sessionRepo.save(session);
+    return Result.ok(toDto(session));
+  }
+
   async delete(id: string): Promise<Result<void>> {
     const existing = await this.sessionRepo.findById(id);
     if (!existing) return Result.fail(new NotFoundError('Session', id));
@@ -90,5 +117,6 @@ function toDto(s: Session): SessionDto {
     notes: s.notes,
     courseId: s.course.id,
     studentIds: s.students.map(st => st.id.value),
+    absentStudentIds: [...s.absentStudentIds],
   };
 }

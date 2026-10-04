@@ -85,6 +85,11 @@ export const updateSessionSchema = z.object({
   notes: z.string().optional(),
 });
 
+export const setSessionAbsenceSchema = z.object({
+  studentId: z.string().min(1),
+  absent: z.boolean(),
+});
+
 export const createAssessmentSchema = z.object({
   sessionId: z.string().min(1),
   title: z.string().min(1),
@@ -115,6 +120,11 @@ export const impromptuSchema = z.object({
   score: z.number().int().min(0).optional(),
   symbol: z.string().optional(),
   maxPoints: z.number().int().positive().optional(),
+});
+
+export const setNoteSchema = z.object({
+  performanceId: z.string().min(1),
+  text: z.string().max(2000),
 });
 
 export const addNoteSchema = z.object({

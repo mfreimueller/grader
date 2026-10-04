@@ -123,6 +123,13 @@ describe('DigigradeImportService', () => {
       expect(excluded.map((e) => e.last_name)).toEqual(['Zimmer']);
     });
 
+    it('imports sessions with nobody marked absent (absences are not part of the digigrade contract)', async () => {
+      await service.import(fixture());
+
+      expect(count('sessions')).toBeGreaterThan(0);
+      expect(count('session_absences')).toBe(0);
+    });
+
     it('imports assessments, performances, notes, links, grades and pick counts', async () => {
       await service.import(fixture());
 

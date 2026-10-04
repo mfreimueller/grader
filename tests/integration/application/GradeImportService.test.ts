@@ -74,6 +74,20 @@ describe('GradeImportService', () => {
     db.close();
   });
 
+  it('keeps the absent students of an existing session when the import adds an assessment', async () => {
+    await sessionRepo.save(
+      Session.reconstitute('session-1', createDate(1, 11, 25), '', course, [], [], ['s-001']),
+    );
+    const csv = 'Nachname;Vorname;Typ;Name;Datum;Max;Note\n'
+      + 'Bräuer;Elias;Projekt;Dom-Mod.;01.11.25;5;5';
+
+    await service.importCsv('course-1', csv);
+
+    const reloaded = await sessionRepo.findById('session-1');
+    expect(reloaded?.assessments).toHaveLength(1);
+    expect(reloaded?.absentStudentIds).toEqual(['s-001']);
+  });
+
   it('creates session, assessment, and performance from a CSV row', async () => {
     const csv = 'Nachname;Vorname;Typ;Name;Datum;Max;Note\n'
       + 'Bräuer;Elias;Projekt;Dom-Mod.;01.11.25;5;5';

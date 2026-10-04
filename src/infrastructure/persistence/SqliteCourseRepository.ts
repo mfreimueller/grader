@@ -195,6 +195,9 @@ export class SqliteCourseRepository implements CourseRepository {
       this.db
         .prepare('DELETE FROM session_students WHERE session_id IN (SELECT id FROM sessions WHERE course_id = ?)')
         .run(courseId);
+      this.db
+        .prepare('DELETE FROM session_absences WHERE session_id IN (SELECT id FROM sessions WHERE course_id = ?)')
+        .run(courseId);
       this.db.prepare('DELETE FROM sessions WHERE course_id = ?').run(courseId);
       this.db.prepare('DELETE FROM grades WHERE course_id = ?').run(courseId);
       this.db.prepare('DELETE FROM course_student_picks WHERE course_id = ?').run(courseId);

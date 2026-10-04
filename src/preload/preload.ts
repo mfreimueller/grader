@@ -43,6 +43,7 @@ const IPC = {
   SESSION_CREATE: 'session:create',
   SESSION_UPDATE: 'session:update',
   SESSION_DELETE: 'session:delete',
+  SESSION_SET_ABSENCE: 'session:setAbsence',
 
   ASSESSMENT_LIST_BY_SESSION: 'assessment:listBySession',
   ASSESSMENT_CREATE: 'assessment:create',
@@ -68,6 +69,8 @@ const IPC = {
   FINDING_ADD: 'finding:add',
   FINDING_REMOVE: 'finding:remove',
   FINDING_GET: 'finding:getFindings',
+  FINDING_LIST_NOTES_BY_SESSION: 'finding:listNotesBySession',
+  FINDING_SET_NOTE: 'finding:setNote',
 
   REPORT_GENERATE: 'report:generate',
 
@@ -147,6 +150,7 @@ const api: IpcApi = {
     create: (data) => ipcRenderer.invoke(IPC.SESSION_CREATE, data),
     update: (id, data) => ipcRenderer.invoke(IPC.SESSION_UPDATE, id, data),
     delete: (id) => ipcRenderer.invoke(IPC.SESSION_DELETE, id),
+    setAbsence: (id, data) => ipcRenderer.invoke(IPC.SESSION_SET_ABSENCE, id, data),
   },
   assessment: {
     listBySession: (sessionId) => ipcRenderer.invoke(IPC.ASSESSMENT_LIST_BY_SESSION, sessionId),
@@ -169,6 +173,8 @@ const api: IpcApi = {
     add: (data) => ipcRenderer.invoke(IPC.FINDING_ADD, data),
     remove: (id) => ipcRenderer.invoke(IPC.FINDING_REMOVE, id),
     getFindings: (performanceId) => ipcRenderer.invoke(IPC.FINDING_GET, performanceId),
+    listNotesBySession: (sessionId) => ipcRenderer.invoke(IPC.FINDING_LIST_NOTES_BY_SESSION, sessionId),
+    setNote: (data) => ipcRenderer.invoke(IPC.FINDING_SET_NOTE, data),
   },
   report: {
     generate: (courseId, mode) => ipcRenderer.invoke(IPC.REPORT_GENERATE, courseId, mode),

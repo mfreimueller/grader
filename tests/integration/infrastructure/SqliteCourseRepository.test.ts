@@ -166,6 +166,7 @@ describe('SqliteCourseRepository', () => {
         INSERT INTO students (id, first_name, last_name, school_class_id) VALUES ('s-1', 'Max', 'Muster', 'class-1');
         INSERT INTO sessions (id, date, course_id) VALUES ('sess-1', '2026-01-01', 'course-1');
         INSERT INTO session_students (session_id, student_id) VALUES ('sess-1', 's-1');
+        INSERT INTO session_absences (session_id, student_id) VALUES ('sess-1', 's-1');
         INSERT INTO assessments (id, title, category_id, course_id, session_id)
           VALUES ('a-1', 'Mündlich', 'course-1:mitarbeit', 'course-1', 'sess-1');
         INSERT INTO student_performances (id, student_id, assessment_id, symbol, type)
@@ -176,7 +177,7 @@ describe('SqliteCourseRepository', () => {
 
       await repo.hardDelete('course-1');
 
-      for (const table of ['courses', 'sessions', 'assessments', 'student_performances', 'findings', 'grades', 'assessment_categories']) {
+      for (const table of ['courses', 'sessions', 'session_absences', 'assessments', 'student_performances', 'findings', 'grades', 'assessment_categories']) {
         const row = db.prepare(`SELECT COUNT(*) AS cnt FROM ${table}`).get() as { cnt: number };
         expect(row.cnt).toBe(0);
       }

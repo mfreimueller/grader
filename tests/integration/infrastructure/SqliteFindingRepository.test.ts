@@ -100,4 +100,89 @@ describe('SqliteFindingRepository', () => {
       expect(raw.deleted_at).not.toBeNull();
     });
   });
+
+  describe('findNotesBySession', () => {
+    beforeEach(() => {
+      db.exec(`
+        INSERT INTO sessions (id, date, course_id) VALUES ('sess-1', '2025-10-01', 'course-1');
+        INSERT INTO sessions (id, date, course_id) VALUES ('sess-2', '2025-10-02', 'course-1');
+        UPDATE assessments SET session_id = 'sess-1' WHERE id = 'a-001';
+        INSERT INTO students (id, first_name, last_name, school_class_id) VALUES ('s-002', 'Anna', 'Musterfrau', 'class-1');
+        INSERT INTO assessments (id, title, category_id, course_id, session_id) VALUES ('a-002', 'Test', 'cat-1', 'course-1', 'sess-2');
+        INSERT INTO student_performances (id, student_id, assessment_id, type) VALUES ('p-002', 's-002', 'a-001', 'participation');
+        INSERT INTO student_performances (id, student_id, assessment_id, type) VALUES ('p-003', 's-001', 'a-002', 'participation');
+      `);
+    });
+
+    it('returns the notes of the session with performance id, finding id and text', async () => {
+      await repo.save(new Note('f-1', 'Erste'), 'p-001');
+      await repo.save(new Note('f-2', 'Zweite'), 'p-002');
+
+      const notes = await repo.findNotesBySession('sess-1');
+
+      expect(notes).toEqual([
+        { performanceId: 'p-001', findingId: 'f-1', text: 'Erste' },
+        { performanceId: 'p-002', findingId: 'f-2', text: 'Zweite' },
+      ]);
+    });
+
+    it('returns several notes of one performance in the order they were saved', async () => {
+      await repo.save(new Note('f-1', 'Eins'), 'p-001');
+      await repo.save(new Note('f-2', 'Zwei'), 'p-001');
+
+      const notes = await repo.findNotesBySession('sess-1');
+
+      expect(notes.map((n) => n.text)).toEqual(['Eins', 'Zwei']);
+    });
+
+    it('ignores documents and links', async () => {
+      await repo.save(new Document('f-1', '/a.pdf'), 'p-001');
+      await repo.save(new RemoteDocument('f-2', 'https://example.com'), 'p-001');
+
+      expect(await repo.findNotesBySession('sess-1')).toEqual([]);
+    });
+
+    it('ignores deleted notes', async () => {
+      await repo.save(new Note('f-1', 'Weg'), 'p-001');
+      await repo.save(new Note('f-2', 'Bleibt'), 'p-001');
+      await repo.delete('f-1');
+
+      const notes = await repo.findNotesBySession('sess-1');
+
+      expect(notes.map((n) => n.findingId)).toEqual(['f-2']);
+    });
+
+    it('ignores notes of deleted performances', async () => {
+      await repo.save(new Note('f-1', 'Verwaist'), 'p-001');
+      db.prepare("UPDATE student_performances SET deleted_at = datetime('now') WHERE id = 'p-001'").run();
+
+      expect(await repo.findNotesBySession('sess-1')).toEqual([]);
+    });
+
+    it('ignores notes that belong to other sessions', async () => {
+      await repo.save(new Note('f-1', 'Andere Sitzung'), 'p-003');
+
+      expect(await repo.findNotesBySession('sess-1')).toEqual([]);
+      expect((await repo.findNotesBySession('sess-2')).map((n) => n.text)).toEqual(['Andere Sitzung']);
+    });
+
+    it('returns an empty list for an unknown session', async () => {
+      expect(await repo.findNotesBySession('missing')).toEqual([]);
+    });
+  });
+
+  describe('performanceExists', () => {
+    it('is true for a live performance', async () => {
+      expect(await repo.performanceExists('p-001')).toBe(true);
+    });
+
+    it('is false for an unknown performance', async () => {
+      expect(await repo.performanceExists('missing')).toBe(false);
+    });
+
+    it('is false for a deleted performance', async () => {
+      db.prepare("UPDATE student_performances SET deleted_at = datetime('now') WHERE id = 'p-001'").run();
+      expect(await repo.performanceExists('p-001')).toBe(false);
+    });
+  });
 });

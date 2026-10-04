@@ -167,7 +167,7 @@ export class GradeImportService {
       }
       const reconstituted = Session.reconstitute(
         loaded.id, loaded.date, loaded.notes, loaded.course,
-        [...loaded.students], [...loaded.assessments, assessment],
+        [...loaded.students], [...loaded.assessments, assessment], loaded.absentStudentIds,
       );
       await this.sessionRepo.save(reconstituted);
       result.assessmentsCreated++;

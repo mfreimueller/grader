@@ -112,6 +112,7 @@ export interface SessionDto {
   notes: string;
   courseId: string;
   studentIds: string[];
+  absentStudentIds: string[];
 }
 
 export interface CreateSessionInput {
@@ -124,6 +125,11 @@ export interface CreateSessionInput {
 export interface UpdateSessionInput {
   date?: string;
   notes?: string;
+}
+
+export interface SetSessionAbsenceInput {
+  studentId: string;
+  absent: boolean;
 }
 
 export interface AssessmentDto {
@@ -192,6 +198,16 @@ export interface FindingDto {
   text: string | null;
   filePath: string | null;
   url: string | null;
+}
+
+export interface SessionNoteDto {
+  performanceId: string;
+  text: string;
+}
+
+export interface SetNoteInput {
+  performanceId: string;
+  text: string;
 }
 
 export interface AddFindingInput {
@@ -394,6 +410,7 @@ export interface IpcApi {
     create: (data: CreateSessionInput) => Promise<ResultDto<SessionDto>>;
     update: (id: string, data: UpdateSessionInput) => Promise<ResultDto<SessionDto>>;
     delete: (id: string) => Promise<ResultDto<void>>;
+    setAbsence: (id: string, data: SetSessionAbsenceInput) => Promise<ResultDto<SessionDto>>;
   };
   assessment: {
     listBySession: (sessionId: string) => Promise<AssessmentDto[]>;
@@ -416,6 +433,9 @@ export interface IpcApi {
     add: (data: AddFindingInput & { text: string } | AddFindingInput & { filePath: string } | AddFindingInput & { url: string }) => Promise<ResultDto<FindingDto>>;
     remove: (id: string) => Promise<ResultDto<void>>;
     getFindings: (performanceId: string) => Promise<FindingDto[]>;
+    listNotesBySession: (sessionId: string) => Promise<SessionNoteDto[]>;
+    /** Replaces all notes of the performance by `text`; blank text removes them and yields null. */
+    setNote: (data: SetNoteInput) => Promise<ResultDto<FindingDto | null>>;
   };
   report: {
     generate: (courseId: string, mode: ReportMode) => Promise<ResultDto<{ filePath: string }>>;

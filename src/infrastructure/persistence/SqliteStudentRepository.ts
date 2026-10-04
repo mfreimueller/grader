@@ -138,6 +138,9 @@ export class SqliteStudentRepository implements StudentRepository {
       .prepare('DELETE FROM session_students WHERE student_id = ?')
       .run(id.value);
     this.db
+      .prepare('DELETE FROM session_absences WHERE student_id = ?')
+      .run(id.value);
+    this.db
       .prepare('DELETE FROM grades WHERE student_id = ?')
       .run(id.value);
     this.db
