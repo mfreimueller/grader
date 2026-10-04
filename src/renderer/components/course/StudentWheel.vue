@@ -33,7 +33,7 @@
           </text>
         </g>
       </g>
-      <polygon points="112,0 98,-9 98,9" class="pointer" />
+      <polygon points="98,0 112,-9 112,9" class="pointer" />
     </svg>
   </div>
 </template>
@@ -99,7 +99,7 @@ defineExpose({ spinTo });
 }
 
 .wheel {
-  width: min(100%, 420px);
+  width: min(100%, 630px);
   height: auto;
 }
 

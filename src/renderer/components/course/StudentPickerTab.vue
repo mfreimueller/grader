@@ -74,7 +74,13 @@
       </div>
     </template>
 
-    <PickResultDialog v-if="result" :student="result" :course-id="course.id" @close="result = null" />
+    <PickResultDialog
+      v-if="result"
+      :student="result"
+      :course-id="course.id"
+      :assessment-categories="course.assessmentCategories"
+      @close="result = null"
+    />
 
     <div v-if="confirmingReset" class="overlay" @click.self="confirmingReset = false">
       <div class="confirm-dialog">

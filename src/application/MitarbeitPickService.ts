@@ -4,10 +4,11 @@ import { StudentRepository } from '../domain/student/StudentRepository';
 import { StudentId } from '../domain/student/StudentId';
 import { Session } from '../domain/grade/Session';
 import { ParticipationSymbol } from '../domain/grade/ParticipationSymbol';
+import { GradingType } from '../domain/grade/GradingType';
 import { Result } from '../domain/shared/Result';
 import { NotFoundError, ValidationError } from '../shared/errors';
 import { generateId } from '../domain/shared/IdGenerator';
-import { GradingService } from './GradingService';
+import { ImpromptuAssessmentService } from './ImpromptuAssessmentService';
 import { CourseRosterService } from './CourseRosterService';
 
 export interface RecordMitarbeitPickInput {
@@ -16,23 +17,27 @@ export interface RecordMitarbeitPickInput {
   symbol: string;
   /** Calendar day as YYYY-MM-DD. */
   date: string;
+  /** Tertiary category of the impromptu assessment; defaults to Mitarbeit. */
+  categoryId?: string | undefined;
 }
 
 export interface MitarbeitPickDto {
+  assessmentId: string;
   performanceId: string;
   sessionId: string;
   symbol: string;
 }
 
+const IMPROMPTU_TITLE = 'Schülerauswahl';
 const DAY = /^\d{4}-\d{2}-\d{2}$/;
 
-/** Records a Mitarbeit (class participation) for a student that was just picked in the Schülerauswahl. */
+/** Grades a student that was just picked in the Schülerauswahl with an impromptu assessment (Mitarbeit by default). */
 export class MitarbeitPickService {
   constructor(
     private readonly courseRepo: CourseRepository,
     private readonly sessionRepo: SessionRepository,
     private readonly studentRepo: StudentRepository,
-    private readonly gradingService: GradingService,
+    private readonly impromptuService: ImpromptuAssessmentService,
     private readonly rosterService: CourseRosterService,
   ) {}
 
@@ -45,9 +50,18 @@ export class MitarbeitPickService {
 
     const course = await this.courseRepo.findById(input.courseId);
     if (!course) return Result.fail(new NotFoundError('Course', input.courseId));
-    const mitarbeit = course.getMitarbeitCategory();
-    if (!mitarbeit) {
-      return Result.fail(new ValidationError('Der Kurs hat keine Kategorie "Mitarbeit".'));
+    const category = input.categoryId
+      ? course.assessmentCategories.find((c) => c.id === input.categoryId)
+      : course.getMitarbeitCategory();
+    if (!category) {
+      return Result.fail(
+        input.categoryId
+          ? new NotFoundError('AssessmentCategory', input.categoryId)
+          : new ValidationError('Der Kurs hat keine Kategorie "Mitarbeit".'),
+      );
+    }
+    if (category.gradingType !== GradingType.TERTIARY) {
+      return Result.fail(new ValidationError('Die Kategorie muss mit +, ~ und − beurteilt werden.'));
     }
 
     const studentId = StudentId.create(input.studentId);
@@ -66,23 +80,21 @@ export class MitarbeitPickService {
     session.addStudent(student);
     await this.sessionRepo.save(session);
 
-    const assessments = session.assessments.filter((a) => a.category.id === mitarbeit.id);
-    const assessment = assessments.find((a) => a.title === 'Mündlich') ?? assessments[0];
-    if (!assessment) {
-      return Result.fail(new ValidationError('Die Sitzung hat keine Mitarbeits-Beurteilung.'));
-    }
-
-    const performance = await this.gradingService.recordPerformance({
+    const impromptu = await this.impromptuService.create({
+      courseId: input.courseId,
       studentId: input.studentId,
-      assessmentId: assessment.id,
+      categoryId: category.id,
+      sessionId: session.id,
+      title: IMPROMPTU_TITLE,
       symbol: symbol.value.value,
     });
-    if (!performance.ok) return Result.fail(performance.error);
+    if (!impromptu.ok) return Result.fail(impromptu.error);
 
     return Result.ok({
-      performanceId: performance.value.id,
+      assessmentId: impromptu.value.assessmentId,
+      performanceId: impromptu.value.performance.id,
       sessionId: session.id,
-      symbol: performance.value.symbol ?? input.symbol,
+      symbol: impromptu.value.performance.symbol ?? input.symbol,
     });
   }
 }

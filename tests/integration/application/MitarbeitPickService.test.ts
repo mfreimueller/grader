@@ -5,6 +5,8 @@ import { SqliteStudentRepository } from '../../../src/infrastructure/persistence
 import { SqliteAssessmentRepository } from '../../../src/infrastructure/persistence/SqliteAssessmentRepository';
 import { SqliteSessionRepository } from '../../../src/infrastructure/persistence/SqliteSessionRepository';
 import { GradingService } from '../../../src/application/GradingService';
+import { AssessmentService } from '../../../src/application/AssessmentService';
+import { ImpromptuAssessmentService } from '../../../src/application/ImpromptuAssessmentService';
 import { SqliteCourseRosterRepository } from '../../../src/infrastructure/persistence/SqliteCourseRosterRepository';
 import { CourseRosterService } from '../../../src/application/CourseRosterService';
 import { MitarbeitPickService } from '../../../src/application/MitarbeitPickService';
@@ -16,7 +18,6 @@ import type { Db } from '../../../src/infrastructure/persistence/db';
 describe('MitarbeitPickService', () => {
   let db: Db;
   let service: MitarbeitPickService;
-  let grading: GradingService;
   let rosterService: CourseRosterService;
 
   const count = (table: string): number =>
@@ -29,9 +30,11 @@ describe('MitarbeitPickService', () => {
     const studentRepo = new SqliteStudentRepository(db);
     const sessionRepo = new SqliteSessionRepository(db);
     const gradeRepo = new SqliteGradeRepository(db);
-    grading = new GradingService(gradeRepo, courseRepo, gradeRepo, studentRepo, new SqliteAssessmentRepository(db), sessionRepo);
+    const assessmentRepo = new SqliteAssessmentRepository(db);
+    const grading = new GradingService(gradeRepo, courseRepo, gradeRepo, studentRepo, assessmentRepo, sessionRepo);
+    const impromptu = new ImpromptuAssessmentService(new AssessmentService(assessmentRepo, sessionRepo, courseRepo), grading);
     rosterService = new CourseRosterService(courseRepo, studentRepo, new SqliteCourseRosterRepository(db));
-    service = new MitarbeitPickService(courseRepo, sessionRepo, studentRepo, grading, rosterService);
+    service = new MitarbeitPickService(courseRepo, sessionRepo, studentRepo, impromptu, rosterService);
 
     const year = SchoolYear.create('2025/26');
     if (!year.ok) throw year.error;
@@ -55,16 +58,45 @@ describe('MitarbeitPickService', () => {
     date,
   });
 
-  it('creates the session for that day with its Mündlich assessment and records the symbol', async () => {
+  const impromptus = (): { title: string; category_id: string; is_impromptu: number }[] =>
+    db.prepare('SELECT title, category_id, is_impromptu FROM assessments WHERE is_impromptu = 1').all() as never;
+
+  it('creates the session for that day and an impromptu assessment in Mitarbeit by default', async () => {
     const result = await service.record(input('s-1', 'PLUS'));
 
     expect(result.ok).toBe(true);
     expect(count('sessions')).toBe(1);
-    expect(count('assessments')).toBe(1);
-    const row = db.prepare('SELECT symbol, type FROM student_performances').get() as { symbol: string; type: string };
-    expect(row).toEqual({ symbol: 'PLUS', type: 'participation' });
-    const assessment = db.prepare('SELECT title, category_id FROM assessments').get() as { title: string; category_id: string };
-    expect(assessment).toEqual({ title: 'Mündlich', category_id: 'course-1:mitarbeit' });
+    expect(impromptus()).toEqual([{ title: 'Schülerauswahl', category_id: 'course-1:mitarbeit', is_impromptu: 1 }]);
+    const row = db.prepare('SELECT symbol, student_id FROM student_performances').get() as { symbol: string; student_id: string };
+    expect(row).toEqual({ symbol: 'PLUS', student_id: 's-1' });
+  });
+
+  it('creates the impromptu assessment in the chosen tertiary category', async () => {
+    db.exec(`INSERT INTO assessment_categories (id, course_id, title, grading_type, display_as_grade)
+             VALUES ('cat-hue', 'course-1', 'Hausübung', 'TERTIARY', 0)`);
+
+    const result = await service.record({ ...input('s-1', 'MINUS'), categoryId: 'cat-hue' });
+
+    expect(result.ok).toBe(true);
+    expect(impromptus().map((a) => a.category_id)).toEqual(['cat-hue']);
+  });
+
+  it('rejects a numeric category and creates nothing', async () => {
+    db.exec(`INSERT INTO assessment_categories (id, course_id, title, grading_type, display_as_grade)
+             VALUES ('cat-test', 'course-1', 'Test', 'NUMERIC', 1)`);
+
+    const result = await service.record({ ...input('s-1', 'PLUS'), categoryId: 'cat-test' });
+
+    expect(result.ok).toBe(false);
+    expect(count('student_performances')).toBe(0);
+    expect(impromptus()).toEqual([]);
+  });
+
+  it('rejects a category that is not part of the course', async () => {
+    const result = await service.record({ ...input('s-1', 'PLUS'), categoryId: 'nope' });
+
+    expect(result.ok).toBe(false);
+    expect(count('student_performances')).toBe(0);
   });
 
   it('adds the picked student to the sessions participants', async () => {
@@ -74,12 +106,12 @@ describe('MitarbeitPickService', () => {
     expect(rows.map((r) => r.student_id)).toEqual(['s-1']);
   });
 
-  it('reuses the session and assessment for a second pick on the same day', async () => {
+  it('reuses the session for a second pick on the same day but creates one impromptu per pick', async () => {
     await service.record(input('s-1', 'PLUS'));
     await service.record(input('s-2', 'MINUS'));
 
     expect(count('sessions')).toBe(1);
-    expect(count('assessments')).toBe(1);
+    expect(impromptus()).toHaveLength(2);
     expect(count('student_performances')).toBe(2);
     expect(count('session_students')).toBe(2);
   });
@@ -91,24 +123,16 @@ describe('MitarbeitPickService', () => {
     expect(count('sessions')).toBe(2);
   });
 
-  it('replaces the symbol when the same student is picked again that day', async () => {
-    await service.record(input('s-1', 'PLUS'));
-    await service.record(input('s-1', 'MINUS'));
-
-    expect(count('student_performances')).toBe(1);
-    const row = db.prepare('SELECT symbol FROM student_performances').get() as { symbol: string };
-    expect(row.symbol).toBe('MINUS');
-  });
-
-  it('returns the performance id so the entry can be undone without touching others', async () => {
+  it('returns the assessment id so the entry can be undone without touching others', async () => {
     const first = await service.record(input('s-1', 'PLUS'));
     await service.record(input('s-2', 'WELLE'));
     if (!first.ok) throw first.error;
 
-    await grading.deletePerformance(first.value.performanceId);
+    await new SqliteAssessmentRepository(db).delete(first.value.assessmentId);
 
     const remaining = db.prepare('SELECT student_id FROM student_performances WHERE deleted_at IS NULL').all() as { student_id: string }[];
     expect(remaining.map((r) => r.student_id)).toEqual(['s-2']);
+    expect(impromptus()).toHaveLength(1);
   });
 
   it.each([

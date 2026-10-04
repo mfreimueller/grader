@@ -332,9 +332,12 @@ export interface RecordMitarbeitPickInput {
   studentId: string;
   symbol: string;
   date: string;
+  /** Tertiary category of the impromptu assessment; the course's Mitarbeit when omitted. */
+  categoryId?: string;
 }
 
 export interface MitarbeitPickDto {
+  assessmentId: string;
   performanceId: string;
   sessionId: string;
   symbol: string;

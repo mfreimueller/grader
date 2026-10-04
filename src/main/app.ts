@@ -97,7 +97,7 @@ app.on('ready', () => {
   const gradeImportService = new GradeImportService(sessionRepo, assessmentRepo, gradeRepo, studentRepo, courseRepo);
   const rolloverService = new SchoolYearRolloverService(classRepo, courseRepo, new SqliteUnitOfWork(db));
   const pickerService = new StudentPickerService(courseRepo, rosterService, new SqliteStudentPickCountRepository(db));
-  const mitarbeitPickService = new MitarbeitPickService(courseRepo, sessionRepo, studentRepo, gradingService, rosterService);
+  const mitarbeitPickService = new MitarbeitPickService(courseRepo, sessionRepo, studentRepo, impromptuService, rosterService);
   const digigradeImportService = new DigigradeImportService(
     classRepo, studentRepo, courseRepo, sessionRepo, gradeRepo, findingRepo, gradeRepo,
     new SqliteStudentPickCountRepository(db), courseRosterRepo, new SqliteUnitOfWork(db),
