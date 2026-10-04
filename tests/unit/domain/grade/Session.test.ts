@@ -163,6 +163,66 @@ describe('Session', () => {
     });
   });
 
+  describe('student notes', () => {
+    const aSession = (): Session => Session.create('sess-1', new Date(2025, 9, 15), '', validCourse);
+
+    it('starts without student notes', () => {
+      const session = aSession();
+      expect(session.studentNotes).toEqual([]);
+      expect(session.studentNoteOf(student1.id)).toBeNull();
+    });
+
+    it('sets a note for a student', () => {
+      const session = aSession();
+      session.setStudentNote(student1.id, 'beteiligt sich nicht');
+      expect(session.studentNoteOf(student1.id)).toBe('beteiligt sich nicht');
+      expect(session.studentNoteOf(student2.id)).toBeNull();
+      expect(session.studentNotes).toEqual([{ studentId: 's-001', text: 'beteiligt sich nicht' }]);
+    });
+
+    it('replaces an existing note', () => {
+      const session = aSession();
+      session.setStudentNote(student1.id, 'alt');
+      session.setStudentNote(student1.id, 'neu');
+      expect(session.studentNotes).toEqual([{ studentId: 's-001', text: 'neu' }]);
+    });
+
+    it('trims the text', () => {
+      const session = aSession();
+      session.setStudentNote(student1.id, '  ruhig \n');
+      expect(session.studentNoteOf(student1.id)).toBe('ruhig');
+    });
+
+    it('removes the note when the text is blank', () => {
+      const session = aSession();
+      session.setStudentNote(student1.id, 'ruhig');
+      session.setStudentNote(student1.id, '   ');
+      expect(session.studentNoteOf(student1.id)).toBeNull();
+      expect(session.studentNotes).toEqual([]);
+    });
+
+    it('does not expose its internal list to mutation', () => {
+      const session = aSession();
+      session.setStudentNote(student1.id, 'ruhig');
+      (session.studentNotes as { studentId: string; text: string }[]).push({ studentId: 's-002', text: 'x' });
+      expect(session.studentNotes).toHaveLength(1);
+    });
+
+    it('restores the notes when reconstituted', () => {
+      const session = Session.reconstitute(
+        'sess-1', new Date(2025, 9, 15), '', validCourse, [], [], [], [{ studentId: 's-001', text: 'ruhig' }],
+      );
+      expect(session.studentNoteOf(student1.id)).toBe('ruhig');
+    });
+
+    it('keeps the note when the student is marked absent', () => {
+      const session = aSession();
+      session.setStudentNote(student1.id, 'krank gemeldet');
+      session.markAbsent(student1.id);
+      expect(session.studentNoteOf(student1.id)).toBe('krank gemeldet');
+    });
+  });
+
   describe('equals', () => {
     it('returns true for sessions with same id', () => {
       const date = new Date(2025, 9, 15);

@@ -92,6 +92,7 @@ export class AssessmentService {
       [...session.students],
       [...session.assessments, assessment],
       session.absentStudentIds,
+      session.studentNotes,
     );
 
     await this.sessionRepo.save(reconstituted);

@@ -35,6 +35,7 @@
           @cancel="ui.cancelEdit"
           @row-add="ui.onRowAdd"
           @absence="setAbsence"
+          @student-note="ui.onStudentNote"
         />
       </div>
     </div>
@@ -60,6 +61,7 @@
       @select-cell-action="ui.selectCellAction"
       @delete-column="ui.requestDeleteColumn"
       @save-note="ui.saveNote"
+      @save-student-note="ui.saveStudentNote"
       @close-impromptu="ui.closeImpromptu"
       @impromptu-saved="ui.impromptuSaved"
       @undo="undoDelete"

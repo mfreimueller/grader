@@ -90,6 +90,13 @@ export const setSessionAbsenceSchema = z.object({
   absent: z.boolean(),
 });
 
+export const SESSION_STUDENT_NOTE_MAX_LENGTH = 2000;
+
+export const setSessionStudentNoteSchema = z.object({
+  studentId: z.string().min(1),
+  text: z.string().max(SESSION_STUDENT_NOTE_MAX_LENGTH),
+});
+
 export const createAssessmentSchema = z.object({
   sessionId: z.string().min(1),
   title: z.string().min(1),

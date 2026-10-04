@@ -4,6 +4,11 @@ import { Student } from '../student/Student';
 import { StudentId } from '../student/StudentId';
 import { Assessment } from './Assessment';
 
+export interface StudentNote {
+  studentId: string;
+  text: string;
+}
+
 export class Session extends Entity<string> {
   private _date: Date;
   private _notes: string;
@@ -11,6 +16,7 @@ export class Session extends Entity<string> {
   private _students: Student[];
   private _assessments: Assessment[];
   private _absentStudentIds: Set<string>;
+  private _studentNotes: Map<string, string>;
 
   private constructor(
     id: string,
@@ -20,6 +26,7 @@ export class Session extends Entity<string> {
     students: Student[],
     assessments: Assessment[],
     absentStudentIds: readonly string[],
+    studentNotes: readonly StudentNote[],
   ) {
     super(id);
     this._date = date;
@@ -28,6 +35,7 @@ export class Session extends Entity<string> {
     this._students = [...students];
     this._assessments = [...assessments];
     this._absentStudentIds = new Set(absentStudentIds);
+    this._studentNotes = new Map(studentNotes.map((n) => [n.studentId, n.text]));
   }
 
   static create(id: string, date: Date, notes: string, course: Course): Session {
@@ -39,7 +47,7 @@ export class Session extends Entity<string> {
       course,
       id,
     );
-    return new Session(id, date, notes, course, [], [muendlich], []);
+    return new Session(id, date, notes, course, [], [muendlich], [], []);
   }
 
   static reconstitute(
@@ -50,8 +58,9 @@ export class Session extends Entity<string> {
     students: Student[],
     assessments: Assessment[],
     absentStudentIds: readonly string[] = [],
+    studentNotes: readonly StudentNote[] = [],
   ): Session {
-    return new Session(id, date, notes, course, students, assessments, absentStudentIds);
+    return new Session(id, date, notes, course, students, assessments, absentStudentIds, studentNotes);
   }
 
   get date(): Date {
@@ -76,6 +85,22 @@ export class Session extends Entity<string> {
 
   get absentStudentIds(): readonly string[] {
     return [...this._absentStudentIds];
+  }
+
+  /** The general notes of this session, one per student at most (e.g. "beteiligt sich nicht"). */
+  get studentNotes(): readonly StudentNote[] {
+    return [...this._studentNotes].map(([studentId, text]) => ({ studentId, text }));
+  }
+
+  studentNoteOf(studentId: StudentId): string | null {
+    return this._studentNotes.get(studentId.value) ?? null;
+  }
+
+  /** Sets the student's note; blank text removes it. */
+  setStudentNote(studentId: StudentId, text: string): void {
+    const trimmed = text.trim();
+    if (trimmed === '') this._studentNotes.delete(studentId.value);
+    else this._studentNotes.set(studentId.value, trimmed);
   }
 
   isAbsent(studentId: StudentId): boolean {

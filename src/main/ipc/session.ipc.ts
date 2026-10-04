@@ -1,7 +1,7 @@
 import { ipcMain } from 'electron';
 import { IPC } from '../../shared/ipc-channels';
 import { SessionService } from '../../application/SessionService';
-import { createSessionSchema, updateSessionSchema, setSessionAbsenceSchema, studentIdParam } from './schemas';
+import { createSessionSchema, updateSessionSchema, setSessionAbsenceSchema, setSessionStudentNoteSchema, studentIdParam } from './schemas';
 
 export function registerSessionHandlers(service: SessionService): void {
   ipcMain.handle(IPC.SESSION_LIST_BY_COURSE, async (_event, courseId: string) => {
@@ -23,6 +23,12 @@ export function registerSessionHandlers(service: SessionService): void {
     studentIdParam.parse({ id });
     const input = setSessionAbsenceSchema.parse(data);
     return await service.setAbsence(id, input.studentId, input.absent);
+  });
+
+  ipcMain.handle(IPC.SESSION_SET_STUDENT_NOTE, async (_event, id: string, data: unknown) => {
+    studentIdParam.parse({ id });
+    const input = setSessionStudentNoteSchema.parse(data);
+    return await service.setStudentNote(id, input.studentId, input.text);
   });
 
   ipcMain.handle(IPC.SESSION_UPDATE, async (_event, id: string, data: unknown) => {

@@ -41,6 +41,7 @@ export const IPC = {
   SESSION_UPDATE: 'session:update',
   SESSION_DELETE: 'session:delete',
   SESSION_SET_ABSENCE: 'session:setAbsence',
+  SESSION_SET_STUDENT_NOTE: 'session:setStudentNote',
 
   ASSESSMENT_LIST_BY_SESSION: 'assessment:listBySession',
   ASSESSMENT_CREATE: 'assessment:create',

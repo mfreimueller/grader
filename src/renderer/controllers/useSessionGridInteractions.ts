@@ -23,6 +23,7 @@ export type Overlay =
   | { type: 'menu'; cell: GridCell; anchor: PanelAnchor; gap: number }
   | { type: 'column-menu'; column: GridColumn; anchor: PanelAnchor; gap: number }
   | { type: 'note'; cell: GridCell; studentName: string; anchor: PanelAnchor }
+  | { type: 'student-note'; studentId: string; studentName: string; text: string; anchor: PanelAnchor }
   | { type: 'new-assessment'; anchor: PanelAnchor };
 
 const DIRECTION_KEYS: Readonly<Record<Exclude<CommitDirection, 'stay'>, string>> = { down: 'ArrowDown', left: 'ArrowLeft', right: 'ArrowRight' };
@@ -164,6 +165,21 @@ export function useSessionGridInteractions(grid: ReturnType<typeof useSessionGri
     const current = overlay.value;
     overlay.value = null;
     if (current?.type === 'note') void grid.setNote(current.cell, text);
+    focus.focusPosition();
+  }
+
+  /** Opens the editor for the general note of a student, anchored below the button that was used. */
+  function onStudentNote(studentId: string, event: MouseEvent): void {
+    const row = model.value.rows.find((r) => r.studentId === studentId);
+    const el = event.currentTarget as Element | null;
+    if (!row || !el) return;
+    overlay.value = { type: 'student-note', studentId, studentName: row.displayName, text: row.studentNote ?? '', anchor: focus.anchorOfElement(el) };
+  }
+
+  function saveStudentNote(text: string): void {
+    const current = overlay.value;
+    overlay.value = null;
+    if (current?.type === 'student-note') void grid.setStudentNote(current.studentId, text);
     focus.focusPosition();
   }
 
@@ -315,6 +331,8 @@ export function useSessionGridInteractions(grid: ReturnType<typeof useSessionGri
     onColumnMenu,
     selectCellAction,
     saveNote,
+    onStudentNote,
+    saveStudentNote,
     requestDeleteColumn,
     onHover,
     onHeaderAdd,

@@ -216,7 +216,20 @@ const MIGRATION_011: Migration = {
   `,
 };
 
-const ALL_MIGRATIONS: Migration[] = [MIGRATION_001, MIGRATION_002, MIGRATION_003, MIGRATION_004, MIGRATION_005, MIGRATION_006, MIGRATION_007, MIGRATION_008, MIGRATION_009, MIGRATION_010, MIGRATION_011];
+const MIGRATION_012: Migration = {
+  id: '012',
+  description: 'Add session_student_notes so a student can get a general note for a session',
+  sql: `
+    CREATE TABLE IF NOT EXISTS session_student_notes (
+      session_id TEXT NOT NULL REFERENCES sessions(id),
+      student_id TEXT NOT NULL REFERENCES students(id),
+      text TEXT NOT NULL,
+      PRIMARY KEY (session_id, student_id)
+    );
+  `,
+};
+
+const ALL_MIGRATIONS: Migration[] = [MIGRATION_001, MIGRATION_002, MIGRATION_003, MIGRATION_004, MIGRATION_005, MIGRATION_006, MIGRATION_007, MIGRATION_008, MIGRATION_009, MIGRATION_010, MIGRATION_011, MIGRATION_012];
 
 export const KNOWN_MIGRATION_IDS: readonly string[] = ALL_MIGRATIONS.map((m) => m.id);
 

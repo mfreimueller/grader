@@ -185,6 +185,7 @@ describe('model based lookup', () => {
     studentId,
     displayName: studentId,
     absent: false,
+    studentNote: null,
     sharedCells: [cell(studentId, 'a-1'), cell(studentId, 'a-2')],
     impromptuCells: impromptu.map((i) => cell(studentId, i, true)),
   });

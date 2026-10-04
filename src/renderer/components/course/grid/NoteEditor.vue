@@ -1,7 +1,7 @@
 <template>
   <FloatingPanel :anchor="anchor" @close="emit('close')">
-    <form class="editor" role="dialog" :aria-label="`Notiz: ${cell.title}`" @submit.prevent="emit('save', text)" @keydown.ctrl.enter.prevent="emit('save', text)" @keydown.meta.enter.prevent="emit('save', text)">
-      <div class="caption">Notiz · {{ studentName }} · {{ cell.title }}</div>
+    <form class="editor" role="dialog" :aria-label="`Notiz: ${subject}`" @submit.prevent="emit('save', text)" @keydown.ctrl.enter.prevent="emit('save', text)" @keydown.meta.enter.prevent="emit('save', text)">
+      <div class="caption">Notiz · {{ studentName }} · {{ subject }}</div>
       <textarea
         v-model="text"
         class="text"
@@ -12,10 +12,10 @@
         data-autofocus
       ></textarea>
       <div class="actions">
-        <button v-if="cell.hasNote" type="button" class="link link--danger" @click="emit('remove')">Notiz löschen</button>
+        <button v-if="hasNote" type="button" class="link link--danger" @click="emit('remove')">Notiz löschen</button>
         <span class="spacer"></span>
         <button type="button" class="btn btn-secondary" @click="emit('close')">Abbrechen</button>
-        <button type="submit" class="btn btn-primary" :disabled="text.trim() === '' && !cell.hasNote">Speichern</button>
+        <button type="submit" class="btn btn-primary" :disabled="text.trim() === '' && !hasNote">Speichern</button>
       </div>
     </form>
   </FloatingPanel>
@@ -23,14 +23,14 @@
 
 <script setup lang="ts">
 import { ref } from 'vue';
-import type { GridCell } from '../../../utils/sessionGridModel';
 import type { PanelAnchor } from '../../../utils/panelAnchor';
 import FloatingPanel from './FloatingPanel.vue';
 
-const props = defineProps<{ cell: GridCell; studentName: string; anchor: PanelAnchor }>();
+/** `subject` names what the note is about: an assessment title or the session as a whole. */
+const props = defineProps<{ subject: string; initialText: string; hasNote: boolean; studentName: string; anchor: PanelAnchor }>();
 const emit = defineEmits<{ save: [text: string]; remove: []; close: [] }>();
 
-const text = ref(props.cell.noteText ?? '');
+const text = ref(props.initialText);
 </script>
 
 <style scoped>

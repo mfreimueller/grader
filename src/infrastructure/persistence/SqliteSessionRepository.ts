@@ -1,6 +1,6 @@
 import type { Db } from './db';
 import { SessionRepository } from '../../domain/grade/SessionRepository';
-import { Session } from '../../domain/grade/Session';
+import { Session, type StudentNote } from '../../domain/grade/Session';
 import { Assessment } from '../../domain/grade/Assessment';
 import { GradedAssessment } from '../../domain/grade/GradedAssessment';
 import { AssessmentCategory } from '../../domain/grade/AssessmentCategory';
@@ -111,11 +111,22 @@ export class SqliteSessionRepository implements SessionRepository {
     for (const studentId of session.absentStudentIds) {
       insertAbsence.run(session.id, studentId);
     }
+
+    this.db.prepare('DELETE FROM session_student_notes WHERE session_id = ?').run(session.id);
+
+    const insertNote = this.db.prepare(
+      'INSERT INTO session_student_notes (session_id, student_id, text) VALUES (?, ?, ?)',
+    );
+
+    for (const note of session.studentNotes) {
+      insertNote.run(session.id, note.studentId, note.text);
+    }
   }
 
   async delete(id: string): Promise<void> {
     this.db.prepare('DELETE FROM session_students WHERE session_id = ?').run(id);
     this.db.prepare('DELETE FROM session_absences WHERE session_id = ?').run(id);
+    this.db.prepare('DELETE FROM session_student_notes WHERE session_id = ?').run(id);
     this.db
       .prepare('UPDATE assessments SET session_id = NULL WHERE session_id = ?')
       .run(id);
@@ -137,6 +148,7 @@ export class SqliteSessionRepository implements SessionRepository {
     const assessments = this.loadAssessments(row.id);
     const students = this.loadStudents(row.id);
     const absentStudentIds = this.loadAbsentStudentIds(row.id);
+    const studentNotes = this.loadStudentNotes(row.id);
 
     return Session.reconstitute(
       row.id,
@@ -146,6 +158,7 @@ export class SqliteSessionRepository implements SessionRepository {
       students,
       assessments,
       absentStudentIds,
+      studentNotes,
     );
   }
 
@@ -172,6 +185,13 @@ export class SqliteSessionRepository implements SessionRepository {
       .prepare('SELECT student_id FROM session_absences WHERE session_id = ? ORDER BY student_id')
       .all(sessionId) as Array<{ student_id: string }>;
     return rows.map(r => r.student_id);
+  }
+
+  private loadStudentNotes(sessionId: string): StudentNote[] {
+    const rows = this.db
+      .prepare('SELECT student_id, text FROM session_student_notes WHERE session_id = ? ORDER BY student_id')
+      .all(sessionId) as Array<{ student_id: string; text: string }>;
+    return rows.map(r => ({ studentId: r.student_id, text: r.text }));
   }
 
   private loadStudents(sessionId: string): Student[] {

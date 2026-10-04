@@ -93,6 +93,74 @@ describe('SessionService', () => {
     expect(deleted.ok).toBe(true);
   });
 
+  describe('setStudentNote', () => {
+    const createSession = async (): Promise<string> => {
+      const created = await service.create({ courseId, date: '2025-10-01T00:00:00.000Z' });
+      if (!created.ok) throw created.error;
+      return created.value.id;
+    };
+
+    it('creates sessions without student notes', async () => {
+      const result = await service.create({ courseId, date: '2025-10-01T00:00:00.000Z' });
+      if (!result.ok) throw result.error;
+      expect(result.value.studentNotes).toEqual([]);
+    });
+
+    it('stores a note for a student and persists it', async () => {
+      const sessionId = await createSession();
+
+      const result = await service.setStudentNote(sessionId, studentId, 'beteiligt sich nicht');
+
+      if (!result.ok) throw result.error;
+      expect(result.value.studentNotes).toEqual([{ studentId, text: 'beteiligt sich nicht' }]);
+      expect((await service.listByCourse(courseId))[0]!.studentNotes).toEqual([{ studentId, text: 'beteiligt sich nicht' }]);
+    });
+
+    it('removes the note for blank text', async () => {
+      const sessionId = await createSession();
+      await service.setStudentNote(sessionId, studentId, 'ruhig');
+
+      const result = await service.setStudentNote(sessionId, studentId, '');
+
+      if (!result.ok) throw result.error;
+      expect(result.value.studentNotes).toEqual([]);
+    });
+
+    it('keeps the absence and the note independent', async () => {
+      const sessionId = await createSession();
+      await service.setStudentNote(sessionId, studentId, 'ruhig');
+      const result = await service.setAbsence(sessionId, studentId, true);
+      if (!result.ok) throw result.error;
+      expect(result.value.studentNotes).toEqual([{ studentId, text: 'ruhig' }]);
+    });
+
+    it('fails for an unknown session', async () => {
+      const result = await service.setStudentNote('missing', studentId, 'x');
+      expect(result.ok).toBe(false);
+      if (!result.ok) expect(result.error).toBeInstanceOf(NotFoundError);
+    });
+
+    it('fails for an unknown student', async () => {
+      const result = await service.setStudentNote(await createSession(), 'nobody', 'x');
+      expect(result.ok).toBe(false);
+      if (!result.ok) expect(result.error).toBeInstanceOf(NotFoundError);
+    });
+
+    it('rejects a note for a student who is not taught in the course', async () => {
+      const sessionId = await createSession();
+      await rosterRepo.setExcluded(courseId, studentId, true);
+      const result = await service.setStudentNote(sessionId, studentId, 'x');
+      expect(result.ok).toBe(false);
+      if (!result.ok) expect(result.error).toBeInstanceOf(ValidationError);
+    });
+
+    it('rejects a note that is too long', async () => {
+      const result = await service.setStudentNote(await createSession(), studentId, 'x'.repeat(2001));
+      expect(result.ok).toBe(false);
+      if (!result.ok) expect(result.error).toBeInstanceOf(ValidationError);
+    });
+  });
+
   describe('setAbsence', () => {
     const createSession = async (): Promise<string> => {
       const created = await service.create({ courseId, date: '2025-10-01T00:00:00.000Z' });

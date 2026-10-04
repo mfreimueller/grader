@@ -45,6 +45,7 @@ const build = (o: {
   performances?: PerformanceDto[];
   notes?: SessionNoteDto[];
   absent?: string[];
+  studentNotes?: { studentId: string; text: string }[];
   asc?: boolean;
 }) =>
   buildSessionGrid({
@@ -53,6 +54,7 @@ const build = (o: {
     performances: o.performances ?? [],
     notes: o.notes ?? [],
     absentStudentIds: o.absent ?? [],
+    studentNotes: o.studentNotes ?? [],
     sortAscending: o.asc ?? true,
   });
 
@@ -255,6 +257,30 @@ describe('buildSessionGrid', () => {
     it('hides an impromptu assessment nobody has a performance on', () => {
       const grid = build({ assessments: [anAssessment({ id: 'i-1', isImpromptu: true })] });
       expect(grid.rows[0]!.impromptuCells).toEqual([]);
+    });
+  });
+
+  describe('student notes', () => {
+    it('has no note by default', () => {
+      expect(build({}).rows[0]!.studentNote).toBeNull();
+    });
+
+    it('attaches the general note to the row of its student', () => {
+      const grid = build({
+        students: [aStudent('s-1', 'Anna', 'Berger'), aStudent('s-2', 'Max', 'Muster')],
+        studentNotes: [{ studentId: 's-2', text: 'beteiligt sich nicht' }],
+      });
+      expect(grid.rows.map((r) => r.studentNote)).toEqual([null, 'beteiligt sich nicht']);
+    });
+
+    it('keeps the note of an absent student and does not touch the cells', () => {
+      const grid = build({
+        assessments: [anAssessment({ id: 'a-1' })],
+        absent: ['s-1'],
+        studentNotes: [{ studentId: 's-1', text: 'krank' }],
+      });
+      expect(grid.rows[0]!.studentNote).toBe('krank');
+      expect(grid.rows[0]!.sharedCells[0]!.hasNote).toBe(false);
     });
   });
 

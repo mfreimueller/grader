@@ -113,6 +113,12 @@ export interface SessionDto {
   courseId: string;
   studentIds: string[];
   absentStudentIds: string[];
+  studentNotes: SessionStudentNoteDto[];
+}
+
+export interface SessionStudentNoteDto {
+  studentId: string;
+  text: string;
 }
 
 export interface CreateSessionInput {
@@ -125,6 +131,12 @@ export interface CreateSessionInput {
 export interface UpdateSessionInput {
   date?: string;
   notes?: string;
+}
+
+export interface SetSessionStudentNoteInput {
+  studentId: string;
+  /** Blank text removes the note. */
+  text: string;
 }
 
 export interface SetSessionAbsenceInput {
@@ -411,6 +423,7 @@ export interface IpcApi {
     update: (id: string, data: UpdateSessionInput) => Promise<ResultDto<SessionDto>>;
     delete: (id: string) => Promise<ResultDto<void>>;
     setAbsence: (id: string, data: SetSessionAbsenceInput) => Promise<ResultDto<SessionDto>>;
+    setStudentNote: (id: string, data: SetSessionStudentNoteInput) => Promise<ResultDto<SessionDto>>;
   };
   assessment: {
     listBySession: (sessionId: string) => Promise<AssessmentDto[]>;

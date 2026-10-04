@@ -36,11 +36,24 @@
   />
   <NoteEditor
     v-if="overlay?.type === 'note'"
-    :cell="overlay.cell"
+    :subject="overlay.cell.title"
+    :initial-text="overlay.cell.noteText ?? ''"
+    :has-note="overlay.cell.hasNote"
     :student-name="overlay.studentName"
     :anchor="overlay.anchor"
     @save="(text) => emit('saveNote', text)"
     @remove="emit('saveNote', '')"
+    @close="emit('close')"
+  />
+  <NoteEditor
+    v-if="overlay?.type === 'student-note'"
+    :subject="sessionLabel"
+    :initial-text="overlay.text"
+    :has-note="overlay.text !== ''"
+    :student-name="overlay.studentName"
+    :anchor="overlay.anchor"
+    @save="(text) => emit('saveStudentNote', text)"
+    @remove="emit('saveStudentNote', '')"
     @close="emit('close')"
   />
   <ImpromptuDialog
@@ -66,6 +79,7 @@
 </template>
 
 <script setup lang="ts">
+import { computed } from 'vue';
 import type { AssessmentCategoryDto, StudentDto } from '../../../../shared/types';
 import type { Confirmation, Overlay } from '../../../controllers/useSessionGridInteractions';
 import type { NewAssessmentInput, PendingImpromptu } from '../../../controllers/useSessionGrid';
@@ -81,7 +95,7 @@ import UndoToast from './UndoToast.vue';
 import ConfirmDialog from './ConfirmDialog.vue';
 import ImpromptuDialog from '../ImpromptuDialog.vue';
 
-defineProps<{
+const props = defineProps<{
   overlay: Overlay | null;
   tooltip: { cell: GridCell; anchor: PanelAnchor } | null;
   confirmation: Confirmation | null;
@@ -103,10 +117,14 @@ const emit = defineEmits<{
   selectCellAction: [action: CellMenuAction];
   deleteColumn: [];
   saveNote: [text: string];
+  saveStudentNote: [text: string];
   closeImpromptu: [];
   impromptuSaved: [];
   undo: [assessmentId: string];
   confirmed: [];
   dismissed: [];
 }>();
+
+/** What the general student note refers to in the editor caption. */
+const sessionLabel = computed(() => (props.sessionDate ? `Sitzung ${props.sessionDate}` : 'Sitzung'));
 </script>

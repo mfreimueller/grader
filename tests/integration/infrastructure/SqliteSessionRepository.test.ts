@@ -108,6 +108,47 @@ describe('SqliteSessionRepository', () => {
     });
   });
 
+  describe('student notes', () => {
+    it('persists and loads a student note', async () => {
+      const session = Session.create('session-1', new Date('2025-10-01'), '', course);
+      session.setStudentNote(student.id, 'beteiligt sich nicht');
+      await repo.save(session);
+
+      expect((await repo.findById('session-1'))!.studentNotes).toEqual([{ studentId: 's-001', text: 'beteiligt sich nicht' }]);
+      expect((await repo.findByCourse('course-1'))[0]!.studentNoteOf(student.id)).toBe('beteiligt sich nicht');
+    });
+
+    it('replaces the stored notes on every save', async () => {
+      const session = Session.create('session-1', new Date('2025-10-01'), '', course);
+      session.setStudentNote(student.id, 'alt');
+      await repo.save(session);
+      session.setStudentNote(student.id, 'neu');
+      await repo.save(session);
+      expect((await repo.findById('session-1'))!.studentNotes).toEqual([{ studentId: 's-001', text: 'neu' }]);
+
+      session.setStudentNote(student.id, '');
+      await repo.save(session);
+      expect((await repo.findById('session-1'))!.studentNotes).toEqual([]);
+    });
+
+    it('keeps the notes of different sessions apart', async () => {
+      const a = Session.create('session-1', new Date('2025-10-01'), '', course);
+      const b = Session.create('session-2', new Date('2025-10-02'), '', course);
+      a.setStudentNote(student.id, 'ruhig');
+      await repo.save(a);
+      await repo.save(b);
+      expect((await repo.findById('session-2'))!.studentNotes).toEqual([]);
+    });
+
+    it('removes the notes together with the session', async () => {
+      const session = Session.create('session-1', new Date('2025-10-01'), '', course);
+      session.setStudentNote(student.id, 'ruhig');
+      await repo.save(session);
+      await repo.delete('session-1');
+      expect(db.prepare('SELECT COUNT(*) AS n FROM session_student_notes').get()).toEqual({ n: 0 });
+    });
+  });
+
   describe('absences', () => {
     const absentRows = (sessionId: string): string[] =>
       (db.prepare('SELECT student_id FROM session_absences WHERE session_id = ? ORDER BY student_id').all(sessionId) as { student_id: string }[])

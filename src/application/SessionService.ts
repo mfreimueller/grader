@@ -15,6 +15,7 @@ export interface SessionDto {
   courseId: string;
   studentIds: string[];
   absentStudentIds: string[];
+  studentNotes: { studentId: string; text: string }[];
 }
 
 export interface CreateSessionInput {
@@ -28,6 +29,8 @@ export interface UpdateSessionInput {
   date?: string;
   notes?: string;
 }
+
+export const STUDENT_NOTE_MAX_LENGTH = 2000;
 
 export class SessionService {
   constructor(
@@ -102,6 +105,28 @@ export class SessionService {
     return Result.ok(toDto(session));
   }
 
+  /** Sets (or, for blank text, removes) the general note of a student for one session. */
+  async setStudentNote(sessionId: string, studentId: string, text: string): Promise<Result<SessionDto>> {
+    if (text.length > STUDENT_NOTE_MAX_LENGTH) {
+      return Result.fail(new ValidationError(`Die Notiz darf höchstens ${STUDENT_NOTE_MAX_LENGTH} Zeichen lang sein.`));
+    }
+    const session = await this.sessionRepo.findById(sessionId);
+    if (!session) return Result.fail(new NotFoundError('Session', sessionId));
+
+    const idResult = StudentId.create(studentId);
+    if (!idResult.ok) return Result.fail(idResult.error);
+    const student = await this.studentRepo.findById(idResult.value);
+    if (!student) return Result.fail(new NotFoundError('Student', studentId));
+    const roster = await this.rosterService.rosterOfCourse(session.course);
+    if (!roster.some(s => s.id.equals(idResult.value))) {
+      return Result.fail(new ValidationError('Der Schüler gehört nicht zu diesem Kurs.'));
+    }
+
+    session.setStudentNote(idResult.value, text);
+    await this.sessionRepo.save(session);
+    return Result.ok(toDto(session));
+  }
+
   async delete(id: string): Promise<Result<void>> {
     const existing = await this.sessionRepo.findById(id);
     if (!existing) return Result.fail(new NotFoundError('Session', id));
@@ -118,5 +143,6 @@ function toDto(s: Session): SessionDto {
     courseId: s.course.id,
     studentIds: s.students.map(st => st.id.value),
     absentStudentIds: [...s.absentStudentIds],
+    studentNotes: [...s.studentNotes],
   };
 }

@@ -2,7 +2,7 @@
 // Shared assessments become columns (one cell per student); an impromptu assessment belongs to exactly one
 // student and becomes an extra cell at the end of that student's row.
 
-import type { AssessmentDto, PerformanceDto, SessionNoteDto, StudentDto } from '../../shared/types';
+import type { AssessmentDto, PerformanceDto, SessionNoteDto, SessionStudentNoteDto, StudentDto } from '../../shared/types';
 
 export type GridSymbol = 'PLUS' | 'WELLE' | 'MINUS';
 export type GridGradingType = 'NUMERIC' | 'TERTIARY';
@@ -42,6 +42,8 @@ export interface GridRow {
   studentId: string;
   displayName: string;
   absent: boolean;
+  /** General note on the student for this session (not tied to an assessment), or null. */
+  studentNote: string | null;
   sharedCells: GridCell[];
   impromptuCells: GridCell[];
 }
@@ -58,6 +60,7 @@ export interface BuildSessionGridInput {
   performances: readonly PerformanceDto[];
   notes: readonly SessionNoteDto[];
   absentStudentIds: readonly string[];
+  studentNotes: readonly SessionStudentNoteDto[];
   sortAscending: boolean;
 }
 
@@ -67,6 +70,7 @@ const gradingTypeOf = (a: AssessmentDto): GridGradingType => (a.category.grading
 
 export function buildSessionGrid(input: BuildSessionGridInput): SessionGridModel {
   const absent = new Set(input.absentStudentIds);
+  const studentNoteOf = new Map(input.studentNotes.map((n) => [n.studentId, n.text]));
   const noteByPerformance = new Map(input.notes.map((n) => [n.performanceId, n.text]));
   const performanceOf = new Map(input.performances.map((p) => [`${p.studentId}:${p.assessmentId}`, p]));
 
@@ -118,6 +122,7 @@ export function buildSessionGrid(input: BuildSessionGridInput): SessionGridModel
     studentId: student.id,
     displayName: `${student.lastName}, ${student.firstName}`,
     absent: absent.has(student.id),
+    studentNote: studentNoteOf.get(student.id) ?? null,
     sharedCells: shared.map((a) => cellFor(student, a, performanceOf.get(`${student.id}:${a.id}`))),
     impromptuCells: impromptu.flatMap((a) => {
       const performance = performanceOf.get(`${student.id}:${a.id}`);

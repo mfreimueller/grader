@@ -16,6 +16,8 @@ komplett offline, alle Daten bleiben auf dem eigenen Rechner.
   Ergebnis zurücksetzen, spontane Leistung löschen mit „Rückgängig“). Das `+` im Spaltenkopf legt eine
   Leistung für alle an, das `+` am Zeilenende eine spontane Leistung für einen Schüler. Über die Checkbox
   „Anw.“ lassen sich Schüler als abwesend markieren (Zellen werden gesperrt; die Berechnung bleibt unverändert).
+  Mit dem Notiz-Symbol neben dem Namen lässt sich zu jedem Schüler eine allgemeine Notiz zur Sitzung festhalten
+  (z. B. „beteiligt sich nicht“), ohne dafür eine Leistung anzulegen; sie fließt nicht in die Berechnung ein.
 - **Beurteilungslogik nach LBVO** – gewichtete, rezenzbasierte Berechnung der Gesamtnote je Kurs.
   Die berechnete Note dient als Orientierung; die Endnote wird von der Lehrperson manuell vergeben.
 - **Berichte** – PDF-Berichte (Voll- oder Kurzversion), AsciiDoc-Ausgabe sowie CSV-Export.

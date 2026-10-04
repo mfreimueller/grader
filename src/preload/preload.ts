@@ -44,6 +44,7 @@ const IPC = {
   SESSION_UPDATE: 'session:update',
   SESSION_DELETE: 'session:delete',
   SESSION_SET_ABSENCE: 'session:setAbsence',
+  SESSION_SET_STUDENT_NOTE: 'session:setStudentNote',
 
   ASSESSMENT_LIST_BY_SESSION: 'assessment:listBySession',
   ASSESSMENT_CREATE: 'assessment:create',
@@ -151,6 +152,7 @@ const api: IpcApi = {
     update: (id, data) => ipcRenderer.invoke(IPC.SESSION_UPDATE, id, data),
     delete: (id) => ipcRenderer.invoke(IPC.SESSION_DELETE, id),
     setAbsence: (id, data) => ipcRenderer.invoke(IPC.SESSION_SET_ABSENCE, id, data),
+    setStudentNote: (id, data) => ipcRenderer.invoke(IPC.SESSION_SET_STUDENT_NOTE, id, data),
   },
   assessment: {
     listBySession: (sessionId) => ipcRenderer.invoke(IPC.ASSESSMENT_LIST_BY_SESSION, sessionId),

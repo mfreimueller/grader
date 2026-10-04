@@ -9,6 +9,7 @@ import type {
   ResultDto,
   SessionDto,
   SessionNoteDto,
+  SessionStudentNoteDto,
   StudentDto,
 } from '../../shared/types';
 import { buildSessionGrid, type GridCell, type GridSymbol } from '../utils/sessionGridModel';
@@ -33,6 +34,7 @@ export function useSessionGrid(courseId: string, sessionId: string) {
   const notes = ref<SessionNoteDto[]>([]);
   const categories = ref<AssessmentCategoryDto[]>([]);
   const absentIds = ref<string[]>([]);
+  const studentNotes = ref<SessionStudentNoteDto[]>([]);
   const sortAscending = ref(true);
   const loading = ref(true);
   const errorMessage = ref('');
@@ -47,6 +49,7 @@ export function useSessionGrid(courseId: string, sessionId: string) {
       performances: performances.value,
       notes: notes.value,
       absentStudentIds: absentIds.value,
+      studentNotes: studentNotes.value,
       sortAscending: sortAscending.value,
     }),
   );
@@ -113,7 +116,9 @@ export function useSessionGrid(courseId: string, sessionId: string) {
       ]);
       students.value = members.ok ? members.value : [];
       categories.value = cats;
-      absentIds.value = sessions.find((s: SessionDto) => s.id === sessionId)?.absentStudentIds ?? [];
+      const session = sessions.find((s: SessionDto) => s.id === sessionId);
+      absentIds.value = session?.absentStudentIds ?? [];
+      studentNotes.value = session?.studentNotes ?? [];
       await loadAssessments();
     } finally {
       loading.value = false;
@@ -171,6 +176,13 @@ export function useSessionGrid(courseId: string, sessionId: string) {
     else errorMessage.value = result.error.message;
   }
 
+  /** Sets the general note of a student for this session; blank text removes it. */
+  async function setStudentNote(studentId: string, text: string): Promise<void> {
+    const result = await window.grdr.session.setStudentNote(sessionId, { studentId, text });
+    if (result.ok) studentNotes.value = result.value.studentNotes;
+    else errorMessage.value = result.error.message;
+  }
+
   /** Deletes what is still waiting for its undo; called when the grid is left. */
   async function flushPending(): Promise<void> {
     await pending.flush();
@@ -200,6 +212,7 @@ export function useSessionGrid(courseId: string, sessionId: string) {
     scheduleImpromptuDelete,
     undoDelete,
     setAbsence,
+    setStudentNote,
     flushPending,
   };
 }

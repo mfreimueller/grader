@@ -77,6 +77,22 @@ describe('AssessmentService', () => {
     expect(reloaded?.absentStudentIds).toEqual(['stu-1']);
   });
 
+  it('keeps the student notes of the session when adding an assessment', async () => {
+    const stored = await sessionRepo.findById(sessionId);
+    if (!stored) throw new Error('session missing');
+    db.prepare('INSERT INTO students (id, first_name, last_name, school_class_id) VALUES (?, ?, ?, ?)')
+      .run('stu-1', 'Anna', 'Hoffmann', 'class-1');
+    await sessionRepo.save(
+      Session.reconstitute(stored.id, stored.date, stored.notes, stored.course, [], [], [], [{ studentId: 'stu-1', text: 'ruhig' }]),
+    );
+
+    const result = await service.create({ sessionId, title: 'Test 2', categoryId, courseId, isImpromptu: false });
+    expect(result.ok).toBe(true);
+
+    const reloaded = await sessionRepo.findById(sessionId);
+    expect(reloaded?.studentNotes).toEqual([{ studentId: 'stu-1', text: 'ruhig' }]);
+  });
+
   it('creates a graded assessment with maxPoints', async () => {
     const result = await service.create({
       sessionId,

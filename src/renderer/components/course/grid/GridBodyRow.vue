@@ -8,7 +8,20 @@
         @change="emit('absence', row.studentId, !($event.target as HTMLInputElement).checked)"
       />
     </label>
-    <div class="student" role="rowheader">{{ row.displayName }}</div>
+    <div class="student" role="rowheader">
+      <span class="student-name">{{ row.displayName }}</span>
+      <button
+        type="button"
+        :class="['student-note', { 'student-note--filled': row.studentNote !== null }]"
+        :title="row.studentNote ?? 'Notiz zur Sitzung hinzufügen'"
+        :aria-label="row.studentNote !== null ? `Notiz zu ${row.displayName} bearbeiten` : `Notiz zu ${row.displayName} hinzufügen`"
+        @click="emit('studentNote', row.studentId, $event)"
+      >
+        <svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true">
+          <path d="M5 3h14a2 2 0 0 1 2 2v10l-6 6H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z" :fill="row.studentNote !== null ? 'currentColor' : 'none'" stroke="currentColor" stroke-width="2" stroke-linejoin="round" />
+        </svg>
+      </button>
+    </div>
 
     <GridCell
       v-for="(cell, c) in row.sharedCells"
@@ -85,6 +98,7 @@ const emit = defineEmits<{
   cancel: [refocus: boolean];
   rowAdd: [studentId: string];
   absence: [studentId: string, absent: boolean];
+  studentNote: [studentId: string, event: MouseEvent];
 }>();
 </script>
 
@@ -127,12 +141,48 @@ const emit = defineEmits<{
   flex: none;
   display: flex;
   align-items: center;
-  padding: 0 10px;
+  gap: 6px;
+  padding: 0 6px 0 10px;
   background: var(--color-surface);
   font-weight: 700;
+}
+
+.student-name {
+  flex: 1;
+  min-width: 0;
   overflow: hidden;
   white-space: nowrap;
   text-overflow: ellipsis;
+}
+
+.student-note {
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  border: none;
+  border-radius: 4px;
+  background: none;
+  color: var(--color-text-secondary);
+  opacity: 0.45;
+  cursor: pointer;
+}
+
+.student-note:hover,
+.student-note:focus-visible,
+.student-note--filled {
+  opacity: 1;
+}
+
+.student-note--filled {
+  color: var(--color-primary);
+}
+
+.student-note:hover {
+  background: #f3f4f6;
 }
 
 .grid-row--absent .anw,
