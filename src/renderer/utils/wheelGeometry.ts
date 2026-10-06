@@ -41,7 +41,8 @@ export function computeSegments(students: readonly WheelStudent[]): WheelSegment
         ? `M ${RADIUS} 0 A ${RADIUS} ${RADIUS} 0 1 1 ${-RADIUS} 0 A ${RADIUS} ${RADIUS} 0 1 1 ${RADIUS} 0 Z`
         : `M 0 0 L ${point(i * step)} A ${RADIUS} ${RADIUS} 0 ${step > Math.PI ? 1 : 0} 1 ${point((i + 1) * step)} Z`;
 
-    const name = `${student.lastName} ${student.firstName}`;
+    const firstLetterLastName = student.lastName.charAt(0);
+    const name = `${student.firstName} ${firstLetterLastName}.`;
     return {
       studentId: student.studentId,
       path,
