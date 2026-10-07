@@ -149,14 +149,36 @@ describe('CourseRosterService', () => {
   });
 
   describe('exportCsv', () => {
-    it('exports class name, subject, first name and last name of the taught students sorted by name', async () => {
+    const lines = (csv: string): string[] => csv.split('\r\n');
+
+    beforeEach(() => {
+      db.exec(`
+        INSERT INTO assessment_categories (id, title, grading_type, course_id) VALUES ('cat-2', 'Schularbeit', 'NUMERIC', 'c-1');
+        INSERT INTO assessment_categories (id, title, grading_type, course_id) VALUES ('cat-3', 'Wiederholung', 'TERTIARY', 'c-1');
+      `);
+    });
+
+    it('exports class, subject, school year, id, names, color and tertiary categories of the taught students sorted by name', async () => {
       await service.setIncluded('c-1', 's-3', false);
 
       const result = await service.exportCsv('c-1');
 
       expect(result.ok && result.value).toBe(
-        ['Klasse,Fach,Vorname,Nachname', '4A,Mathematik,Anna,Gruber', '4A,Mathematik,Max,Muster'].join('\r\n') + '\r\n',
+        [
+          'Klasse,Fach,Schuljahr,Id,Vorname,Nachname,Color,Kategorien',
+          '4A,Mathematik,2026/27,s-2,Anna,Gruber,,Mitarbeit|Wiederholung',
+          '4A,Mathematik,2026/27,s-1,Max,Muster,#ed1943,Mitarbeit|Wiederholung',
+          '',
+        ].join('\r\n'),
       );
+    });
+
+    it('leaves the Kategorien cell empty when the course has no tertiary category', async () => {
+      db.exec(`UPDATE assessment_categories SET grading_type = 'NUMERIC'`);
+
+      const result = await service.exportCsv('c-1');
+
+      expect(result.ok && lines(result.value)[1]).toBe('4A,Mathematik,2026/27,s-2,Anna,Gruber,,');
     });
 
     it('quotes fields containing commas, quotes or line breaks', async () => {
@@ -167,7 +189,9 @@ describe('CourseRosterService', () => {
 
       const result = await service.exportCsv('c-1');
 
-      expect(result.ok && result.value.split('\r\n')[1]).toBe('4A,"Deutsch, ""Lesen""",Anna Maria,Gruber');
+      expect(result.ok && lines(result.value)[1]).toBe(
+        '4A,"Deutsch, ""Lesen""",2026/27,s-2,Anna Maria,Gruber,,Mitarbeit|Wiederholung',
+      );
     });
 
     it('fails for an unknown course', async () => {

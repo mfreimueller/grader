@@ -10,12 +10,6 @@ export const IPC = {
   ROSTER_SET_INCLUDED: 'roster:setIncluded',
   ROSTER_SET_ALL: 'roster:setAll',
   ROSTER_EXPORT_CSV: 'roster:exportCsv',
-  PICKER_LIST: 'picker:list',
-  PICKER_PICK_RANDOM: 'picker:pickRandom',
-  PICKER_PICK_STUDENT: 'picker:pickStudent',
-  PICKER_SET_COUNT: 'picker:setCount',
-  PICKER_RESET: 'picker:reset',
-  PICKER_RECORD_MITARBEIT: 'picker:recordMitarbeit',
 
   CLASS_LIST: 'class:list',
   CLASS_CREATE: 'class:create',

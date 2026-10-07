@@ -47,10 +47,6 @@ import { registerBinHandlers } from './ipc/bin.ipc';
 import { CourseRosterService } from '../application/CourseRosterService';
 import { SqliteCourseRosterRepository } from '../infrastructure/persistence/SqliteCourseRosterRepository';
 import { registerRosterHandlers } from './ipc/roster.ipc';
-import { registerPickerHandlers } from './ipc/picker.ipc';
-import { StudentPickerService } from '../application/StudentPickerService';
-import { MitarbeitPickService } from '../application/MitarbeitPickService';
-import { SqliteStudentPickCountRepository } from '../infrastructure/persistence/SqliteStudentPickCountRepository';
 import { registerSchoolYearHandlers } from './ipc/schoolyear.ipc';
 import { SchoolYearRolloverService } from '../application/SchoolYearRolloverService';
 import { SqliteUnitOfWork } from '../infrastructure/persistence/SqliteUnitOfWork';
@@ -94,8 +90,6 @@ app.on('ready', () => {
   const reportService = new ReportService(reportRepo, pdfGenerator, adocGenerator, calcService);
   const gradeImportService = new GradeImportService(sessionRepo, assessmentRepo, gradeRepo, studentRepo, courseRepo);
   const rolloverService = new SchoolYearRolloverService(classRepo, courseRepo, new SqliteUnitOfWork(db));
-  const pickerService = new StudentPickerService(courseRepo, rosterService, new SqliteStudentPickCountRepository(db));
-  const mitarbeitPickService = new MitarbeitPickService(courseRepo, sessionRepo, studentRepo, impromptuService, rosterService);
   const binService = new BinService(studentRepo, classRepo, courseRepo);
 
   const mcpService = new McpService(
@@ -110,7 +104,6 @@ app.on('ready', () => {
   registerReportHandlers(reportService);
   registerBinHandlers(binService);
   registerSchoolYearHandlers(rolloverService);
-  registerPickerHandlers(pickerService, mitarbeitPickService);
   registerRosterHandlers(rosterService);
 
   const win = createMainWindow();

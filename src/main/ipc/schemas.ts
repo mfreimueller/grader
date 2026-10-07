@@ -182,30 +182,6 @@ export const setColorSchema = z.object({
   color: z.string().nullable(),
 });
 
-export const pickRandomSchema = z.object({
-  courseId: z.string().min(1),
-  fair: z.boolean(),
-});
-
-export const pickStudentSchema = z.object({
-  courseId: z.string().min(1),
-  studentId: z.string().min(1),
-});
-
-export const setPickCountSchema = z.object({
-  courseId: z.string().min(1),
-  studentId: z.string().min(1),
-  count: z.number(),
-});
-
-export const recordMitarbeitPickSchema = z.object({
-  courseId: z.string().min(1),
-  studentId: z.string().min(1),
-  symbol: z.string().min(1),
-  date: z.string().min(1),
-  categoryId: z.string().min(1).optional(),
-});
-
 export const setRosterIncludedSchema = z.object({
   courseId: z.string().min(1),
   studentId: z.string().min(1),

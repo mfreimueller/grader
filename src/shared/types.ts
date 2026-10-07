@@ -306,14 +306,6 @@ export interface RolloverSummaryDto {
   coursesArchived: number;
 }
 
-export interface StudentPickDto {
-  studentId: string;
-  firstName: string;
-  lastName: string;
-  pickCount: number;
-  color: string | null;
-}
-
 export interface CourseRosterEntryDto {
   studentId: string;
   firstName: string;
@@ -321,26 +313,6 @@ export interface CourseRosterEntryDto {
   color: string | null;
   included: boolean;
   entryCount: number;
-}
-
-export interface RosterEntryDto extends StudentPickDto {
-  inFairPool: boolean;
-}
-
-export interface RecordMitarbeitPickInput {
-  courseId: string;
-  studentId: string;
-  symbol: string;
-  date: string;
-  /** Tertiary category of the impromptu assessment; the course's Mitarbeit when omitted. */
-  categoryId?: string;
-}
-
-export interface MitarbeitPickDto {
-  assessmentId: string;
-  performanceId: string;
-  sessionId: string;
-  symbol: string;
 }
 
 export interface BinListDto {
@@ -383,14 +355,6 @@ export interface IpcApi {
     setAll: (courseId: string, included: boolean) => Promise<ResultDto<void>>;
     /** null when the save dialog was cancelled. */
     exportCsv: (courseId: string) => Promise<ResultDto<{ filePath: string }> | null>;
-  };
-  picker: {
-    list: (courseId: string) => Promise<ResultDto<RosterEntryDto[]>>;
-    pickRandom: (courseId: string, fair: boolean) => Promise<ResultDto<StudentPickDto>>;
-    pickStudent: (courseId: string, studentId: string) => Promise<ResultDto<StudentPickDto>>;
-    setCount: (courseId: string, studentId: string, count: number) => Promise<ResultDto<StudentPickDto>>;
-    reset: (courseId: string) => Promise<ResultDto<void>>;
-    recordMitarbeit: (data: RecordMitarbeitPickInput) => Promise<ResultDto<MitarbeitPickDto>>;
   };
   schoolYear: {
     preview: () => Promise<RolloverPreviewDto>;

@@ -3,6 +3,7 @@ import { StudentRepository } from '../domain/student/StudentRepository';
 import { CourseRosterRepository } from '../domain/grade/CourseRosterRepository';
 import { CourseRoster } from '../domain/grade/CourseRoster';
 import { Course } from '../domain/grade/Course';
+import { GradingType } from '../domain/grade/GradingType';
 import { Student } from '../domain/student/Student';
 import { StudentDto, toStudentDto } from './StudentService';
 import { Result } from '../domain/shared/Result';
@@ -76,18 +77,27 @@ export class CourseRosterService {
     return Result.ok(await this.rosterOfCourse(course));
   }
 
-  /** The taught students as CSV (class name, subject, first name, last name) for importing into other tools. */
+  /** The taught students as CSV (see the header below) for importing into other tools, e.g. Wheel of Fortune. */
   async exportCsv(courseId: string): Promise<Result<string>> {
     const course = await this.courseRepo.findById(courseId);
     if (!course) return Result.fail(new NotFoundError('Course', courseId));
 
+    const categories = course.assessmentCategories
+      .filter((c) => c.gradingType === GradingType.TERTIARY)
+      .map((c) => c.title)
+      .join('|');
     const rows = (await this.rosterOfCourse(course)).map((student) => [
       course.schoolClass.name,
       course.title,
+      course.schoolClass.schoolYear.toString(),
+      student.id.value,
       student.name.firstName,
       student.name.lastName,
+      student.color?.value ?? '',
+      categories,
     ]);
-    return Result.ok([['Klasse', 'Fach', 'Vorname', 'Nachname'], ...rows].map(toCsvLine).join(''));
+    const header = ['Klasse', 'Fach', 'Schuljahr', 'Id', 'Vorname', 'Nachname', 'Color', 'Kategorien'];
+    return Result.ok([header, ...rows].map(toCsvLine).join(''));
   }
 
   async rosterOfCourse(course: Course): Promise<Student[]> {

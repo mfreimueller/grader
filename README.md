@@ -25,10 +25,10 @@ komplett offline, alle Daten bleiben auf dem eigenen Rechner.
   wiederherstellbar.
 - **CSV-Import** – Schülerlisten lassen sich bequem aus CSV-Dateien importieren.
 - **Kurs-Teilnehmer** – Wird eine Klasse in Gruppen geteilt, legt der Tab „Schüler“ fest, wen die Lehrperson im
-  Kurs unterrichtet. Nicht ausgewählte Schüler verschwinden aus Beurteilung, Sitzungen, Schülerauswahl und
+  Kurs unterrichtet. Nicht ausgewählte Schüler verschwinden aus Beurteilung, Sitzungen und
   Berichten; bereits erfasste Leistungen bleiben erhalten.
-- **Schülerauswahl** – zufällige Auswahl per Farbrad mit Fair-Modus (wer am seltesten aufgerufen wurde,
-  kommt zuerst), eigenen Schülerfarben, Aufrufzählern und direktem Eintragen der Mitarbeit (+ / ~ / −).
+- **Schüler-Export** – Der Tab „Schüler“ exportiert die unterrichteten Schüler eines Kurses als CSV (z. B. für das
+  Glücksrad „Wheel of Fortune“).
 - **Schuljahreswechsel** – alle Klassen auf einmal ins neue Schuljahr übernehmen (z. B. 4EHIF → 5EHIF),
   Abgänger entfernen und auf Wunsch alle Kurse archivieren.
 - **MCP-Server** – optionaler, lokaler Server, der KI-Agenten einen gelesenen Zugriff auf die
