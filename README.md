@@ -31,7 +31,6 @@ komplett offline, alle Daten bleiben auf dem eigenen Rechner.
   kommt zuerst), eigenen Schülerfarben, Aufrufzählern und direktem Eintragen der Mitarbeit (+ / ~ / −).
 - **Schuljahreswechsel** – alle Klassen auf einmal ins neue Schuljahr übernehmen (z. B. 4EHIF → 5EHIF),
   Abgänger entfernen und auf Wunsch alle Kurse archivieren.
-- **digigrade-Import** – Daten aus der Webanwendung digigrade (JSON-Export) übernehmen.
 - **MCP-Server** – optionaler, lokaler Server, der KI-Agenten einen gelesenen Zugriff auf die
   Notendaten ermöglicht.
 
@@ -69,19 +68,6 @@ Das alte Jahr bleibt unverändert in der ursprünglichen Datei (z. B. für Einsp
 
 **Klassen löschen:** Eine gelöschte Klasse wandert samt ihrer Schüler und Kurse in den Papierkorb und wird
 von dort auch gemeinsam wiederhergestellt.
-
-## digigrade-Import
-
-In digigrade unter *Mein Profil → Daten exportieren* eine JSON-Datei herunterladen und in Grader unter
-*Klassen → digigrade-Import* (oder *Datei → digigrade-Import…*) auswählen. Der Import ergänzt vorhandene Daten:
-
-- Klassen werden über Name und Schuljahr, Schüler über Name innerhalb der Klasse und Kurse über Titel
-  innerhalb der Klasse zugeordnet. Bereits Vorhandenes wird nie überschrieben; ein vorhandener Kurs wird
-  komplett übersprungen. Ein erneuter Import derselben Datei ändert daher nichts.
-- Übernommen werden Klassen, Schüler (inkl. Farbe), Kurse mit Kategorien und Gewichtungen, Sitzungen,
-  Leistungen, Notizen und Links, manuelle Noten sowie Aufrufzähler. Dezimale Gewichtungen werden gerundet.
-- Dokumente (Dateien auf dem digigrade-Server) werden nicht übernommen.
-- Der Import läuft in einer Transaktion: Bei einem Fehler bleibt die Datenbank unverändert.
 
 ## Entwicklung
 

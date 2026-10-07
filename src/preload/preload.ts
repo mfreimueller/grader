@@ -12,6 +12,7 @@ const IPC = {
   ROSTER_MEMBERS: 'roster:members',
   ROSTER_SET_INCLUDED: 'roster:setIncluded',
   ROSTER_SET_ALL: 'roster:setAll',
+  ROSTER_EXPORT_CSV: 'roster:exportCsv',
   PICKER_LIST: 'picker:list',
   PICKER_PICK_RANDOM: 'picker:pickRandom',
   PICKER_PICK_STUDENT: 'picker:pickStudent',
@@ -61,7 +62,6 @@ const IPC = {
   GRADE_RECORD_IMPROMPTU: 'grade:recordImpromptu',
 
   STUDENT_IMPORT_CSV: 'student:importCsv',
-  IMPORT_DIGIGRADE: 'import:digigrade',
 
   GRADE_IMPORT_CSV: 'grade:importCsv',
 
@@ -109,15 +109,13 @@ const api: IpcApi = {
     delete: (id) => ipcRenderer.invoke(IPC.CLASS_DELETE, id),
     dependents: (id) => ipcRenderer.invoke(IPC.CLASS_DEPENDENTS, id),
   },
-  digigrade: {
-    import: () => ipcRenderer.invoke(IPC.IMPORT_DIGIGRADE),
-  },
   roster: {
     list: (courseId) => ipcRenderer.invoke(IPC.ROSTER_LIST, courseId),
     members: (courseId) => ipcRenderer.invoke(IPC.ROSTER_MEMBERS, courseId),
     setIncluded: (courseId, studentId, included) =>
       ipcRenderer.invoke(IPC.ROSTER_SET_INCLUDED, { courseId, studentId, included }),
     setAll: (courseId, included) => ipcRenderer.invoke(IPC.ROSTER_SET_ALL, { courseId, included }),
+    exportCsv: (courseId) => ipcRenderer.invoke(IPC.ROSTER_EXPORT_CSV, courseId),
   },
   picker: {
     list: (courseId) => ipcRenderer.invoke(IPC.PICKER_LIST, courseId),

@@ -18,6 +18,9 @@ export interface CourseRosterEntryDto {
   entryCount: number;
 }
 
+const toCsvLine = (fields: string[]): string =>
+  fields.map((f) => (/[",\r\n]/.test(f) ? `"${f.replace(/"/g, '""')}"` : f)).join(',') + '\r\n';
+
 /** Which students of a class are actually taught in a course. Single source of truth for every consumer. */
 export class CourseRosterService {
   constructor(
@@ -71,6 +74,20 @@ export class CourseRosterService {
     const course = await this.courseRepo.findById(courseId);
     if (!course) return Result.fail(new NotFoundError('Course', courseId));
     return Result.ok(await this.rosterOfCourse(course));
+  }
+
+  /** The taught students as CSV (class name, subject, first name, last name) for importing into other tools. */
+  async exportCsv(courseId: string): Promise<Result<string>> {
+    const course = await this.courseRepo.findById(courseId);
+    if (!course) return Result.fail(new NotFoundError('Course', courseId));
+
+    const rows = (await this.rosterOfCourse(course)).map((student) => [
+      course.schoolClass.name,
+      course.title,
+      student.name.firstName,
+      student.name.lastName,
+    ]);
+    return Result.ok([['Klasse', 'Fach', 'Vorname', 'Nachname'], ...rows].map(toCsvLine).join(''));
   }
 
   async rosterOfCourse(course: Course): Promise<Student[]> {

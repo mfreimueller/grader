@@ -1,8 +1,6 @@
 import { app, Menu, BrowserWindow, dialog, type MenuItemConstructorOptions } from 'electron';
 import { IPC } from '../shared/ipc-channels';
 import { openDatabaseViaDialog } from './ipc/settings.ipc';
-import { importDigigradeViaDialog } from './ipc/digigrade-import.ipc';
-import type { DigigradeImportService } from '../application/DigigradeImportService';
 
 async function openDatabaseFromMenu(win: BrowserWindow): Promise<void> {
   const result = await openDatabaseViaDialog(win);
@@ -25,26 +23,7 @@ async function openDatabaseFromMenu(win: BrowserWindow): Promise<void> {
   }
 }
 
-async function importDigigradeFromMenu(win: BrowserWindow, service: DigigradeImportService): Promise<void> {
-  const outcome = await importDigigradeViaDialog(win, service);
-  if (!outcome) return;
-  if (!outcome.ok) {
-    dialog.showErrorBox('digigrade-Import fehlgeschlagen', outcome.error.message);
-    return;
-  }
-  const r = outcome.value;
-  const lines = [
-    `Klassen: ${r.classes.created} neu, ${r.classes.skipped} vorhanden`,
-    `Schüler: ${r.students.created} neu, ${r.students.skipped} vorhanden`,
-    `Kurse: ${r.courses.created} neu, ${r.courses.skipped} übersprungen`,
-    `Sitzungen: ${r.sessionsCreated}, Leistungen: ${r.performancesCreated}`,
-  ];
-  if (r.warnings.length > 0) lines.push('', `Warnungen (${r.warnings.length}):`, ...r.warnings.slice(0, 10));
-  await dialog.showMessageBox(win, { type: 'info', message: 'digigrade-Import abgeschlossen', detail: lines.join('\n') });
-  win.webContents.reload();
-}
-
-export function createAppMenu(win: BrowserWindow, digigradeImportService: DigigradeImportService): void {
+export function createAppMenu(win: BrowserWindow): void {
   const isMac = process.platform === 'darwin';
 
   const template: MenuItemConstructorOptions[] = [
@@ -68,12 +47,6 @@ export function createAppMenu(win: BrowserWindow, digigradeImportService: Digigr
           accelerator: 'CmdOrCtrl+O',
           click: () => {
             void openDatabaseFromMenu(win);
-          },
-        },
-        {
-          label: 'digigrade-Import…',
-          click: () => {
-            void importDigigradeFromMenu(win, digigradeImportService);
           },
         },
         {

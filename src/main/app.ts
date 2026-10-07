@@ -44,8 +44,6 @@ import { registerGradeHandlers } from './ipc/grade.ipc';
 import { registerReportHandlers } from './ipc/report.ipc';
 import { registerSettingsHandlers } from './ipc/settings.ipc';
 import { registerBinHandlers } from './ipc/bin.ipc';
-import { registerDigigradeImportHandlers } from './ipc/digigrade-import.ipc';
-import { DigigradeImportService } from '../application/DigigradeImportService';
 import { CourseRosterService } from '../application/CourseRosterService';
 import { SqliteCourseRosterRepository } from '../infrastructure/persistence/SqliteCourseRosterRepository';
 import { registerRosterHandlers } from './ipc/roster.ipc';
@@ -98,10 +96,6 @@ app.on('ready', () => {
   const rolloverService = new SchoolYearRolloverService(classRepo, courseRepo, new SqliteUnitOfWork(db));
   const pickerService = new StudentPickerService(courseRepo, rosterService, new SqliteStudentPickCountRepository(db));
   const mitarbeitPickService = new MitarbeitPickService(courseRepo, sessionRepo, studentRepo, impromptuService, rosterService);
-  const digigradeImportService = new DigigradeImportService(
-    classRepo, studentRepo, courseRepo, sessionRepo, gradeRepo, findingRepo, gradeRepo,
-    new SqliteStudentPickCountRepository(db), courseRosterRepo, new SqliteUnitOfWork(db),
-  );
   const binService = new BinService(studentRepo, classRepo, courseRepo);
 
   const mcpService = new McpService(
@@ -121,8 +115,7 @@ app.on('ready', () => {
 
   const win = createMainWindow();
   registerSettingsHandlers(win, mcpServer);
-  registerDigigradeImportHandlers(win, digigradeImportService);
-  createAppMenu(win, digigradeImportService);
+  createAppMenu(win);
   win.loadFile('build/renderer/index.html');
 
   const settings = loadSettings();

@@ -343,15 +343,6 @@ export interface MitarbeitPickDto {
   symbol: string;
 }
 
-export interface DigigradeImportResultDto {
-  classes: { created: number; skipped: number };
-  students: { created: number; skipped: number };
-  courses: { created: number; skipped: number };
-  sessionsCreated: number;
-  performancesCreated: number;
-  warnings: string[];
-}
-
 export interface BinListDto {
   students: DeletedStudentDto[];
   classes: DeletedClassDto[];
@@ -378,9 +369,6 @@ export interface IpcApi {
     setColor: (id: string, color: string | null) => Promise<ResultDto<StudentDto>>;
     importCsv: (hasHeader: boolean) => Promise<ResultDto<ImportResultDto>>;
   };
-  digigrade: {
-    import: () => Promise<ResultDto<DigigradeImportResultDto> | null>;
-  };
   class: {
     list: () => Promise<SchoolClassDto[]>;
     create: (data: CreateSchoolClassInput) => Promise<ResultDto<SchoolClassDto>>;
@@ -393,6 +381,8 @@ export interface IpcApi {
     members: (courseId: string) => Promise<ResultDto<StudentDto[]>>;
     setIncluded: (courseId: string, studentId: string, included: boolean) => Promise<ResultDto<CourseRosterEntryDto>>;
     setAll: (courseId: string, included: boolean) => Promise<ResultDto<void>>;
+    /** null when the save dialog was cancelled. */
+    exportCsv: (courseId: string) => Promise<ResultDto<{ filePath: string }> | null>;
   };
   picker: {
     list: (courseId: string) => Promise<ResultDto<RosterEntryDto[]>>;

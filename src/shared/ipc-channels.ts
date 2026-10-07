@@ -9,6 +9,7 @@ export const IPC = {
   ROSTER_MEMBERS: 'roster:members',
   ROSTER_SET_INCLUDED: 'roster:setIncluded',
   ROSTER_SET_ALL: 'roster:setAll',
+  ROSTER_EXPORT_CSV: 'roster:exportCsv',
   PICKER_LIST: 'picker:list',
   PICKER_PICK_RANDOM: 'picker:pickRandom',
   PICKER_PICK_STUDENT: 'picker:pickStudent',
@@ -58,7 +59,6 @@ export const IPC = {
   GRADE_RECORD_IMPROMPTU: 'grade:recordImpromptu',
 
   STUDENT_IMPORT_CSV: 'student:importCsv',
-  IMPORT_DIGIGRADE: 'import:digigrade',
 
   FINDING_ADD: 'finding:add',
   FINDING_REMOVE: 'finding:remove',

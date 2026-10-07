@@ -6,6 +6,9 @@
     <template v-else>
       <div class="controls">
         <span class="summary">{{ includedCount }} von {{ entries.length }} Schülern nehmen am Kurs teil</span>
+        <button class="btn btn-secondary btn-small" :disabled="busy || includedCount === 0" @click="exportCsv">
+          CSV exportieren
+        </button>
         <button class="btn btn-secondary btn-small" :disabled="busy" @click="setAll(true)">Alle auswählen</button>
         <button class="btn btn-secondary btn-small" :disabled="busy" @click="setAll(false)">Keine auswählen</button>
       </div>
@@ -106,6 +109,12 @@ async function confirmExclude(): Promise<void> {
 
 function cancel(): void {
   confirming.value = null;
+}
+
+async function exportCsv(): Promise<void> {
+  error.value = '';
+  const result = await window.grdr.roster.exportCsv(props.course.id);
+  if (result && !result.ok) error.value = result.error.message;
 }
 
 async function setAll(included: boolean): Promise<void> {

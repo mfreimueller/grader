@@ -7,16 +7,11 @@
         <button class="btn btn-secondary" :disabled="classes.length === 0" @click="showRollover = true">
           Schuljahreswechsel
         </button>
-        <button class="btn btn-secondary" :disabled="importingDigigrade" @click="importDigigrade">
-          {{ importingDigigrade ? 'Importiere...' : 'digigrade-Import' }}
-        </button>
         <button class="btn btn-secondary" @click="importCsv" :disabled="importing">
           {{ importing ? 'Importiere...' : 'CSV importieren' }}
         </button>
       </div>
     </div>
-
-    <p v-if="digigradeError" class="delete-error">{{ digigradeError }}</p>
 
     <div v-if="loading" class="loading">Lade Klassen...</div>
 
@@ -90,26 +85,6 @@
           </div>
         </div>
       </div>
-      <div v-if="digigradeResult" class="overlay" @click.self="digigradeResult = null">
-        <div class="confirm-dialog">
-          <h3>digigrade-Import abgeschlossen</h3>
-          <ul class="import-stats">
-            <li><strong>{{ digigradeResult.classes.created }}</strong> Klassen angelegt, {{ digigradeResult.classes.skipped }} vorhanden</li>
-            <li><strong>{{ digigradeResult.students.created }}</strong> Schüler angelegt, {{ digigradeResult.students.skipped }} vorhanden</li>
-            <li><strong>{{ digigradeResult.courses.created }}</strong> Kurse angelegt, {{ digigradeResult.courses.skipped }} übersprungen</li>
-            <li><strong>{{ digigradeResult.sessionsCreated }}</strong> Sitzungen, <strong>{{ digigradeResult.performancesCreated }}</strong> Leistungen</li>
-          </ul>
-          <div v-if="digigradeResult.warnings.length > 0" class="import-warnings">
-            <h4>Warnungen ({{ digigradeResult.warnings.length }})</h4>
-            <ul>
-              <li v-for="(w, i) in digigradeResult.warnings" :key="i">{{ w }}</li>
-            </ul>
-          </div>
-          <div class="modal-actions">
-            <button class="btn btn-primary" @click="digigradeResult = null">OK</button>
-          </div>
-        </div>
-      </div>
       <div v-if="deleting" class="overlay" @click.self="deleting = null">
         <div class="confirm-dialog">
           <p>{{ deleting.name }} ({{ deleting.schoolYear }}) wirklich löschen?</p>
@@ -132,7 +107,7 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue';
-import type { SchoolClassDto, ImportResultDto, DigigradeImportResultDto } from '../../shared/types';
+import type { SchoolClassDto, ImportResultDto } from '../../shared/types';
 import SchoolYearRolloverModal from '../components/classes/SchoolYearRolloverModal.vue';
 import ClassFormModal from '../components/classes/ClassFormModal.vue';
 import CsvFormatDialog from '../components/CsvFormatDialog.vue';
@@ -150,9 +125,6 @@ const importing = ref(false);
 const importResult = ref<ImportResultDto | null>(null);
 const showCsvFormat = ref(false);
 const showRollover = ref(false);
-const importingDigigrade = ref(false);
-const digigradeResult = ref<DigigradeImportResultDto | null>(null);
-const digigradeError = ref('');
 
 const grouped = computed(() => {
   const groups: Record<string, SchoolClassDto[]> = {};
@@ -172,23 +144,6 @@ async function loadClasses(): Promise<void> {
   console.log('load classes');
   classes.value = await window.grdr.class.list();
   console.log('new classes', classes.value);
-}
-
-async function importDigigrade(): Promise<void> {
-  digigradeError.value = '';
-  importingDigigrade.value = true;
-  try {
-    const outcome = await window.grdr.digigrade.import();
-    if (!outcome) return;
-    if (outcome.ok) {
-      digigradeResult.value = outcome.value;
-      await loadClasses();
-    } else {
-      digigradeError.value = outcome.error.message;
-    }
-  } finally {
-    importingDigigrade.value = false;
-  }
 }
 
 async function onRolloverDone(): Promise<void> {
