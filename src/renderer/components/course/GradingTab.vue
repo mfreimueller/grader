@@ -115,7 +115,8 @@
                       <div class="explain-category-header">
                         <strong>{{ cat.categoryTitle }}</strong>
                         (Gewicht: {{ cat.weight }}%, {{ cat.performanceCount }} Leistungen):
-                        Ø {{ (cat.mean * 100).toFixed(1) }}% → Note {{ cat.displayGrade }}
+                        <template v-if="cat.displayGrade === null">→ nicht beurteilt</template>
+                        <template v-else>Ø {{ (cat.mean * 100).toFixed(1) }}% → Note {{ cat.displayGrade }}</template>
                         <button
                           v-if="cat.performanceCount > 0"
                           class="explain-toggle"
@@ -229,7 +230,8 @@
                       <div class="explain-category-header">
                         <strong>{{ cat.categoryTitle }}</strong>
                         (Gewicht: {{ cat.weight }}%, {{ cat.performanceCount }} Leistungen):
-                        Ø {{ (cat.mean * 100).toFixed(1) }}% → Note {{ cat.displayGrade }}
+                        <template v-if="cat.displayGrade === null">→ nicht beurteilt</template>
+                        <template v-else>Ø {{ (cat.mean * 100).toFixed(1) }}% → Note {{ cat.displayGrade }}</template>
                         <button
                           v-if="cat.performanceCount > 0"
                           class="explain-toggle"
@@ -491,7 +493,7 @@ async function loadData(): Promise<void> {
           categoryInfos[student.id] = calcResult.value.categoryGrades;
           const grades: Record<string, number> = {};
           for (const cg of calcResult.value.categoryGrades) {
-            grades[cg.categoryId] = cg.displayGrade;
+            if (cg.displayGrade !== null) grades[cg.categoryId] = cg.displayGrade;
           }
           catGrades[student.id] = grades;
           if (categoryColumns.value.length === 0) {

@@ -10,7 +10,7 @@ export interface PerformanceReportEntry {
 
 export interface CategoryGradeReportEntry {
   categoryTitle: string;
-  displayGrade: number;
+  displayGrade: number | null;
   mean: number;
 }
 

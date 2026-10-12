@@ -240,7 +240,7 @@ export interface CategoryGradeResultDto {
   weight: number;
   mean: number;
   performanceCount: number;
-  displayGrade: number;
+  displayGrade: number | null;
 }
 
 export interface GradeCalculationResultDto {

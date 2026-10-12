@@ -51,7 +51,11 @@ export class AsciidocReportGenerator implements ReportGenerator {
         for (const cg of s.categoryGrades) {
           parts.push(`==== ${cg.categoryTitle}`);
           parts.push('');
-          parts.push(`${gradeToWritten(cg.displayGrade)} (${cg.displayGrade})`);
+          parts.push(
+            cg.displayGrade === null
+              ? 'Nicht beurteilt'
+              : `${gradeToWritten(cg.displayGrade)} (${cg.displayGrade})`,
+          );
           parts.push('');
         }
       }

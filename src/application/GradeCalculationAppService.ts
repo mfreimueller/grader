@@ -15,7 +15,7 @@ export interface GradeCalculationResultDto {
     weight: number;
     mean: number;
     performanceCount: number;
-    displayGrade: 1 | 2 | 3 | 4 | 5;
+    displayGrade: 1 | 2 | 3 | 4 | 5 | null;
   }>;
 }
 

@@ -8,7 +8,8 @@ import { computeFinalGrade, CategoryGradeResult } from './computeFinalGrade';
 export interface GradeCategoryGradeResult extends CategoryGradeResult {
   categoryTitle: string;
   weight: number;
-  displayGrade: 1 | 2 | 3 | 4 | 5;
+  /** `null` = nicht beurteilt (no performances in this category). */
+  displayGrade: 1 | 2 | 3 | 4 | 5 | null;
 }
 
 export interface GradeCalculationResult {
@@ -71,7 +72,7 @@ export class GradeCalculationService {
       ...cg,
       categoryTitle: titleMap.get(cg.categoryId) ?? cg.categoryId,
       weight: compositions.find(c => c.categoryId === cg.categoryId)?.weight ?? 0,
-      displayGrade: normalizedToGrade(cg.mean),
+      displayGrade: cg.performanceCount === 0 ? null : normalizedToGrade(cg.mean),
     }));
 
     return Result.ok({ rawScore: result.rawScore, displayGrade, categoryGrades });

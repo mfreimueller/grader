@@ -78,6 +78,37 @@ describe('GradeCalculationService', () => {
     }
   });
 
+  it('marks a category without performances as not graded and keeps it out of the final grade', () => {
+    const year = SchoolYear.create('2025/26');
+    if (!year.ok) throw new Error('Test setup failed');
+    const twoCategoryCourse = Course.create('course-2', 'Deutsch', new SchoolClass('class-2', '1B', year.value));
+    const exams = new AssessmentCategory('cat-exams', 'Schularbeit', GradingType.NUMERIC, true);
+    const participation = new AssessmentCategory('cat-part', 'Mitarbeit', GradingType.NUMERIC, true);
+    for (const [cat, weight] of [[exams, 50], [participation, 50]] as const) {
+      twoCategoryCourse.addAssessmentCategory(cat);
+      const comp = GradeComposition.create(cat, weight);
+      if (!comp.ok) throw new Error('Failed to create composition');
+      twoCategoryCourse.addGradeComposition(comp.value);
+    }
+
+    const assessment = GradedAssessment.create('a-010', 'Mitarbeit 1', participation, twoCategoryCourse, 'session-1', 10);
+    if (!assessment.ok) throw new Error('Assessment creation failed');
+    const perf = GradedPerformance.create('p-010', student, assessment.value, 10);
+    if (!perf.ok) throw new Error('Performance creation failed');
+
+    const result = service.calculate([perf.value], twoCategoryCourse);
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      const examGrade = result.value.categoryGrades.find(c => c.categoryId === 'cat-exams')!;
+      const partGrade = result.value.categoryGrades.find(c => c.categoryId === 'cat-part')!;
+      expect(examGrade.performanceCount).toBe(0);
+      expect(examGrade.displayGrade).toBeNull();
+      expect(partGrade.displayGrade).toBe(1);
+      expect(result.value.rawScore).toBeCloseTo(1.0);
+      expect(result.value.displayGrade).toBe(1);
+    }
+  });
+
   it('returns error when course has no compositions', () => {
     const emptyCourse = Course.create('c-empty', 'Empty', course.schoolClass);
     const result = service.calculate([], emptyCourse);

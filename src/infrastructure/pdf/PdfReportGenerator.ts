@@ -167,6 +167,7 @@ export class PdfReportGenerator implements ReportGenerator {
       render: (r) => {
         const cg = r.categoryGrades.find(c => c.categoryTitle === cat);
         if (!cg) return '-';
+        if (cg.displayGrade === null) return 'n. b.';
         const pct = (cg.mean * 100).toFixed(1).replace('.', ',');
         return `${cg.displayGrade} (${pct}%)`;
       },
