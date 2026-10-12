@@ -12,6 +12,7 @@
       <div class="grid" role="grid" aria-label="Leistungen der Sitzung" :aria-rowcount="model.rows.length + 1">
         <GridHeaderRow
           :columns="model.columns"
+          :mitarbeit-width="model.mitarbeitWidth"
           :sort-ascending="sortAscending"
           :selected-col="selectedCol(-1)"
           :tabbable-col="tabbableCol(-1)"
@@ -25,6 +26,7 @@
           :row="row"
           :row-index="r"
           :column-count="model.columns.length"
+          :mitarbeit-width="model.mitarbeitWidth"
           :selected-col="selectedCol(r)"
           :tabbable-col="tabbableCol(r)"
           :editing="ui.editing.value"

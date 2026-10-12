@@ -2,7 +2,7 @@
   <div
     ref="root"
     role="gridcell"
-    :class="['cell', `cell--${cell.kind}`, symbolClass, { 'cell--note': cell.hasNote, 'cell--locked': cell.locked, 'cell--selected': selected, 'cell--editing': editing }]"
+    :class="['cell', `cell--${cell.kind}`, symbolClass, { 'cell--note': cell.hasNote, 'cell--draft': cell.isDraft, 'cell--locked': cell.locked, 'cell--selected': selected, 'cell--editing': editing }]"
     :tabindex="tabbable ? 0 : -1"
     :aria-label="label"
     :aria-readonly="cell.locked || undefined"
@@ -34,11 +34,11 @@
     <template v-else>
       <span v-if="cell.kind === 'symbol' && cell.symbol" class="value value--symbol">{{ symbolGlyph(cell.symbol) }}</span>
       <span v-else-if="cell.kind === 'points'" class="value value--points">{{ cell.points }}</span>
-      <svg v-if="cell.isImpromptu" class="bolt" viewBox="0 0 24 24" width="10" height="10" aria-hidden="true">
+      <svg v-if="cell.isImpromptu && !cell.isMitarbeit" class="bolt" viewBox="0 0 24 24" width="10" height="10" aria-hidden="true">
         <path d="M13 2 3 14h7l-1 8 10-12h-7l1-8z" fill="#F59E0B" />
       </svg>
       <span v-if="cell.hasNote" class="note-corner" aria-hidden="true"></span>
-      <button v-if="!cell.locked" class="more" type="button" tabindex="-1" aria-hidden="true" title="Menü" @click.stop="emit('menu', $event)">
+      <button v-if="!cell.locked && !cell.isDraft" class="more" type="button" tabindex="-1" aria-hidden="true" title="Menü" @click.stop="emit('menu', $event)">
         <span></span><span></span><span></span>
       </button>
     </template>
@@ -180,6 +180,11 @@ defineExpose({ focus: () => root.value?.focus() });
 
 .cell--minus .value {
   color: var(--color-danger);
+}
+
+.cell--draft {
+  outline: 1px dashed var(--grid-border-strong);
+  outline-offset: -6px;
 }
 
 .cell--locked {

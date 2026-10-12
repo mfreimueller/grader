@@ -90,13 +90,24 @@ export function useSessionGridInteractions(grid: ReturnType<typeof useSessionGri
     }
   }
 
+  /** Records a symbol; after a new Mitarbeit the focus moves on to the draft next to it, ready for the next one. */
+  async function recordSymbol(cell: GridCell, symbol: GridSymbol): Promise<void> {
+    const ok = await grid.setSymbol(cell, symbol);
+    if (!ok || !cell.isDraft) return;
+    const row = model.value.rows.findIndex((r) => r.studentId === cell.studentId);
+    if (row < 0) return;
+    const results = model.value.rows[row]?.mitarbeitCells.length ?? 0;
+    focus.setPosition({ row, col: model.value.columns.length + results });
+    focus.focusPosition();
+  }
+
   function pick(symbol: GridSymbol): void {
     const current = overlay.value;
     overlay.value = null;
     if (current?.type === 'picker') {
       const next = resolveSymbolPick(current.cell.symbol, symbol);
       if (next === null) requestClear(current.cell);
-      else void grid.setSymbol(current.cell, next);
+      else void recordSymbol(current.cell, next);
     }
     // A confirmation takes the focus itself; moving it back to the cell would hide the question.
     if (!confirmation.value) focus.focusPosition();
@@ -138,7 +149,7 @@ export function useSessionGridInteractions(grid: ReturnType<typeof useSessionGri
   }
 
   function onCellMenu(cell: GridCell, event: MouseEvent): void {
-    if (cell.locked) return;
+    if (cellMenu(cell).length === 0) return;
     overlay.value = { type: 'menu', cell, ...menuAnchor(event, focus.anchorOfCell(cell)) };
   }
 
@@ -251,7 +262,7 @@ export function useSessionGridInteractions(grid: ReturnType<typeof useSessionGri
     await grid.loadAssessments();
     const row = model.value.rows.findIndex((r) => r.studentId === studentId);
     const cells = model.value.rows[row]?.impromptuCells.length ?? 0;
-    if (row >= 0 && cells > 0) focus.setPosition({ row, col: model.value.columns.length + cells - 1 });
+    if (row >= 0 && cells > 0) focus.setPosition({ row, col: model.value.columns.length + model.value.mitarbeitWidth + cells - 1 });
     focus.focusPosition();
   }
 
@@ -302,7 +313,7 @@ export function useSessionGridInteractions(grid: ReturnType<typeof useSessionGri
     const symbol = cell.gradingType === 'TERTIARY' ? symbolForKey(event.key) : null;
     if (symbol) {
       event.preventDefault();
-      void grid.setSymbol(cell, symbol);
+      void recordSymbol(cell, symbol);
     } else if (cell.gradingType === 'NUMERIC' && /^\d$/.test(event.key)) {
       event.preventDefault();
       editing.value = { key: cell.key, initial: event.key };

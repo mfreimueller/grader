@@ -1,7 +1,7 @@
 import {
   clampPosition,
   navigate,
-  rowLength,
+  positionsOf,
   shapeOf,
   targetAt,
   type GridShape,
@@ -9,29 +9,42 @@ import {
 } from '../../../src/renderer/utils/sessionGridNavigation';
 import type { GridCell, GridColumn, GridRow, SessionGridModel } from '../../../src/renderer/utils/sessionGridModel';
 
-// 2 shared columns; rows have 1, 0 and 2 impromptu cells.
+// 2 shared columns, no Mitarbeit zone; rows have 1, 0 and 2 impromptu cells.
 // Header row:  [col0] [col1] [+]                         -> 3 positions
 // Row 0:       [s0]   [s1]   [i0]  [+]                   -> 4 positions
 // Row 1:       [s0]   [s1]   [+]                         -> 3 positions
 // Row 2:       [s0]   [s1]   [i0]  [i1]  [+]             -> 5 positions
-const shape: GridShape = { sharedCount: 2, impromptuCounts: [1, 0, 2] };
+const shape: GridShape = { sharedCount: 2, mitarbeitWidth: 0, mitarbeitCounts: [0, 0, 0], impromptuCounts: [1, 0, 2] };
 
 const at = (row: number, col: number, preferredCol = col): Navigation => ({ position: { row, col }, preferredCol });
 const press = (from: Navigation, key: string, ctrl = false, s: GridShape = shape): Navigation => navigate(s, from, key, ctrl);
 
-describe('rowLength', () => {
-  it('counts shared cells, impromptu cells and the trailing add cell', () => {
-    expect(rowLength(shape, 0)).toBe(4);
-    expect(rowLength(shape, 1)).toBe(3);
-    expect(rowLength(shape, 2)).toBe(5);
+// 1 shared column; the Mitarbeit zone is 3 cells wide. Row 0 has 2 Mitarbeit results, row 1 none but an
+// impromptu cell, so row 1 has a gap behind its draft and both impromptu zones start at column 4.
+// Header row:  [col0] [+]                                    -> 0 1
+// Row 0:       [s0]   [m0] [m1] [draft] | [+]                -> 0 1 2 3 4
+// Row 1:       [s0]   [draft]  ·    ·   | [i0] [+]           -> 0 1 4 5
+const mShape: GridShape = { sharedCount: 1, mitarbeitWidth: 3, mitarbeitCounts: [2, 0], impromptuCounts: [0, 1] };
+
+describe('positionsOf', () => {
+  it('lists shared cells, impromptu cells and the trailing add cell', () => {
+    expect(positionsOf(shape, 0)).toEqual([0, 1, 2, 3]);
+    expect(positionsOf(shape, 1)).toEqual([0, 1, 2]);
+    expect(positionsOf(shape, 2)).toEqual([0, 1, 2, 3, 4]);
   });
 
-  it('counts the column headers plus the header add cell for the header row', () => {
-    expect(rowLength(shape, -1)).toBe(3);
+  it('lists the column headers plus the header add cell for the header row', () => {
+    expect(positionsOf(shape, -1)).toEqual([0, 1, 2]);
+    expect(positionsOf(mShape, -1)).toEqual([0, 1]);
   });
 
-  it('treats a row that does not exist as having no impromptu cells', () => {
-    expect(rowLength(shape, 9)).toBe(3);
+  it('treats a row that does not exist as having no own cells', () => {
+    expect(positionsOf(shape, 9)).toEqual([0, 1, 2]);
+  });
+
+  it('lists the Mitarbeit results and the draft, and starts the impromptu zone behind the full zone width', () => {
+    expect(positionsOf(mShape, 0)).toEqual([0, 1, 2, 3, 4]);
+    expect(positionsOf(mShape, 1)).toEqual([0, 1, 4, 5]);
   });
 });
 
@@ -115,6 +128,33 @@ describe('navigate', () => {
     });
   });
 
+  describe('Mitarbeit zone', () => {
+    const go = (from: Navigation, key: string): Navigation => press(from, key, false, mShape);
+
+    it('jumps over the gap behind a short row\'s draft', () => {
+      expect(go(at(1, 1), 'ArrowRight').position).toEqual({ row: 1, col: 4 });
+      expect(go(at(1, 4), 'ArrowLeft').position).toEqual({ row: 1, col: 1 });
+    });
+
+    it('goes from draft to draft when moving down and back up', () => {
+      const down = go(at(0, 3), 'ArrowDown');
+      expect(down.position).toEqual({ row: 1, col: 1 });
+      expect(go(down, 'ArrowUp').position).toEqual({ row: 0, col: 3 });
+    });
+
+    it('keeps the impromptu zones of all rows aligned', () => {
+      expect(go(at(0, 4), 'ArrowDown').position).toEqual({ row: 1, col: 4 });
+    });
+
+    it('ends a row at its add cell', () => {
+      expect(go(at(1, 0), 'End').position).toEqual({ row: 1, col: 5 });
+    });
+
+    it('pulls a position inside the gap back onto the draft', () => {
+      expect(clampPosition(mShape, { row: 1, col: 3 })).toEqual({ row: 1, col: 1 });
+    });
+  });
+
   describe('edge cases', () => {
     it('ignores keys that are not navigation keys', () => {
       const from = at(1, 1);
@@ -124,15 +164,15 @@ describe('navigate', () => {
     });
 
     it('stays in the header when there are no rows', () => {
-      const empty: GridShape = { sharedCount: 2, impromptuCounts: [] };
+      const empty: GridShape = { sharedCount: 2, mitarbeitWidth: 0, mitarbeitCounts: [], impromptuCounts: [] };
       expect(navigate(empty, at(-1, 1), 'ArrowDown', false).position).toEqual({ row: -1, col: 1 });
       expect(navigate(empty, at(-1, 1), 'Home', true).position).toEqual({ row: -1, col: 0 });
       expect(navigate(empty, at(-1, 0), 'End', true).position).toEqual({ row: -1, col: 2 });
     });
 
     it('works without shared columns', () => {
-      const none: GridShape = { sharedCount: 0, impromptuCounts: [0, 1] };
-      expect(rowLength(none, -1)).toBe(1);
+      const none: GridShape = { sharedCount: 0, mitarbeitWidth: 0, mitarbeitCounts: [0, 0], impromptuCounts: [0, 1] };
+      expect(positionsOf(none, -1)).toEqual([0]);
       expect(navigate(none, at(-1, 0), 'ArrowDown', false).position).toEqual({ row: 0, col: 0 });
       expect(navigate(none, at(1, 0), 'ArrowRight', false).position).toEqual({ row: 1, col: 1 });
     });
@@ -157,12 +197,15 @@ describe('clampPosition', () => {
   });
 
   it('falls back to the header when there are no rows', () => {
-    expect(clampPosition({ sharedCount: 2, impromptuCounts: [] }, { row: 0, col: 1 })).toEqual({ row: -1, col: 1 });
+    expect(clampPosition({ sharedCount: 2, mitarbeitWidth: 0, mitarbeitCounts: [], impromptuCounts: [] }, { row: 0, col: 1 })).toEqual({
+      row: -1,
+      col: 1,
+    });
   });
 });
 
 describe('model based lookup', () => {
-  const cell = (studentId: string, assessmentId: string, isImpromptu = false): GridCell => ({
+  const cell = (studentId: string, assessmentId: string, isImpromptu = false, isMitarbeit = false, isDraft = false): GridCell => ({
     key: `${studentId}:${assessmentId}`,
     studentId,
     assessmentId,
@@ -175,24 +218,33 @@ describe('model based lookup', () => {
     title: assessmentId,
     categoryTitle: 'Mitarbeit',
     isImpromptu,
+    isMitarbeit,
+    isDraft,
     canHaveNote: false,
     hasNote: false,
     noteText: null,
     locked: false,
   });
   const column = (id: string): GridColumn => ({ assessmentId: id, title: id, categoryTitle: 'Mitarbeit', gradingType: 'TERTIARY', maxPoints: null });
-  const row = (studentId: string, impromptu: string[]): GridRow => ({
+  const row = (studentId: string, mitarbeit: string[], impromptu: string[]): GridRow => ({
     studentId,
     displayName: studentId,
     absent: false,
     studentNote: null,
     sharedCells: [cell(studentId, 'a-1'), cell(studentId, 'a-2')],
+    mitarbeitCells: mitarbeit.map((m) => cell(studentId, m, true, true)),
+    mitarbeitDraft: cell(studentId, '', false, true, true),
     impromptuCells: impromptu.map((i) => cell(studentId, i, true)),
   });
-  const model: SessionGridModel = { columns: [column('a-1'), column('a-2')], rows: [row('s-1', ['i-1']), row('s-2', [])] };
+  // Row 0: [a-1] [a-2] [m-1] [draft] [i-1] [+]    Row 1: [a-1] [a-2] [draft] · [+]
+  const model: SessionGridModel = {
+    columns: [column('a-1'), column('a-2')],
+    rows: [row('s-1', ['m-1'], ['i-1']), row('s-2', [], [])],
+    mitarbeitWidth: 2,
+  };
 
   it('derives the shape from the model', () => {
-    expect(shapeOf(model)).toEqual({ sharedCount: 2, impromptuCounts: [1, 0] });
+    expect(shapeOf(model)).toEqual({ sharedCount: 2, mitarbeitWidth: 2, mitarbeitCounts: [1, 0], impromptuCounts: [1, 0] });
   });
 
   it('finds column headers and the header add cell', () => {
@@ -200,14 +252,24 @@ describe('model based lookup', () => {
     expect(targetAt(model, { row: -1, col: 2 })).toEqual({ type: 'header-add' });
   });
 
-  it('finds shared and impromptu cells', () => {
+  it('finds shared, Mitarbeit and impromptu cells', () => {
     expect(targetAt(model, { row: 0, col: 1 })).toEqual({ type: 'cell', cell: model.rows[0]!.sharedCells[1] });
-    expect(targetAt(model, { row: 0, col: 2 })).toEqual({ type: 'cell', cell: model.rows[0]!.impromptuCells[0] });
+    expect(targetAt(model, { row: 0, col: 2 })).toEqual({ type: 'cell', cell: model.rows[0]!.mitarbeitCells[0] });
+    expect(targetAt(model, { row: 0, col: 4 })).toEqual({ type: 'cell', cell: model.rows[0]!.impromptuCells[0] });
+  });
+
+  it('finds the Mitarbeit draft of each row', () => {
+    expect(targetAt(model, { row: 0, col: 3 })).toEqual({ type: 'cell', cell: model.rows[0]!.mitarbeitDraft });
+    expect(targetAt(model, { row: 1, col: 2 })).toEqual({ type: 'cell', cell: model.rows[1]!.mitarbeitDraft });
+  });
+
+  it('has nothing in the gap behind a short row\'s draft', () => {
+    expect(targetAt(model, { row: 1, col: 3 })).toBeNull();
   });
 
   it('finds the add cell at the end of each row', () => {
-    expect(targetAt(model, { row: 0, col: 3 })).toEqual({ type: 'row-add', row: model.rows[0] });
-    expect(targetAt(model, { row: 1, col: 2 })).toEqual({ type: 'row-add', row: model.rows[1] });
+    expect(targetAt(model, { row: 0, col: 5 })).toEqual({ type: 'row-add', row: model.rows[0] });
+    expect(targetAt(model, { row: 1, col: 4 })).toEqual({ type: 'row-add', row: model.rows[1] });
   });
 
   it('returns null for positions outside the grid', () => {

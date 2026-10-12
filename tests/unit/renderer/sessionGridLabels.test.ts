@@ -14,6 +14,8 @@ const aCell = (o: Partial<GridCell> = {}): GridCell => ({
   title: 'Mündlich',
   categoryTitle: 'Mitarbeit',
   isImpromptu: false,
+  isMitarbeit: false,
+  isDraft: false,
   canHaveNote: false,
   hasNote: false,
   noteText: null,
@@ -69,6 +71,17 @@ describe('cellAriaLabel', () => {
       'Muster, Max',
     );
     expect(label).toBe('Muster, Max — Mündlich: 17 von 20 Punkten, spontane Leistung, Notiz: Gut gelöst, abwesend');
+  });
+
+  it('does not call a recorded Mitarbeit a spontaneous assessment', () => {
+    const cell = aCell({ title: 'Mitarbeit', kind: 'symbol', symbol: 'WELLE', isImpromptu: true, isMitarbeit: true });
+    expect(cellAriaLabel(cell, 'Muster, Max')).toBe('Muster, Max — Mitarbeit: Welle');
+  });
+
+  it('describes the Mitarbeit draft as the place for a new Mitarbeit', () => {
+    const draft = aCell({ title: 'Mitarbeit', isMitarbeit: true, isDraft: true });
+    expect(cellAriaLabel(draft, 'Muster, Max')).toBe('Muster, Max — neue Mitarbeit erfassen');
+    expect(cellAriaLabel({ ...draft, locked: true }, 'Muster, Max')).toBe('Muster, Max — neue Mitarbeit erfassen, abwesend');
   });
 
   it('describes an empty cell', () => {

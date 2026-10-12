@@ -1,6 +1,7 @@
 // Pure model of the session grid, kept out of the Vue components so every rule can be unit-tested.
 // Shared assessments become columns (one cell per student); an impromptu assessment belongs to exactly one
-// student and becomes an extra cell at the end of that student's row.
+// student and becomes an extra cell at the end of that student's row. Impromptu assessments of the Mitarbeit
+// category get their own zone between the two, closed by a draft cell that records the next Mitarbeit.
 
 import type { AssessmentDto, PerformanceDto, SessionNoteDto, SessionStudentNoteDto, StudentDto } from '../../shared/types';
 
@@ -30,6 +31,10 @@ export interface GridCell {
   title: string;
   categoryTitle: string;
   isImpromptu: boolean;
+  /** Part of the Mitarbeit zone: a recorded Mitarbeit or the draft. */
+  isMitarbeit: boolean;
+  /** The draft of the Mitarbeit zone: not saved yet, a symbol entered here creates a new Mitarbeit. */
+  isDraft: boolean;
   /** True when a note may be added: the cell holds a result. */
   canHaveNote: boolean;
   hasNote: boolean;
@@ -45,12 +50,16 @@ export interface GridRow {
   /** General note on the student for this session (not tied to an assessment), or null. */
   studentNote: string | null;
   sharedCells: GridCell[];
+  mitarbeitCells: GridCell[];
+  mitarbeitDraft: GridCell;
   impromptuCells: GridCell[];
 }
 
 export interface SessionGridModel {
   columns: GridColumn[];
   rows: GridRow[];
+  /** Cells the Mitarbeit zone spans: the longest row's results plus the draft, so the impromptu zone lines up. */
+  mitarbeitWidth: number;
 }
 
 export interface BuildSessionGridInput {
@@ -65,8 +74,10 @@ export interface BuildSessionGridInput {
 }
 
 const SYMBOLS: readonly string[] = ['PLUS', 'WELLE', 'MINUS'];
+export const MITARBEIT_TITLE = 'Mitarbeit';
 
 const gradingTypeOf = (a: AssessmentDto): GridGradingType => (a.category.gradingType === 'NUMERIC' ? 'NUMERIC' : 'TERTIARY');
+const isMitarbeit = (a: AssessmentDto): boolean => a.isImpromptu && a.category.title === MITARBEIT_TITLE;
 
 export function buildSessionGrid(input: BuildSessionGridInput): SessionGridModel {
   const absent = new Set(input.absentStudentIds);
@@ -75,7 +86,8 @@ export function buildSessionGrid(input: BuildSessionGridInput): SessionGridModel
   const performanceOf = new Map(input.performances.map((p) => [`${p.studentId}:${p.assessmentId}`, p]));
 
   const shared = input.assessments.filter((a) => !a.isImpromptu);
-  const impromptu = input.assessments.filter((a) => a.isImpromptu);
+  const mitarbeit = input.assessments.filter(isMitarbeit);
+  const impromptu = input.assessments.filter((a) => a.isImpromptu && !isMitarbeit(a));
 
   const columns: GridColumn[] = shared.map((a) => ({
     assessmentId: a.id,
@@ -106,6 +118,8 @@ export function buildSessionGrid(input: BuildSessionGridInput): SessionGridModel
       title: a.title,
       categoryTitle: a.category.title,
       isImpromptu: a.isImpromptu,
+      isMitarbeit: isMitarbeit(a),
+      isDraft: false,
       canHaveNote: kind !== 'empty',
       hasNote: noteText !== null,
       noteText,
@@ -118,24 +132,52 @@ export function buildSessionGrid(input: BuildSessionGridInput): SessionGridModel
     return input.sortAscending ? cmp : -cmp;
   });
 
+  const draftFor = (student: StudentDto): GridCell => ({
+    key: `${student.id}:mitarbeit-draft`,
+    studentId: student.id,
+    assessmentId: '',
+    performanceId: null,
+    kind: 'empty',
+    symbol: null,
+    points: null,
+    maxPoints: null,
+    gradingType: 'TERTIARY',
+    title: MITARBEIT_TITLE,
+    categoryTitle: MITARBEIT_TITLE,
+    isImpromptu: false,
+    isMitarbeit: true,
+    isDraft: true,
+    canHaveNote: false,
+    hasNote: false,
+    noteText: null,
+    locked: absent.has(student.id),
+  });
+
+  /** Cells of the student's own assessments: only those the student has a performance on. */
+  const ownCells = (student: StudentDto, list: readonly AssessmentDto[]): GridCell[] =>
+    list.flatMap((a) => {
+      const performance = performanceOf.get(`${student.id}:${a.id}`);
+      return performance ? [cellFor(student, a, performance)] : [];
+    });
+
   const rows: GridRow[] = sorted.map((student) => ({
     studentId: student.id,
     displayName: `${student.lastName}, ${student.firstName}`,
     absent: absent.has(student.id),
     studentNote: studentNoteOf.get(student.id) ?? null,
     sharedCells: shared.map((a) => cellFor(student, a, performanceOf.get(`${student.id}:${a.id}`))),
-    impromptuCells: impromptu.flatMap((a) => {
-      const performance = performanceOf.get(`${student.id}:${a.id}`);
-      return performance ? [cellFor(student, a, performance)] : [];
-    }),
+    mitarbeitCells: ownCells(student, mitarbeit),
+    mitarbeitDraft: draftFor(student),
+    impromptuCells: ownCells(student, impromptu),
   }));
 
-  return { columns, rows };
+  const mitarbeitWidth = Math.max(0, ...rows.map((r) => r.mitarbeitCells.length)) + 1;
+  return { columns, rows, mitarbeitWidth };
 }
 
 /** How many students of the grid have a performance (graded or not) on the assessment — what deleting it removes. */
 export function resultCount(model: SessionGridModel, assessmentId: string): number {
   return model.rows.filter((row) =>
-    [...row.sharedCells, ...row.impromptuCells].some((c) => c.assessmentId === assessmentId && c.performanceId !== null),
+    [...row.sharedCells, ...row.mitarbeitCells, ...row.impromptuCells].some((c) => c.assessmentId === assessmentId && c.performanceId !== null),
   ).length;
 }

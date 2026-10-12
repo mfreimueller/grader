@@ -229,7 +229,27 @@ const MIGRATION_012: Migration = {
   `,
 };
 
-const ALL_MIGRATIONS: Migration[] = [MIGRATION_001, MIGRATION_002, MIGRATION_003, MIGRATION_004, MIGRATION_005, MIGRATION_006, MIGRATION_007, MIGRATION_008, MIGRATION_009, MIGRATION_010, MIGRATION_011, MIGRATION_012];
+// Sessions used to get a shared "Mündlich" assessment (id `<session>:muendlich`). Mitarbeit is now recorded as
+// one impromptu "Mitarbeit" assessment per result, so every result of such a column moves to its own assessment.
+const MIGRATION_013: Migration = {
+  id: '013',
+  description: 'Split the auto-created Mündlich assessments into one impromptu Mitarbeit assessment per result',
+  sql: `
+    INSERT INTO assessments (id, title, category_id, course_id, is_impromptu, max_points, session_id)
+      SELECT p.id || ':mitarbeit', 'Mitarbeit', a.category_id, a.course_id, 1, NULL, a.session_id
+      FROM student_performances p
+      JOIN assessments a ON p.assessment_id = a.id
+      WHERE a.id = a.session_id || ':muendlich' AND a.is_impromptu = 0
+      ORDER BY p.rowid;
+
+    UPDATE student_performances SET assessment_id = id || ':mitarbeit'
+      WHERE assessment_id IN (SELECT id FROM assessments WHERE id = session_id || ':muendlich' AND is_impromptu = 0);
+
+    DELETE FROM assessments WHERE id = session_id || ':muendlich' AND is_impromptu = 0;
+  `,
+};
+
+const ALL_MIGRATIONS: Migration[] = [MIGRATION_001, MIGRATION_002, MIGRATION_003, MIGRATION_004, MIGRATION_005, MIGRATION_006, MIGRATION_007, MIGRATION_008, MIGRATION_009, MIGRATION_010, MIGRATION_011, MIGRATION_012, MIGRATION_013];
 
 export const KNOWN_MIGRATION_IDS: readonly string[] = ALL_MIGRATIONS.map((m) => m.id);
 

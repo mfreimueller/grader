@@ -25,6 +25,8 @@
       @activate="emit('headerAdd')"
     />
     <div class="zone-divider"></div>
+    <div class="head head--mitarbeit" :style="{ width: `calc(var(--grid-cell-w) * ${mitarbeitWidth} + ${mitarbeitWidth - 1}px)` }">MITARBEIT</div>
+    <div class="zone-divider"></div>
     <div class="head head--zone">
       <svg viewBox="0 0 24 24" width="10" height="10" aria-hidden="true"><path d="M13 2 3 14h7l-1 8 10-12h-7l1-8z" fill="#F59E0B" /></svg>
       SPONTANE LEISTUNGEN
@@ -40,6 +42,8 @@ import GridAddCell from './GridAddCell.vue';
 
 defineProps<{
   columns: readonly GridColumn[];
+  /** Cells the Mitarbeit zone spans, so its header is as wide as the zone below. */
+  mitarbeitWidth: number;
   sortAscending: boolean;
   /** Column drawn as selected in the header row, or null. */
   selectedCol: number | null;

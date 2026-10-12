@@ -43,14 +43,33 @@
     <div class="column-filler"></div>
     <div class="zone-divider"></div>
     <GridCell
+      v-for="(cell, m) in mitarbeitCells"
+      :key="cell.key"
+      :cell="cell"
+      :label="cellAriaLabel(cell, row.displayName)"
+      :row="rowIndex"
+      :col="columnCount + m"
+      :selected="selectedCol === columnCount + m"
+      :tabbable="tabbableCol === columnCount + m"
+      :editing="editing?.key === cell.key"
+      :edit-initial="editing?.key === cell.key ? editing.initial : ''"
+      @activate="emit('activate', cell)"
+      @menu="emit('menu', cell, $event)"
+      @hover="emit('hover', cell, $event)"
+      @commit="(text, direction) => emit('commit', cell, text, direction)"
+      @cancel="(refocus) => emit('cancel', refocus)"
+    />
+    <div v-for="n in mitarbeitWidth - mitarbeitCells.length" :key="`gap-${n}`" class="mitarbeit-gap"></div>
+    <div class="zone-divider"></div>
+    <GridCell
       v-for="(cell, k) in row.impromptuCells"
       :key="cell.key"
       :cell="cell"
       :label="cellAriaLabel(cell, row.displayName)"
       :row="rowIndex"
-      :col="columnCount + k"
-      :selected="selectedCol === columnCount + k"
-      :tabbable="tabbableCol === columnCount + k"
+      :col="impromptuStart + k"
+      :selected="selectedCol === impromptuStart + k"
+      :tabbable="tabbableCol === impromptuStart + k"
       :editing="editing?.key === cell.key"
       :edit-initial="editing?.key === cell.key ? editing.initial : ''"
       @activate="emit('activate', cell)"
@@ -63,9 +82,9 @@
       variant="row"
       :label="`Spontane Leistung für ${row.displayName} erfassen`"
       :row="rowIndex"
-      :col="columnCount + row.impromptuCells.length"
-      :selected="selectedCol === columnCount + row.impromptuCells.length"
-      :tabbable="tabbableCol === columnCount + row.impromptuCells.length"
+      :col="impromptuStart + row.impromptuCells.length"
+      :selected="selectedCol === impromptuStart + row.impromptuCells.length"
+      :tabbable="tabbableCol === impromptuStart + row.impromptuCells.length"
       :disabled="row.absent"
       @activate="emit('rowAdd', row.studentId)"
     />
@@ -74,17 +93,20 @@
 </template>
 
 <script setup lang="ts">
+import { computed } from 'vue';
 import type { GridCell as GridCellModel, GridRow } from '../../../utils/sessionGridModel';
 import type { CommitDirection } from '../../../utils/sessionGridInput';
 import { cellAriaLabel } from '../../../utils/sessionGridLabels';
 import GridCell from './GridCell.vue';
 import GridAddCell from './GridAddCell.vue';
 
-defineProps<{
+const props = defineProps<{
   row: GridRow;
   rowIndex: number;
-  /** Number of shared columns; the row's impromptu cells and its add cell continue after them. */
+  /** Number of shared columns; the Mitarbeit zone, the row's impromptu cells and its add cell continue after them. */
   columnCount: number;
+  /** Cells the Mitarbeit zone spans in every row; a row with fewer cells is padded so the impromptu zone lines up. */
+  mitarbeitWidth: number;
   selectedCol: number | null;
   tabbableCol: number | null;
   editing: { key: string; initial: string } | null;
@@ -100,6 +122,9 @@ const emit = defineEmits<{
   absence: [studentId: string, absent: boolean];
   studentNote: [studentId: string, event: MouseEvent];
 }>();
+
+const mitarbeitCells = computed(() => [...props.row.mitarbeitCells, props.row.mitarbeitDraft]);
+const impromptuStart = computed(() => props.columnCount + props.mitarbeitWidth);
 </script>
 
 <style scoped>
@@ -196,6 +221,13 @@ const emit = defineEmits<{
 }
 
 .column-filler {
+  width: var(--grid-cell-w);
+  height: var(--grid-cell-h);
+  flex: none;
+  background: #f9fafb;
+}
+
+.mitarbeit-gap {
   width: var(--grid-cell-w);
   height: var(--grid-cell-h);
   flex: none;

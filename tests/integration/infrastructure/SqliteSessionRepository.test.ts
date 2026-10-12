@@ -71,13 +71,12 @@ describe('SqliteSessionRepository', () => {
   });
 
   describe('assessments', () => {
-    it('persists and loads the auto-seeded Mündlich assessment', async () => {
+    it('persists a new session without assessments', async () => {
       const session = Session.create('session-1', new Date('2025-10-01'), '', course);
       await repo.save(session);
 
       const found = await repo.findById('session-1');
-      expect(found!.assessments).toHaveLength(1);
-      expect(found!.assessments[0]!.title).toBe('Mündlich');
+      expect(found!.assessments).toEqual([]);
     });
 
     it('persists and loads additional assessments', async () => {
@@ -92,7 +91,7 @@ describe('SqliteSessionRepository', () => {
       ).run();
 
       const found = await repo.findById('session-1');
-      expect(found!.assessments).toHaveLength(2);
+      expect(found!.assessments.map((a) => a.title)).toEqual(['Extra Test']);
     });
   });
 

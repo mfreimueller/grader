@@ -63,7 +63,7 @@ describe('SessionService', () => {
     expect(list).toEqual([]);
   });
 
-  it('creates a session with Mündlich assessment', async () => {
+  it('creates a session', async () => {
     const result = await service.create({
       courseId,
       date: '2025-10-01T00:00:00.000Z',

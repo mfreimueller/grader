@@ -43,12 +43,10 @@ describe('Session', () => {
       expect(session.students).toEqual([]);
     });
 
-    it('auto-creates a default "Mündlich" assessment', () => {
+    it('starts without assessments; Mitarbeit is recorded per student', () => {
       const date = new Date(2025, 9, 15);
       const session = Session.create('sess-1', date, '', validCourse);
-      expect(session.assessments).toHaveLength(1);
-      expect(session.assessments[0]?.title).toBe('Mündlich');
-      expect(session.assessments[0]?.isImpromptu).toBe(false);
+      expect(session.assessments).toEqual([]);
     });
   });
 

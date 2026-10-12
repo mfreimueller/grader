@@ -14,6 +14,8 @@ const aCell = (o: Partial<GridCell> = {}): GridCell => ({
   title: 'Mündlich',
   categoryTitle: 'Mitarbeit',
   isImpromptu: false,
+  isMitarbeit: false,
+  isDraft: false,
   canHaveNote: true,
   hasNote: false,
   noteText: null,
@@ -59,6 +61,15 @@ describe('cellMenu', () => {
   it('still lets a leftover note on an ungraded cell be edited or deleted', () => {
     const leftover = aCell({ kind: 'empty', symbol: null, canHaveNote: false, hasNote: true, noteText: 'alt' });
     expect(summary(cellMenu(leftover))).toEqual(['note-edit', 'note-delete', 'reset-result:disabled:sep']);
+  });
+
+  it('has no menu for the Mitarbeit draft, which holds no result yet', () => {
+    const draft = aCell({ kind: 'empty', symbol: null, performanceId: null, canHaveNote: false, isMitarbeit: true, isDraft: true });
+    expect(cellMenu(draft)).toEqual([]);
+  });
+
+  it('offers notes and deleting on a recorded Mitarbeit', () => {
+    expect(summary(cellMenu(aCell({ isImpromptu: true, isMitarbeit: true })))).toEqual(['note-add', 'delete-impromptu:danger:sep']);
   });
 
   it('labels the entries in German', () => {

@@ -22,8 +22,8 @@ export function valueText(cell: GridCell): string {
 }
 
 export function cellAriaLabel(cell: GridCell, studentName: string): string {
-  const parts = [`${studentName} — ${cell.title}: ${valueText(cell)}`];
-  if (cell.isImpromptu) parts.push('spontane Leistung');
+  const parts = [cell.isDraft ? `${studentName} — neue Mitarbeit erfassen` : `${studentName} — ${cell.title}: ${valueText(cell)}`];
+  if (cell.isImpromptu && !cell.isMitarbeit) parts.push('spontane Leistung');
   if (cell.hasNote) parts.push(`Notiz: ${cell.noteText ?? ''}`);
   if (cell.locked) parts.push('abwesend');
   return parts.join(', ');

@@ -25,9 +25,10 @@ const entry = <A extends string>(action: A, label: string, o: Partial<Omit<MenuE
 /**
  * Menu of a result cell. A note hangs on a result, so a cell without one cannot get a note; an impromptu cell is
  * its own assessment and is deleted as a whole, while a shared cell can only have this student's result reset.
+ * The Mitarbeit draft has no menu: it is not saved yet.
  */
 export function cellMenu(cell: GridCell): MenuEntry<CellMenuAction>[] {
-  if (cell.locked) return [];
+  if (cell.locked || cell.isDraft) return [];
   const note: MenuEntry<CellMenuAction>[] = cell.hasNote
     ? [entry('note-edit', 'Notiz bearbeiten'), entry('note-delete', 'Notiz löschen')]
     : [entry('note-add', 'Notiz hinzufügen', { disabled: !cell.canHaveNote })];

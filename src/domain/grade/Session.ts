@@ -39,15 +39,7 @@ export class Session extends Entity<string> {
   }
 
   static create(id: string, date: Date, notes: string, course: Course): Session {
-    const mitarbeit = course.getMitarbeitCategory();
-    const muendlich = new Assessment(
-      `${id}:muendlich`,
-      'Mündlich',
-      mitarbeit!,
-      course,
-      id,
-    );
-    return new Session(id, date, notes, course, [], [muendlich], [], []);
+    return new Session(id, date, notes, course, [], [], [], []);
   }
 
   static reconstitute(

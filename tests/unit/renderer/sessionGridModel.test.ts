@@ -10,7 +10,7 @@ const aStudent = (id: string, firstName = 'Max', lastName = 'Muster'): StudentDt
   color: null,
 });
 
-const anAssessment = (o: Partial<AssessmentDto> & { id: string; numeric?: boolean }): AssessmentDto => {
+const anAssessment = (o: Partial<AssessmentDto> & { id: string; numeric?: boolean; categoryTitle?: string }): AssessmentDto => {
   const numeric = o.numeric ?? o.maxPoints != null;
   return {
     id: o.id,
@@ -18,7 +18,7 @@ const anAssessment = (o: Partial<AssessmentDto> & { id: string; numeric?: boolea
     date: '2025-10-01',
     category: {
       id: numeric ? 'cat-num' : 'cat-ter',
-      title: numeric ? 'Schularbeit' : 'Mitarbeit',
+      title: o.categoryTitle ?? (numeric ? 'Schularbeit' : 'Mitarbeit'),
       gradingType: numeric ? 'NUMERIC' : 'TERTIARY',
       displayAsGrade: false,
       isHidden: false,
@@ -148,6 +148,8 @@ describe('buildSessionGrid', () => {
         symbol: null,
         points: null,
         isImpromptu: false,
+        isMitarbeit: false,
+        isDraft: false,
         canHaveNote: false,
         hasNote: false,
         noteText: null,
@@ -227,7 +229,7 @@ describe('buildSessionGrid', () => {
     it('shows an impromptu assessment only in the row of the student who has a performance on it', () => {
       const grid = build({
         students: [aStudent('s-1', 'Anna', 'Alt'), aStudent('s-2', 'Bert', 'Bauer')],
-        assessments: [anAssessment({ id: 'i-1', isImpromptu: true, numeric: false })],
+        assessments: [anAssessment({ id: 'i-1', isImpromptu: true, numeric: false, categoryTitle: 'Wiederholung' })],
         performances: [aPerformance('s-2', 'i-1', { symbol: 'PLUS' })],
       });
       expect(grid.rows[0]!.impromptuCells).toEqual([]);
@@ -245,9 +247,9 @@ describe('buildSessionGrid', () => {
     it('keeps the order in which the assessments were given', () => {
       const grid = build({
         assessments: [
-          anAssessment({ id: 'i-2', isImpromptu: true, numeric: false }),
+          anAssessment({ id: 'i-2', isImpromptu: true, numeric: false, categoryTitle: 'Wiederholung' }),
           anAssessment({ id: 'a-1', numeric: false }),
-          anAssessment({ id: 'i-1', isImpromptu: true, numeric: false }),
+          anAssessment({ id: 'i-1', isImpromptu: true, numeric: false, categoryTitle: 'Wiederholung' }),
         ],
         performances: [aPerformance('s-1', 'i-1', { symbol: 'PLUS' }), aPerformance('s-1', 'i-2', { symbol: 'MINUS' })],
       });
@@ -255,8 +257,83 @@ describe('buildSessionGrid', () => {
     });
 
     it('hides an impromptu assessment nobody has a performance on', () => {
-      const grid = build({ assessments: [anAssessment({ id: 'i-1', isImpromptu: true })] });
+      const grid = build({ assessments: [anAssessment({ id: 'i-1', isImpromptu: true, categoryTitle: 'Wiederholung' })] });
       expect(grid.rows[0]!.impromptuCells).toEqual([]);
+    });
+  });
+
+  describe('Mitarbeit cells', () => {
+    const mitarbeit = (id: string): AssessmentDto => anAssessment({ id, title: 'Mitarbeit', isImpromptu: true, numeric: false });
+
+    it('puts impromptu assessments of the Mitarbeit category into the Mitarbeit zone, not the impromptu zone', () => {
+      const grid = build({
+        assessments: [mitarbeit('m-1'), anAssessment({ id: 'i-1', isImpromptu: true, numeric: false, categoryTitle: 'Wiederholung' })],
+        performances: [aPerformance('s-1', 'm-1', { symbol: 'PLUS' }), aPerformance('s-1', 'i-1', { symbol: 'MINUS' })],
+      });
+      const row = grid.rows[0]!;
+      expect(row.mitarbeitCells.map((c) => c.assessmentId)).toEqual(['m-1']);
+      expect(row.impromptuCells.map((c) => c.assessmentId)).toEqual(['i-1']);
+      expect(row.mitarbeitCells[0]).toMatchObject({ isMitarbeit: true, isImpromptu: true, isDraft: false, kind: 'symbol', symbol: 'PLUS' });
+    });
+
+    it('keeps a shared Mitarbeit assessment as a column', () => {
+      const grid = build({ assessments: [anAssessment({ id: 'a-1', numeric: false })] });
+      expect(grid.columns.map((c) => c.assessmentId)).toEqual(['a-1']);
+      expect(grid.rows[0]!.mitarbeitCells).toEqual([]);
+    });
+
+    it('shows a student only their own Mitarbeit results, in the given order', () => {
+      const grid = build({
+        students: [aStudent('s-1', 'Anna', 'Alt'), aStudent('s-2', 'Bert', 'Bauer')],
+        assessments: [mitarbeit('m-2'), mitarbeit('m-1'), mitarbeit('m-3')],
+        performances: [
+          aPerformance('s-1', 'm-1', { symbol: 'PLUS' }),
+          aPerformance('s-1', 'm-2', { symbol: 'WELLE' }),
+          aPerformance('s-2', 'm-3', { symbol: 'MINUS' }),
+        ],
+      });
+      expect(grid.rows[0]!.mitarbeitCells.map((c) => c.assessmentId)).toEqual(['m-2', 'm-1']);
+      expect(grid.rows[1]!.mitarbeitCells.map((c) => c.assessmentId)).toEqual(['m-3']);
+    });
+
+    it('gives every row an empty draft cell for the next Mitarbeit', () => {
+      const draft = build({}).rows[0]!.mitarbeitDraft;
+      expect(draft).toMatchObject({
+        key: 's-1:mitarbeit-draft',
+        studentId: 's-1',
+        performanceId: null,
+        kind: 'empty',
+        symbol: null,
+        gradingType: 'TERTIARY',
+        title: 'Mitarbeit',
+        categoryTitle: 'Mitarbeit',
+        isImpromptu: false,
+        isMitarbeit: true,
+        isDraft: true,
+        canHaveNote: false,
+        hasNote: false,
+        locked: false,
+      });
+    });
+
+    it('locks the draft and the results of an absent student', () => {
+      const row = build({
+        assessments: [mitarbeit('m-1')],
+        performances: [aPerformance('s-1', 'm-1', { symbol: 'PLUS' })],
+        absent: ['s-1'],
+      }).rows[0]!;
+      expect(row.mitarbeitDraft.locked).toBe(true);
+      expect(row.mitarbeitCells[0]!.locked).toBe(true);
+    });
+
+    it('makes the zone as wide as the longest row plus its draft', () => {
+      expect(build({}).mitarbeitWidth).toBe(1);
+      const grid = build({
+        students: [aStudent('s-1', 'Anna', 'Alt'), aStudent('s-2', 'Bert', 'Bauer')],
+        assessments: [mitarbeit('m-1'), mitarbeit('m-2'), mitarbeit('m-3')],
+        performances: [aPerformance('s-1', 'm-1', { symbol: 'PLUS' }), aPerformance('s-1', 'm-2', { symbol: 'PLUS' }), aPerformance('s-2', 'm-3', { symbol: 'PLUS' })],
+      });
+      expect(grid.mitarbeitWidth).toBe(3);
     });
   });
 
@@ -287,7 +364,7 @@ describe('buildSessionGrid', () => {
   describe('absence', () => {
     const base = {
       students: [aStudent('s-1', 'Anna', 'Alt'), aStudent('s-2', 'Bert', 'Bauer')],
-      assessments: [anAssessment({ id: 'a-1', numeric: false }), anAssessment({ id: 'i-1', isImpromptu: true, numeric: false })],
+      assessments: [anAssessment({ id: 'a-1', numeric: false }), anAssessment({ id: 'i-1', isImpromptu: true, numeric: false, categoryTitle: 'Wiederholung' })],
       performances: [aPerformance('s-1', 'a-1', { symbol: 'PLUS' }), aPerformance('s-1', 'i-1', { symbol: 'MINUS' })],
     };
 
@@ -296,6 +373,7 @@ describe('buildSessionGrid', () => {
       expect(row.absent).toBe(true);
       expect(row.sharedCells.every((c) => c.locked)).toBe(true);
       expect(row.impromptuCells.every((c) => c.locked)).toBe(true);
+      expect(row.impromptuCells).toHaveLength(1);
       expect(row.sharedCells[0]!.symbol).toBe('PLUS');
     });
 

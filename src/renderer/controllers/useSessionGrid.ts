@@ -12,7 +12,7 @@ import type {
   SessionStudentNoteDto,
   StudentDto,
 } from '../../shared/types';
-import { buildSessionGrid, type GridCell, type GridSymbol } from '../utils/sessionGridModel';
+import { buildSessionGrid, MITARBEIT_TITLE, type GridCell, type GridSymbol } from '../utils/sessionGridModel';
 import { PendingDeletes } from '../utils/pendingDelete';
 
 /** What the popover for a new shared assessment collects. */
@@ -125,9 +125,25 @@ export function useSessionGrid(courseId: string, sessionId: string) {
     }
   }
 
-  async function setSymbol(cell: GridCell, symbol: GridSymbol): Promise<void> {
+  /** Records the symbol; on the Mitarbeit draft that creates a new Mitarbeit for the student. Tells whether it worked. */
+  async function setSymbol(cell: GridCell, symbol: GridSymbol): Promise<boolean> {
+    if (cell.isDraft) return recordMitarbeit(cell.studentId, symbol);
     const ok = await attempt(() => window.grdr.grade.recordPerformance({ studentId: cell.studentId, assessmentId: cell.assessmentId, symbol }));
     if (ok) await refreshAssessment(cell.assessmentId);
+    return ok;
+  }
+
+  async function recordMitarbeit(studentId: string, symbol: GridSymbol): Promise<boolean> {
+    const category = categories.value.find((c) => c.title === MITARBEIT_TITLE);
+    if (!category) {
+      errorMessage.value = `Der Kurs hat keine Kategorie „${MITARBEIT_TITLE}“.`;
+      return false;
+    }
+    const ok = await attempt(() =>
+      window.grdr.grade.recordImpromptu({ courseId, sessionId, studentId, categoryId: category.id, title: MITARBEIT_TITLE, symbol }),
+    );
+    if (ok) await loadAssessments();
+    return ok;
   }
 
   async function setPoints(cell: GridCell, score: number): Promise<void> {
