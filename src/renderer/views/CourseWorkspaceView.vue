@@ -7,7 +7,10 @@
           <h2>{{ course.title }}</h2>
           <p class="course-meta">{{ course.schoolClass.name }} · {{ course.schoolClass.schoolYear }}</p>
         </div>
-        <button class="btn btn-secondary" @click="$router.push('/courses')">← Zurück</button>
+        <div class="header-actions">
+          <PluginMenu :course-id="course.id" />
+          <button class="btn btn-secondary" @click="$router.push('/courses')">← Zurück</button>
+        </div>
       </header>
 
       <nav class="tab-bar">
@@ -21,7 +24,8 @@
         </button>
       </nav>
 
-      <div class="tab-content">
+      <!-- A new key remounts the tab, which loads its data again after a plugin changed the course. -->
+      <div :key="refreshKey" class="tab-content">
         <SessionsTab v-if="activeTab === 'sessions'" :course="course" />
         <GradingTab v-else-if="activeTab === 'grading'" :course="course" />
         <RosterTab v-else-if="activeTab === 'roster'" :course="course" />
@@ -33,9 +37,10 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, onUnmounted } from 'vue';
 import { useRoute } from 'vue-router';
 import type { CourseDto } from '../../shared/types';
+import PluginMenu from '../components/course/PluginMenu.vue';
 import SessionsTab from '../components/course/SessionsTab.vue';
 import GradingTab from '../components/course/GradingTab.vue';
 import RosterTab from '../components/course/RosterTab.vue';
@@ -45,6 +50,8 @@ const route = useRoute();
 const course = ref<CourseDto | null>(null);
 const loading = ref(true);
 const activeTab = ref('sessions');
+const refreshKey = ref(0);
+let stopListening: (() => void) | undefined;
 
 const tabs = [
   { key: 'sessions', label: 'Sitzungen' },
@@ -55,10 +62,16 @@ const tabs = [
 
 onMounted(async () => {
   const courseId = route.params.courseId as string;
+  stopListening = window.grdr.plugin.onDataChanged((change) => {
+    if (change.courseId === courseId) refreshKey.value += 1;
+  });
+
   const all = await window.grdr.course.list();
   course.value = all.find((c: CourseDto) => c.id === courseId) ?? null;
   loading.value = false;
 });
+
+onUnmounted(() => stopListening?.());
 </script>
 
 <style scoped>
@@ -85,6 +98,12 @@ onMounted(async () => {
 
 .workspace-header h2 {
   font-size: 22px;
+}
+
+.header-actions {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
 }
 
 .course-meta {

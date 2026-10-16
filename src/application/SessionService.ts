@@ -6,6 +6,7 @@ import { Session } from '../domain/grade/Session';
 import { Result } from '../domain/shared/Result';
 import { NotFoundError, ValidationError } from '../shared/errors';
 import { CourseRosterService } from './CourseRosterService';
+import { isCalendarDay } from './calendarDay';
 import { generateId } from '../domain/shared/IdGenerator';
 
 export interface SessionDto {
@@ -64,6 +65,31 @@ export class SessionService {
 
     await this.sessionRepo.save(session);
     return Result.ok(toDto(session));
+  }
+
+  /**
+   * The session of the course on a calendar day (`YYYY-MM-DD`), or null. Sessions are stored as midnight
+   * UTC of their day, like the session form does. Several sessions on one day are possible; the one with
+   * the smallest id wins so repeated calls agree.
+   */
+  async findOnDate(courseId: string, date: string): Promise<SessionDto | null> {
+    const sessions = await this.sessionRepo.findByCourse(courseId);
+    const [first] = sessions
+      .filter((s) => s.date.toISOString().slice(0, 10) === date)
+      .sort((a, b) => (a.id < b.id ? -1 : 1));
+    return first ? toDto(first) : null;
+  }
+
+  /** Like {@link findOnDate}, but creates an empty session when the course has none on that day. */
+  async findOrCreateOnDate(courseId: string, date: string): Promise<Result<SessionDto>> {
+    if (!isCalendarDay(date)) {
+      return Result.fail(new ValidationError(`Date must be a calendar day as YYYY-MM-DD, got "${date}"`));
+    }
+
+    const existing = await this.findOnDate(courseId, date);
+    if (existing) return Result.ok(existing);
+
+    return this.create({ courseId, date });
   }
 
   async update(id: string, input: UpdateSessionInput): Promise<Result<SessionDto>> {

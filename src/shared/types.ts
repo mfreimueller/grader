@@ -1,3 +1,5 @@
+import type { PluginInfo } from './plugin-catalog';
+
 export type ResultDto<T, E = { name: string; message: string }> =
   | { ok: true; value: T }
   | { ok: false; error: E };
@@ -430,5 +432,21 @@ export interface IpcApi {
     getSettings: () => Promise<{ enabled: boolean; port: number }>;
     setEnabled: (enabled: boolean) => Promise<void>;
     onStatusChange: (callback: (status: { running: boolean; url: string | null }) => void) => () => void;
+  };
+  plugin: {
+    list: () => Promise<PluginInfo[]>;
+    /** The enabled plugins that can be started from a course. */
+    launchable: () => Promise<PluginInfo[]>;
+    /** Enabling a user plugin needs the permissions the user was shown, see PluginCatalogService. */
+    setEnabled: (
+      pluginId: string,
+      enabled: boolean,
+      acceptedPermissions: string[],
+      acceptedNetwork?: string[],
+    ) => Promise<ResultDto<PluginInfo>>;
+    launch: (pluginId: string, courseId: string) => Promise<ResultDto<void>>;
+    openFolder: () => Promise<void>;
+    /** Called after a plugin created or deleted data of a course. */
+    onDataChanged: (callback: (event: { courseId: string }) => void) => () => void;
   };
 }

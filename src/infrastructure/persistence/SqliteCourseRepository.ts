@@ -191,6 +191,7 @@ export class SqliteCourseRepository implements CourseRepository {
       this.db
         .prepare(`DELETE FROM student_performances WHERE assessment_id IN ${assessments}`)
         .run(courseId);
+      this.db.prepare(`DELETE FROM plugin_assessments WHERE assessment_id IN ${assessments}`).run(courseId);
       this.db.prepare('DELETE FROM assessments WHERE course_id = ?').run(courseId);
       this.db
         .prepare('DELETE FROM session_students WHERE session_id IN (SELECT id FROM sessions WHERE course_id = ?)')
@@ -205,6 +206,7 @@ export class SqliteCourseRepository implements CourseRepository {
       this.db.prepare('DELETE FROM grades WHERE course_id = ?').run(courseId);
       this.db.prepare('DELETE FROM course_student_picks WHERE course_id = ?').run(courseId);
       this.db.prepare('DELETE FROM course_excluded_students WHERE course_id = ?').run(courseId);
+      this.db.prepare('DELETE FROM plugin_data WHERE course_id = ?').run(courseId);
       this.db.prepare('DELETE FROM grade_compositions WHERE course_id = ?').run(courseId);
       this.db.prepare('DELETE FROM assessment_categories WHERE course_id = ?').run(courseId);
       this.db.prepare('DELETE FROM courses WHERE id = ?').run(courseId);

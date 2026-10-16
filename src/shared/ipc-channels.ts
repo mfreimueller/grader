@@ -81,4 +81,25 @@ export const IPC = {
   MCP_GET_SETTINGS: 'mcp:getSettings',
   MCP_SET_ENABLED: 'mcp:setEnabled',
   MCP_STATUS_CHANGE: 'mcp:statusChange',
+
+  // Grader UI -> main: managing and launching plugins.
+  PLUGIN_LIST: 'plugin:list',
+  PLUGIN_LAUNCHABLE: 'plugin:launchable',
+  PLUGIN_SET_ENABLED: 'plugin:setEnabled',
+  PLUGIN_LAUNCH: 'plugin:launch',
+  PLUGIN_OPEN_FOLDER: 'plugin:openFolder',
+  /** main -> Grader UI: a plugin changed data of a course. */
+  PLUGIN_DATA_CHANGED: 'plugin:dataChanged',
+
+  // Plugin window -> main: the bridge behind window.grader.
+  PLUGIN_HOST_CONTEXT: 'pluginHost:context',
+  PLUGIN_HOST_STORAGE_GET: 'pluginHost:storageGet',
+  PLUGIN_HOST_STORAGE_SET: 'pluginHost:storageSet',
+  PLUGIN_HOST_STORAGE_DELETE: 'pluginHost:storageDelete',
+  PLUGIN_HOST_STORAGE_KEYS: 'pluginHost:storageKeys',
+  PLUGIN_HOST_CREATE_IMPROMPTU: 'pluginHost:createImpromptu',
+  PLUGIN_HOST_DELETE_IMPROMPTU: 'pluginHost:deleteImpromptu',
+  PLUGIN_HOST_SECRETS_GET: 'pluginHost:secretsGet',
+  PLUGIN_HOST_SECRETS_SET: 'pluginHost:secretsSet',
+  PLUGIN_HOST_SECRETS_DELETE: 'pluginHost:secretsDelete',
 } as const;

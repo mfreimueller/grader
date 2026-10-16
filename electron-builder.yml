@@ -6,8 +6,13 @@ directories:
 icon: assets/icon.png
 files:
   - build/**/*
+  - '!build/plugins/**'
   - assets/**/*
   - package.json
+# Bundled plugins are served from disk, not from inside the asar archive.
+extraResources:
+  - from: build/plugins
+    to: plugins
 afterSign: scripts/afterSign.js
 mac:
   target:

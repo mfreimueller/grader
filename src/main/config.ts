@@ -1,6 +1,6 @@
 import { app } from 'electron';
 import { existsSync, mkdirSync } from 'node:fs';
-import { dirname } from 'node:path';
+import { dirname, join } from 'node:path';
 import { loadSettings } from './settings';
 
 const ENV_VAR = 'GRDR_DB_PATH';
@@ -34,6 +34,19 @@ export function resolveDbPath(): string {
   const defaultPath = `${app.getPath('userData')}/grdr.db`;
   console.log(`[config] Using default path: ${defaultPath}`);
   return defaultPath;
+}
+
+/**
+ * Where plugins live. Bundled ones ship with the app (next to it when packaged, in build/plugins in development);
+ * the user's own go into the user data folder, which exists after this call so it can be opened.
+ */
+export function resolvePluginRoots(): { bundled: string; user: string } {
+  const bundled = app.isPackaged
+    ? join(process.resourcesPath, 'plugins')
+    : join(app.getAppPath(), 'build', 'plugins');
+  const user = join(app.getPath('userData'), 'plugins');
+  mkdirSync(user, { recursive: true });
+  return { bundled, user };
 }
 
 export function ensureDbDirectory(dbPath: string): void {

@@ -31,6 +31,10 @@ komplett offline, alle Daten bleiben auf dem eigenen Rechner.
   Glücksrad „Wheel of Fortune“).
 - **Schuljahreswechsel** – alle Klassen auf einmal ins neue Schuljahr übernehmen (z. B. 4EHIF → 5EHIF),
   Abgänger entfernen und auf Wunsch alle Kurse archivieren.
+- **Plugins** – kleine Werkzeuge, die sich aus einem Kurs heraus starten lassen und in einer Sandbox laufen. Mitgeliefert
+  wird die **Zufallsauswahl**, die Schüler am Spielautomaten oder Glücksrad aufruft und die Mitarbeit direkt als
+  spontane Leistung einträgt. Eigene Plugins lassen sich in einen Ordner legen und nach Zustimmung einschalten, siehe
+  [docs/plugins.md](docs/plugins.md).
 - **MCP-Server** – optionaler, lokaler Server, der KI-Agenten einen gelesenen Zugriff auf die
   Notendaten ermöglicht.
 
@@ -94,13 +98,14 @@ npm run seed
 | Befehl | Beschreibung |
 |---|---|
 | `npm run dev` | Anwendung bauen und im Entwicklungsmodus starten |
-| `npm run build` | TypeScript und Renderer bauen |
+| `npm run build` | TypeScript, Renderer und mitgelieferte Plugins bauen |
+| `npm run build:plugins` | Nur die mitgelieferten Plugins nach `build/plugins` bauen |
 | `npm run start` | Gebauten Build starten |
 | `npm test` | Unit- und Integrationstests (Jest) ausführen |
 | `npm run test:watch` | Tests im Watch-Modus |
 | `npm run test:e2e` | End-to-End-Tests (Playwright) |
 | `npm run lint` | ESLint ausführen |
-| `npm run typecheck` | TypeScript-Typen für Main- und Renderer-Prozess prüfen |
+| `npm run typecheck` | TypeScript-Typen für Main-, Renderer-Prozess und Plugins prüfen |
 | `npm run package` | Installierbares Paket bauen (electron-builder) |
 | `npm run build:win` | Windows-Installer (NSIS) via Docker bauen (kein Wine nötig) |
 | `npm run deploy` | Versionierung und Veröffentlichung (siehe `scripts/deploy.sh`) |
@@ -111,7 +116,10 @@ Das Projekt folgt Test-Driven-Development. Die Testsuite deckt ab:
 
 - **Unit-Tests** für die Domänenlogik (Notenberechnung, Wertobjekte, Entitäten)
 - **Integrationstests** für die Infrastruktur (SQLite-Repositories) und Anwendungsdienste
-- **E2E-Tests** für zentrale Benutzerabläufe
+- **E2E-Tests** für zentrale Benutzerabläufe, darunter das Plugin-System und die Zufallsauswahl. Sie starten die echte
+  Anwendung und brauchen dafür die Electron-Variante von `better-sqlite3`
+  (`npx electron-rebuild -f -w better-sqlite3 && npm run build && npm run test:e2e`); die Jest-Tests brauchen die
+  Node-Variante (`npm rebuild better-sqlite3`).
 
 ## MCP-Server
 

@@ -1,0 +1,11 @@
+{
+  "id": "at.example.echo",
+  "name": "Echo",
+  "version": "1.0.0",
+  "description": "Test plugin: calls every bridge method and probes its own sandbox.",
+  "apiVersion": 1,
+  "entry": "index.html",
+  "launch": ["course"],
+  "permissions": ["course:read", "storage", "assessment:impromptu", "secrets"],
+  "network": ["https://granted.example.invalid"]
+}

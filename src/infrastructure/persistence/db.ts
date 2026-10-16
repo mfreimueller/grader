@@ -249,7 +249,50 @@ const MIGRATION_013: Migration = {
   `,
 };
 
-const ALL_MIGRATIONS: Migration[] = [MIGRATION_001, MIGRATION_002, MIGRATION_003, MIGRATION_004, MIGRATION_005, MIGRATION_006, MIGRATION_007, MIGRATION_008, MIGRATION_009, MIGRATION_010, MIGRATION_011, MIGRATION_012, MIGRATION_013];
+// Neither table has a foreign key on purpose. plugin_data.course_id '' is the plugin-global scope. And
+// SqliteSessionRepository.save writes assessments with INSERT OR REPLACE, which deletes the old row first: an
+// ON DELETE CASCADE from plugin_assessments would wipe the ownership of every earlier assessment of a session each
+// time another one is added. The rows of a course are removed explicitly in SqliteCourseRepository.hardDelete; a row
+// left behind by an assessment the teacher deleted is harmless (PluginHostService.deleteImpromptu cleans it up).
+const MIGRATION_014: Migration = {
+  id: '014',
+  description: 'Add plugin_data key-value store and plugin_assessments for assessments created by plugins',
+  sql: `
+    CREATE TABLE IF NOT EXISTS plugin_data (
+      plugin_id TEXT NOT NULL,
+      course_id TEXT NOT NULL DEFAULT '',
+      key TEXT NOT NULL,
+      value TEXT NOT NULL,
+      updated_at TEXT NOT NULL,
+      PRIMARY KEY (plugin_id, course_id, key)
+    );
+
+    CREATE TABLE IF NOT EXISTS plugin_assessments (
+      assessment_id TEXT PRIMARY KEY,
+      plugin_id TEXT NOT NULL,
+      created_at TEXT NOT NULL
+    );
+  `,
+};
+
+// Encrypted by the application (Electron safeStorage), so the value is an opaque BLOB that only decrypts on the
+// machine and user that wrote it: a backup restored elsewhere keeps the rows but needs the secrets set again.
+// plugin_id has no foreign key, like plugin_data: plugins are not rows of the database.
+const MIGRATION_015: Migration = {
+  id: '015',
+  description: 'Add plugin_secrets for encrypted plugin secrets such as access tokens',
+  sql: `
+    CREATE TABLE IF NOT EXISTS plugin_secrets (
+      plugin_id TEXT NOT NULL,
+      key TEXT NOT NULL,
+      value BLOB NOT NULL,
+      updated_at TEXT NOT NULL,
+      PRIMARY KEY (plugin_id, key)
+    );
+  `,
+};
+
+const ALL_MIGRATIONS: Migration[] = [MIGRATION_001, MIGRATION_002, MIGRATION_003, MIGRATION_004, MIGRATION_005, MIGRATION_006, MIGRATION_007, MIGRATION_008, MIGRATION_009, MIGRATION_010, MIGRATION_011, MIGRATION_012, MIGRATION_013, MIGRATION_014, MIGRATION_015];
 
 export const KNOWN_MIGRATION_IDS: readonly string[] = ALL_MIGRATIONS.map((m) => m.id);
 

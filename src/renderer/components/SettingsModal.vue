@@ -37,6 +37,10 @@
         </p>
         <p v-if="mcpUrl" class="mcp-url">Aktiv unter: <code>{{ mcpUrl }}</code></p>
 
+        <hr class="separator" />
+
+        <PluginSettings :visible="visible" />
+
         <p v-if="saveSuccess" class="success-msg">{{ saveSuccess }}</p>
         <p v-if="error" class="error-msg">{{ error }}</p>
 
@@ -50,6 +54,7 @@
 
 <script setup lang="ts">
 import { ref, watch } from 'vue';
+import PluginSettings from './PluginSettings.vue';
 
 const props = defineProps<{ visible: boolean }>();
 const emit = defineEmits<{ (e: 'close'): void }>();
@@ -153,6 +158,8 @@ async function toggleMcp(): Promise<void> {
   padding: 24px;
   width: 520px;
   max-width: 90vw;
+  max-height: 90vh;
+  overflow-y: auto;
   box-shadow: 0 8px 30px rgba(0, 0, 0, 0.15);
 }
 

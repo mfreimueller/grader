@@ -226,3 +226,103 @@ describe('migration 013 (Mündlich becomes per-student Mitarbeit)', () => {
     db.close();
   });
 });
+
+describe('migration 014 (plugin storage)', () => {
+  const seedAssessment = (db: ReturnType<typeof createInMemoryDb>): void => {
+    db.exec(`
+      INSERT INTO school_classes (id, name, school_year) VALUES ('cl-1', '1A', '2025/26');
+      INSERT INTO courses (id, title, school_class_id) VALUES ('co-1', 'Mathe', 'cl-1');
+      INSERT INTO assessment_categories (id, title, grading_type, course_id) VALUES ('cat-m', 'Mitarbeit', 'TERTIARY', 'co-1');
+      INSERT INTO sessions (id, date, course_id) VALUES ('se-1', '2026-10-12', 'co-1');
+      INSERT INTO assessments (id, title, category_id, course_id, session_id) VALUES ('a-1', 'Mitarbeit', 'cat-m', 'co-1', 'se-1');
+    `);
+  };
+
+  it('is a known migration', () => {
+    expect(KNOWN_MIGRATION_IDS).toContain('014');
+  });
+
+  it('creates plugin_data with (plugin_id, course_id, key) as the primary key', () => {
+    const db = createInMemoryDb();
+    runMigrations(db);
+    const insert = db.prepare(
+      "INSERT INTO plugin_data (plugin_id, course_id, key, value, updated_at) VALUES (?, ?, ?, '1', '2026-10-12T10:00:00.000Z')",
+    );
+
+    insert.run('at.example.tool', 'co-1', 'k');
+    insert.run('at.example.tool', '', 'k');
+    insert.run('at.example.other', 'co-1', 'k');
+
+    expect(() => insert.run('at.example.tool', 'co-1', 'k')).toThrow(/UNIQUE|PRIMARY/i);
+    db.close();
+  });
+
+  it('does not tie plugin_data to an existing course, so the plugin-global scope works', () => {
+    const db = createInMemoryDb();
+    runMigrations(db);
+
+    expect(() =>
+      db
+        .prepare("INSERT INTO plugin_data (plugin_id, course_id, key, value, updated_at) VALUES ('at.example.tool', '', 'k', '1', 'x')")
+        .run(),
+    ).not.toThrow();
+    db.close();
+  });
+
+  it('creates plugin_assessments with one row per assessment', () => {
+    const db = createInMemoryDb();
+    runMigrations(db);
+    const insert = db.prepare("INSERT INTO plugin_assessments (assessment_id, plugin_id, created_at) VALUES ('a-1', ?, 'x')");
+
+    insert.run('at.example.tool');
+
+    expect(() => insert.run('at.example.other')).toThrow(/UNIQUE|PRIMARY/i);
+    db.close();
+  });
+
+  // SqliteSessionRepository.save writes assessments with INSERT OR REPLACE; a cascade would drop the row every time.
+  it('keeps plugin_assessments when the assessment row is replaced', () => {
+    const db = createInMemoryDb();
+    runMigrations(db);
+    seedAssessment(db);
+    db.prepare("INSERT INTO plugin_assessments (assessment_id, plugin_id, created_at) VALUES ('a-1', 'at.example.tool', 'x')").run();
+
+    db.prepare(
+      "INSERT OR REPLACE INTO assessments (id, title, category_id, course_id, is_impromptu, max_points, session_id) VALUES ('a-1', 'Mitarbeit', 'cat-m', 'co-1', 1, NULL, 'se-1')",
+    ).run();
+
+    expect(db.prepare('SELECT COUNT(*) AS cnt FROM plugin_assessments').get()).toEqual({ cnt: 1 });
+    db.close();
+  });
+});
+
+describe('migration 015 (plugin secrets)', () => {
+  it('is a known migration', () => {
+    expect(KNOWN_MIGRATION_IDS).toContain('015');
+  });
+
+  it('creates plugin_secrets with (plugin_id, key) as the primary key and a BLOB value', () => {
+    const db = createInMemoryDb();
+    runMigrations(db);
+    const insert = db.prepare("INSERT INTO plugin_secrets (plugin_id, key, value, updated_at) VALUES (?, ?, ?, 'x')");
+
+    insert.run('at.example.tool', 'token', Buffer.from([1, 2]));
+    insert.run('at.example.other', 'token', Buffer.from([1, 2]));
+
+    expect(() => insert.run('at.example.tool', 'token', Buffer.from([3]))).toThrow(/UNIQUE|PRIMARY/i);
+    db.close();
+  });
+
+  it('upgrades a database at migration 014 without touching plugin data', () => {
+    const db = createInMemoryDb();
+    runMigrations(db);
+    db.exec("INSERT INTO plugin_data (plugin_id, course_id, key, value, updated_at) VALUES ('p', '', 'k', '1', 'x')");
+    db.exec('DROP TABLE plugin_secrets; DELETE FROM _migrations WHERE id = \'015\'');
+
+    runMigrations(db);
+
+    expect(db.prepare('SELECT COUNT(*) AS cnt FROM plugin_data').get()).toEqual({ cnt: 1 });
+    expect(db.prepare('SELECT COUNT(*) AS cnt FROM plugin_secrets').get()).toEqual({ cnt: 0 });
+    db.close();
+  });
+});

@@ -184,6 +184,54 @@ describe('SqliteCourseRepository', () => {
       const students = db.prepare('SELECT COUNT(*) AS cnt FROM students').get() as { cnt: number };
       expect(students.cnt).toBe(1);
     });
+
+    it('permanently removes the plugin data of the course but keeps other scopes', async () => {
+      await repo.save(Course.create('course-1', 'Mathematik', schoolClass));
+      await repo.save(Course.create('course-2', 'Physik', schoolClass));
+      db.exec(`
+        INSERT INTO plugin_data (plugin_id, course_id, key, value, updated_at) VALUES
+          ('at.example.tool', 'course-1', 'counts', '1', 'x'),
+          ('at.example.other', 'course-1', 'counts', '1', 'x'),
+          ('at.example.tool', 'course-2', 'counts', '1', 'x'),
+          ('at.example.tool', '', 'settings', '1', 'x');
+      `);
+
+      await repo.hardDelete('course-1');
+
+      const left = db
+        .prepare('SELECT plugin_id, course_id FROM plugin_data ORDER BY course_id, plugin_id')
+        .all();
+      expect(left).toEqual([
+        { plugin_id: 'at.example.tool', course_id: '' },
+        { plugin_id: 'at.example.tool', course_id: 'course-2' },
+      ]);
+    });
+
+    it('permanently removes the assessments a plugin created together with the course', async () => {
+      await repo.save(Course.create('course-1', 'Mathematik', schoolClass));
+      db.exec(`
+        INSERT INTO sessions (id, date, course_id) VALUES ('sess-1', '2026-01-01', 'course-1');
+        INSERT INTO assessments (id, title, category_id, course_id, session_id)
+          VALUES ('a-1', 'Mitarbeit', 'course-1:mitarbeit', 'course-1', 'sess-1');
+        INSERT INTO plugin_assessments (assessment_id, plugin_id, created_at) VALUES ('a-1', 'at.example.tool', 'x');
+      `);
+
+      await repo.hardDelete('course-1');
+
+      expect(db.prepare('SELECT COUNT(*) AS cnt FROM plugin_assessments').get()).toEqual({ cnt: 0 });
+    });
+
+    it('keeps the plugin data while a course sits in the bin and after it is restored', async () => {
+      await repo.save(Course.create('course-1', 'Mathematik', schoolClass));
+      db.exec(
+        "INSERT INTO plugin_data (plugin_id, course_id, key, value, updated_at) VALUES ('at.example.tool', 'course-1', 'counts', '1', 'x')",
+      );
+
+      await repo.softDelete('course-1', '2026-10-03T10:00:00.000Z');
+      await repo.restore('course-1');
+
+      expect(db.prepare('SELECT COUNT(*) AS cnt FROM plugin_data').get()).toEqual({ cnt: 1 });
+    });
   });
 
   describe('assessment categories', () => {

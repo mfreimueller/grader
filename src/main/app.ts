@@ -1,8 +1,8 @@
-import { app, dialog } from 'electron';
+import { app, dialog, ipcMain, safeStorage, shell } from 'electron';
 import { autoUpdater } from 'electron-updater';
 import { createMainWindow } from './window';
 import { createAppMenu } from './menu';
-import { resolveDbPath, ensureDbDirectory } from './config';
+import { resolveDbPath, ensureDbDirectory, resolvePluginRoots } from './config';
 import { createFileDb, runMigrations } from '../infrastructure/persistence/db';
 
 import { SqliteStudentRepository } from '../infrastructure/persistence/SqliteStudentRepository';
@@ -34,8 +34,25 @@ import { AsciidocReportGenerator } from '../infrastructure/asciidoc/AsciidocRepo
 import { BinService } from '../application/BinService';
 import { GraderMcpServer } from '../mcp/mcpServer';
 import { McpService } from '../mcp/mcpService';
-import { loadSettings } from './settings';
+import { loadSettings, saveSettings } from './settings';
 import { IPC } from '../shared/ipc-channels';
+
+import { SqlitePluginDataRepository } from '../infrastructure/persistence/SqlitePluginDataRepository';
+import { SqlitePluginAssessmentRepository } from '../infrastructure/persistence/SqlitePluginAssessmentRepository';
+import { FsPluginScanner } from '../infrastructure/plugins/FsPluginScanner';
+import { PluginCatalogService } from '../application/PluginCatalogService';
+import { PluginHostService } from '../application/PluginHostService';
+import { PluginSecretService } from '../application/PluginSecretService';
+import { PluginStorageService } from '../application/PluginStorageService';
+import { SqlitePluginSecretRepository } from '../infrastructure/persistence/SqlitePluginSecretRepository';
+import { SafeStorageSecretCipher } from './plugins/SafeStorageSecretCipher';
+import { SettingsPluginConsentStore } from './plugins/SettingsPluginConsentStore';
+import { PluginLauncher, type PluginWindowHandle } from './plugins/PluginLauncher';
+import { PluginWindowRegistry } from './plugins/PluginWindowRegistry';
+import { registerPluginScheme } from './plugins/pluginProtocol';
+import { createPluginWindow } from './plugins/pluginWindow';
+import { registerPluginHandlers } from './ipc/plugin.ipc';
+import { registerPluginHostHandlers } from './ipc/pluginHost.ipc';
 
 import { registerStudentHandlers } from './ipc/student.ipc';
 import { registerCourseHandlers } from './ipc/course.ipc';
@@ -53,6 +70,9 @@ import { SqliteUnitOfWork } from '../infrastructure/persistence/SqliteUnitOfWork
 
 let mcpServer: GraderMcpServer;
 let database: ReturnType<typeof createFileDb> | undefined;
+
+// A custom scheme has to be registered before the app is ready.
+registerPluginScheme();
 
 app.on('ready', () => {
   const dbPath = resolveDbPath();
@@ -108,6 +128,53 @@ app.on('ready', () => {
 
   const win = createMainWindow();
   registerSettingsHandlers(win, mcpServer);
+
+  const pluginRoots = resolvePluginRoots();
+  const pluginRegistry = new PluginWindowRegistry<PluginWindowHandle>();
+  const pluginCatalog = new PluginCatalogService(
+    new FsPluginScanner(pluginRoots),
+    new SettingsPluginConsentStore(loadSettings, saveSettings),
+  );
+  const pluginLauncher = new PluginLauncher({
+    catalog: pluginCatalog,
+    courseService,
+    registry: pluginRegistry,
+    createWindow: (options) => createPluginWindow(options, win),
+  });
+  registerPluginHandlers(ipcMain, {
+    catalog: pluginCatalog,
+    launcher: pluginLauncher,
+    registry: pluginRegistry,
+    openUserPluginFolder: async () => {
+      const failure = await shell.openPath(pluginRoots.user);
+      if (failure) console.error('Could not open the plugin folder:', failure);
+    },
+  });
+  registerPluginHostHandlers(ipcMain, {
+    registry: pluginRegistry,
+    host: new PluginHostService({
+      courseService,
+      rosterService,
+      categoryService,
+      sessionService,
+      assessmentService,
+      impromptuService,
+      assessmentRepo,
+      pluginAssessmentRepo: new SqlitePluginAssessmentRepository(db),
+      now: () => new Date(),
+    }),
+    storage: new PluginStorageService(new SqlitePluginDataRepository(db), courseService, () => new Date()),
+    secrets: new PluginSecretService(
+      new SqlitePluginSecretRepository(db),
+      new SafeStorageSecretCipher(safeStorage),
+      () => new Date(),
+    ),
+    onDataChanged: (courseId) => {
+      if (!win.isDestroyed()) win.webContents.send(IPC.PLUGIN_DATA_CHANGED, { courseId });
+    },
+    logError: (message, error) => console.error(message, error),
+  });
+
   createAppMenu(win);
   win.loadFile('build/renderer/index.html');
 

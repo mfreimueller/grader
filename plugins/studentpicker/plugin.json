@@ -1,0 +1,12 @@
+{
+  "id": "at.mfreimueller.studentpicker",
+  "name": "Zufallsauswahl",
+  "version": "1.0.0",
+  "description": "Zufällige Schülerauswahl am Spielautomaten, mit Bewertung der Mitarbeit",
+  "apiVersion": 1,
+  "entry": "index.html",
+  "launch": ["course"],
+  "permissions": ["course:read", "storage", "assessment:impromptu"],
+  "network": [],
+  "window": { "width": 1400, "height": 820 }
+}

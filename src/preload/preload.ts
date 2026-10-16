@@ -84,6 +84,13 @@ const IPC = {
   MCP_GET_SETTINGS: 'mcp:getSettings',
   MCP_SET_ENABLED: 'mcp:setEnabled',
   MCP_STATUS_CHANGE: 'mcp:statusChange',
+
+  PLUGIN_LIST: 'plugin:list',
+  PLUGIN_LAUNCHABLE: 'plugin:launchable',
+  PLUGIN_SET_ENABLED: 'plugin:setEnabled',
+  PLUGIN_LAUNCH: 'plugin:launch',
+  PLUGIN_OPEN_FOLDER: 'plugin:openFolder',
+  PLUGIN_DATA_CHANGED: 'plugin:dataChanged',
 } as const;
 
 const api: IpcApi = {
@@ -190,6 +197,19 @@ const api: IpcApi = {
     onStatusChange: (callback) => {
       ipcRenderer.on(IPC.MCP_STATUS_CHANGE, (_event, status) => callback(status));
       return () => ipcRenderer.removeAllListeners(IPC.MCP_STATUS_CHANGE);
+    },
+  },
+  plugin: {
+    list: () => ipcRenderer.invoke(IPC.PLUGIN_LIST),
+    launchable: () => ipcRenderer.invoke(IPC.PLUGIN_LAUNCHABLE),
+    setEnabled: (pluginId, enabled, acceptedPermissions, acceptedNetwork) =>
+      ipcRenderer.invoke(IPC.PLUGIN_SET_ENABLED, { pluginId, enabled, acceptedPermissions, acceptedNetwork }),
+    launch: (pluginId, courseId) => ipcRenderer.invoke(IPC.PLUGIN_LAUNCH, { pluginId, courseId }),
+    openFolder: () => ipcRenderer.invoke(IPC.PLUGIN_OPEN_FOLDER),
+    onDataChanged: (callback) => {
+      const listener = (_event: unknown, change: { courseId: string }): void => callback(change);
+      ipcRenderer.on(IPC.PLUGIN_DATA_CHANGED, listener);
+      return () => ipcRenderer.removeListener(IPC.PLUGIN_DATA_CHANGED, listener);
     },
   },
 };

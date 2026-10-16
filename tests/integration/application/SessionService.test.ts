@@ -248,4 +248,129 @@ describe('SessionService', () => {
       expect(result.value.absentStudentIds).toEqual([]);
     });
   });
+
+  describe('findOnDate', () => {
+    it('returns null and creates nothing when the course has no session on the date', async () => {
+      const result = await service.findOnDate(courseId, '2026-10-12');
+
+      expect(result).toBeNull();
+      expect(await service.listByCourse(courseId)).toEqual([]);
+    });
+
+    it('returns the session on the date', async () => {
+      const existing = await service.create({ courseId, date: '2026-10-12', notes: 'x' });
+      if (!existing.ok) throw existing.error;
+      await service.create({ courseId, date: '2026-10-13' });
+
+      const result = await service.findOnDate(courseId, '2026-10-12');
+
+      expect(result?.id).toBe(existing.value.id);
+    });
+
+    it('picks the session with the smallest id when several exist on the date', async () => {
+      const a = await service.create({ courseId, date: '2026-10-12' });
+      const b = await service.create({ courseId, date: '2026-10-12' });
+      if (!a.ok || !b.ok) throw new Error('expected sessions to be created');
+
+      const result = await service.findOnDate(courseId, '2026-10-12');
+
+      expect(result?.id).toBe([a.value.id, b.value.id].sort()[0]);
+    });
+  });
+
+  describe('findOrCreateOnDate', () => {
+    it('creates a session on the date when the course has none', async () => {
+      const result = await service.findOrCreateOnDate(courseId, '2026-10-12');
+
+      if (!result.ok) throw result.error;
+      expect(result.value.date).toBe('2026-10-12T00:00:00.000Z');
+      expect(result.value.courseId).toBe(courseId);
+      expect(result.value.notes).toBe('');
+      expect(await service.listByCourse(courseId)).toHaveLength(1);
+    });
+
+    it('returns the session that already exists on the date instead of creating another', async () => {
+      const existing = await service.create({ courseId, date: '2026-10-12', notes: 'Wiederholung' });
+      if (!existing.ok) throw existing.error;
+
+      const result = await service.findOrCreateOnDate(courseId, '2026-10-12');
+
+      if (!result.ok) throw result.error;
+      expect(result.value.id).toBe(existing.value.id);
+      expect(result.value.notes).toBe('Wiederholung');
+      expect(await service.listByCourse(courseId)).toHaveLength(1);
+    });
+
+    it('finds a session whose stored date carries a time of day', async () => {
+      const existing = await service.create({ courseId, date: '2026-10-12T00:00:00.000Z' });
+      if (!existing.ok) throw existing.error;
+
+      const result = await service.findOrCreateOnDate(courseId, '2026-10-12');
+
+      expect(result.ok && result.value.id).toBe(existing.value.id);
+    });
+
+    it('is idempotent', async () => {
+      const first = await service.findOrCreateOnDate(courseId, '2026-10-12');
+      const second = await service.findOrCreateOnDate(courseId, '2026-10-12');
+
+      if (!first.ok || !second.ok) throw new Error('expected both calls to succeed');
+      expect(second.value.id).toBe(first.value.id);
+      expect(await service.listByCourse(courseId)).toHaveLength(1);
+    });
+
+    it('creates a new session when only other days exist', async () => {
+      await service.create({ courseId, date: '2026-10-11' });
+      await service.create({ courseId, date: '2026-10-13' });
+
+      const result = await service.findOrCreateOnDate(courseId, '2026-10-12');
+
+      if (!result.ok) throw result.error;
+      expect(await service.listByCourse(courseId)).toHaveLength(3);
+    });
+
+    it('does not reuse a session of another course', async () => {
+      const year = SchoolYear.create('2025/26');
+      if (!year.ok) throw year.error;
+      const otherCourse = Course.create('course-2', 'Physik', new SchoolClass('class-1', '1A', year.value));
+      new SqliteCourseRepository(db).save(otherCourse);
+      const other = await service.create({ courseId: 'course-2', date: '2026-10-12' });
+      if (!other.ok) throw other.error;
+
+      const result = await service.findOrCreateOnDate(courseId, '2026-10-12');
+
+      if (!result.ok) throw result.error;
+      expect(result.value.id).not.toBe(other.value.id);
+      expect(result.value.courseId).toBe(courseId);
+    });
+
+    it('picks the same session every time when several exist on the date', async () => {
+      const a = await service.create({ courseId, date: '2026-10-12' });
+      const b = await service.create({ courseId, date: '2026-10-12' });
+      if (!a.ok || !b.ok) throw new Error('expected sessions to be created');
+      const smallestId = [a.value.id, b.value.id].sort()[0];
+
+      const result = await service.findOrCreateOnDate(courseId, '2026-10-12');
+
+      expect(result.ok && result.value.id).toBe(smallestId);
+    });
+
+    it('fails for a course that does not exist', async () => {
+      const result = await service.findOrCreateOnDate('nope', '2026-10-12');
+
+      expect(result.ok).toBe(false);
+      if (!result.ok) expect(result.error).toBeInstanceOf(NotFoundError);
+    });
+
+    it.each(['', '12.10.2026', '2026-10-12T00:00:00.000Z', '2026-1-2', '2026-13-01', '2026-02-30', 'heute'])(
+      'rejects the date %p',
+      async (date) => {
+        const result = await service.findOrCreateOnDate(courseId, date);
+
+        expect(result.ok).toBe(false);
+        if (!result.ok) expect(result.error).toBeInstanceOf(ValidationError);
+        expect(await service.listByCourse(courseId)).toEqual([]);
+      },
+    );
+  });
 });
