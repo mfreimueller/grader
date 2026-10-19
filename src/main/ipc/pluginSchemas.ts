@@ -25,6 +25,7 @@ export const createImpromptuSchema = z.object({
   symbol: z.string().optional(),
   score: z.number().optional(),
   maxPoints: z.number().optional(),
+  note: z.string().optional(),
 });
 
 export const secretKeySchema = z.object({ key: z.string() });
@@ -33,6 +34,8 @@ export const secretKeySchema = z.object({ key: z.string() });
 export const secretSetSchema = z.object({ key: z.string(), value: z.unknown().optional() });
 
 export const deleteImpromptuSchema = z.object({ assessmentId: z.string().min(1) });
+
+export const setImpromptuNoteSchema = z.object({ assessmentId: z.string().min(1), note: z.string() });
 
 /** The Grader UI managing plugins. */
 export const setPluginEnabledSchema = z.object({

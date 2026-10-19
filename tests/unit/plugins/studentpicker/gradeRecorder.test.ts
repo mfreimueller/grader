@@ -50,6 +50,7 @@ class FakeBridge implements GradeBridge {
   readonly created: CreateImpromptuRequest[] = [];
   failCreate: { code: 'NOT_IN_COURSE' | 'VALIDATION'; message: string } | null = null;
   failDelete: { code: 'PERMISSION_DENIED'; message: string } | null = null;
+  failNote: { code: 'VALIDATION'; message: string } | null = null;
   private next = 1;
 
   createImpromptu(request: CreateImpromptuRequest): Promise<PluginResult<{ assessmentId: string; performanceId: string; sessionId: string }>> {
@@ -58,6 +59,12 @@ class FakeBridge implements GradeBridge {
     if (this.failCreate) return Promise.resolve({ ok: false, error: this.failCreate });
     const n = this.next++;
     return Promise.resolve({ ok: true, value: { assessmentId: `a-${n}`, performanceId: `p-${n}`, sessionId: 'se-1' } });
+  }
+
+  setImpromptuNote(assessmentId: string, note: string): Promise<PluginResult<void>> {
+    this.calls.push(`note:${assessmentId}:${note}`);
+    if (this.failNote) return Promise.resolve({ ok: false, error: this.failNote });
+    return Promise.resolve({ ok: true, value: undefined });
   }
 
   deleteImpromptu(assessmentId: string): Promise<PluginResult<void>> {
@@ -83,6 +90,14 @@ describe('GradeRecorder', () => {
   });
 
   describe('choose', () => {
+    it('records Plus-Welle and Minus-Welle', async () => {
+      await recorder.choose('PLUS_WELLE', mitarbeit);
+      await recorder.choose('MINUS_WELLE', mitarbeit);
+
+      expect(bridge.calls).toEqual(['create:PLUS_WELLE:cat-m', 'delete:a-1', 'create:MINUS_WELLE:cat-m']);
+      expect(recorder.selected).toBe('MINUS_WELLE');
+    });
+
     it('records the symbol for the student under the title of the category', async () => {
       const result = await recorder.choose('PLUS', mitarbeit);
 
@@ -138,6 +153,68 @@ describe('GradeRecorder', () => {
 
       expect(result).toEqual({ ok: true });
       expect(bridge.calls).toEqual([]);
+    });
+  });
+
+  describe('note', () => {
+    it('keeps a note written before the grade and records it with the grade', async () => {
+      const result = await recorder.setNote('Bruchrechnen');
+
+      expect(result).toEqual({ ok: true });
+      expect(bridge.calls).toEqual([]);
+      expect(recorder.note).toBe('Bruchrechnen');
+
+      await recorder.choose('PLUS', mitarbeit);
+
+      expect(bridge.created[0]).toMatchObject({ symbol: 'PLUS', note: 'Bruchrechnen' });
+    });
+
+    it('sends no note with the grade while it is blank', async () => {
+      await recorder.setNote('   ');
+
+      await recorder.choose('PLUS', mitarbeit);
+
+      expect(bridge.created[0]).not.toHaveProperty('note');
+    });
+
+    it('saves a changed note on the recorded grade', async () => {
+      await recorder.choose('PLUS', mitarbeit);
+
+      const result = await recorder.setNote('Satz des Pythagoras');
+
+      expect(result).toEqual({ ok: true });
+      expect(bridge.calls).toEqual(['create:PLUS:cat-m', 'note:a-1:Satz des Pythagoras']);
+    });
+
+    it('does not save a note that has not changed', async () => {
+      await recorder.setNote('Brüche');
+      await recorder.choose('PLUS', mitarbeit);
+
+      await recorder.setNote('Brüche');
+
+      expect(bridge.calls).toEqual(['create:PLUS:cat-m']);
+    });
+
+    it('carries the note over when the symbol or the category changes', async () => {
+      await recorder.choose('PLUS', mitarbeit);
+      await recorder.setNote('Brüche');
+
+      await recorder.choose('MINUS', mitarbeit);
+      await recorder.changeCategory(wiederholung);
+
+      expect(bridge.created.map((r) => r.note)).toEqual([undefined, 'Brüche', 'Brüche']);
+    });
+
+    it('reports a note that could not be saved and tries again next time', async () => {
+      await recorder.choose('PLUS', mitarbeit);
+      bridge.failNote = { code: 'VALIDATION', message: 'too long' };
+
+      const result = await recorder.setNote('Brüche');
+
+      expect(result).toEqual({ ok: false, code: 'VALIDATION', message: 'too long' });
+      bridge.failNote = null;
+      await recorder.setNote('Brüche');
+      expect(bridge.calls).toEqual(['create:PLUS:cat-m', 'note:a-1:Brüche', 'note:a-1:Brüche']);
     });
   });
 

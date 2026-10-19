@@ -80,11 +80,13 @@ export interface CreateImpromptuRequest {
   session?: SessionTarget | undefined;
   /** Defaults to the title of the category, at most 200 characters. */
   title?: string | undefined;
-  /** `PLUS`, `WELLE` or `MINUS`. Defaults to `WELLE` for a tertiary category. */
+  /** `PLUS`, `PLUS_WELLE`, `WELLE`, `MINUS_WELLE` or `MINUS`. Defaults to `WELLE` for a tertiary category. */
   symbol?: string | undefined;
   /** Points reached. Needs `maxPoints`, and must lie between 0 and `maxPoints`. */
   score?: number | undefined;
   maxPoints?: number | undefined;
+  /** A note on the result, e.g. the topics asked, at most 2000 characters. Blank means no note. */
+  note?: string | undefined;
 }
 
 export interface CreateImpromptuResult {
@@ -121,5 +123,7 @@ export interface GraderPluginApi {
     createImpromptu(request: CreateImpromptuRequest): Promise<PluginResult<CreateImpromptuResult>>;
     /** Only assessments this plugin created in this course. */
     deleteImpromptu(assessmentId: string): Promise<PluginResult<void>>;
+    /** Replaces the note of an assessment this plugin created in this course; blank removes it. */
+    setImpromptuNote(assessmentId: string, note: string): Promise<PluginResult<void>>;
   };
 }

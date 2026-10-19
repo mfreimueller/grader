@@ -2,6 +2,8 @@ import { createInMemoryDb, runMigrations } from '../../../src/infrastructure/per
 import { SqliteAssessmentRepository } from '../../../src/infrastructure/persistence/SqliteAssessmentRepository';
 import { SqliteCourseRepository } from '../../../src/infrastructure/persistence/SqliteCourseRepository';
 import { SqliteCourseRosterRepository } from '../../../src/infrastructure/persistence/SqliteCourseRosterRepository';
+import { SqliteFindingRepository } from '../../../src/infrastructure/persistence/SqliteFindingRepository';
+import { SqliteUnitOfWork } from '../../../src/infrastructure/persistence/SqliteUnitOfWork';
 import { SqliteGradeRepository } from '../../../src/infrastructure/persistence/SqliteGradeRepository';
 import { SqlitePluginAssessmentRepository } from '../../../src/infrastructure/persistence/SqlitePluginAssessmentRepository';
 import { SqliteSchoolClassRepository } from '../../../src/infrastructure/persistence/SqliteSchoolClassRepository';
@@ -11,6 +13,7 @@ import { AssessmentCategoryService } from '../../../src/application/AssessmentCa
 import { AssessmentService } from '../../../src/application/AssessmentService';
 import { CourseRosterService } from '../../../src/application/CourseRosterService';
 import { CourseService } from '../../../src/application/CourseService';
+import { FindingService } from '../../../src/application/FindingService';
 import { GradingService } from '../../../src/application/GradingService';
 import { ImpromptuAssessmentService } from '../../../src/application/ImpromptuAssessmentService';
 import { NotInCourseError, PluginCaller, PluginPermissionDeniedError } from '../../../src/application/PluginCaller';
@@ -62,6 +65,11 @@ function errorOf<T>(result: Result<T>): Error {
   return result.error;
 }
 
+const notesOf = (db: Db, performanceId: string): string[] =>
+  (db.prepare("SELECT text_content FROM findings WHERE student_performance_id = ? AND type = 'note' AND deleted_at IS NULL").all(performanceId) as {
+    text_content: string;
+  }[]).map((row) => row.text_content);
+
 const count = (db: Db, table: string): number =>
   (db.prepare(`SELECT COUNT(*) AS cnt FROM ${table}`).get() as { cnt: number }).cnt;
 
@@ -100,6 +108,8 @@ describe('PluginHostService', () => {
       sessionService,
       assessmentService,
       impromptuService: new ImpromptuAssessmentService(assessmentService, gradingService),
+      gradingService,
+      findingService: new FindingService(new SqliteFindingRepository(db), new SqliteUnitOfWork(db)),
       assessmentRepo: stubs.assessmentRepo ?? assessmentRepo,
       pluginAssessmentRepo: stubs.pluginAssessments ?? pluginAssessmentRepo,
       now: () => now,
@@ -357,6 +367,28 @@ describe('PluginHostService', () => {
       expect(await pluginAssessmentRepo.isCreatedBy(aCaller().manifest.id, created.assessmentId)).toBe(true);
     });
 
+    it('records the symbols Plus-Welle and Minus-Welle', async () => {
+      const plus = valueOf(await create({ symbol: 'PLUS_WELLE' }));
+      const minus = valueOf(await create({ studentId: 's-zorn', symbol: 'MINUS_WELLE' }));
+
+      const symbolOf = (id: string): unknown =>
+        db.prepare('SELECT symbol FROM student_performances WHERE id = ?').get(id);
+      expect(symbolOf(plus.performanceId)).toEqual({ symbol: 'PLUS_WELLE' });
+      expect(symbolOf(minus.performanceId)).toEqual({ symbol: 'MINUS_WELLE' });
+    });
+
+    it('saves the note on the recorded performance, trimmed', async () => {
+      const created = valueOf(await create({ note: '  Bruchrechnen, Kürzen  ' }));
+
+      expect(notesOf(db, created.performanceId)).toEqual(['Bruchrechnen, Kürzen']);
+    });
+
+    it('saves no note for a blank one', async () => {
+      const created = valueOf(await create({ note: '   ' }));
+
+      expect(notesOf(db, created.performanceId)).toEqual([]);
+    });
+
     it('records graded points when a maximum is given', async () => {
       const created = valueOf(await create({ symbol: undefined, score: 8, maxPoints: 10 }));
 
@@ -472,6 +504,7 @@ describe('PluginHostService', () => {
         ['a maximum of zero', { symbol: undefined, score: 0, maxPoints: 0 }],
         ['an empty title', { title: '   ' }],
         ['a title over 200 characters', { title: 'x'.repeat(201) }],
+        ['a note over 2000 characters', { note: 'x'.repeat(2001) }],
       ])('rejects %s and creates nothing', async (_label, overrides) => {
         const result = await create(overrides);
 
@@ -505,6 +538,67 @@ describe('PluginHostService', () => {
     });
   });
 
+  describe('setImpromptuNote', () => {
+    const createAs = async (caller: PluginCaller) => {
+      const categoryId = caller.courseId === 'course-1' ? mitarbeitId : otherCourseMitarbeitId;
+      return valueOf(await host.createImpromptu(caller, { studentId: 's-muster', categoryId, symbol: 'PLUS' }));
+    };
+
+    it('sets the note of the performance, replacing the one it had', async () => {
+      const created = valueOf(
+        await host.createImpromptu(aCaller(), { studentId: 's-muster', categoryId: mitarbeitId, symbol: 'PLUS', note: 'alt' }),
+      );
+
+      const result = await host.setImpromptuNote(aCaller(), created.assessmentId, ' Satz des Pythagoras ');
+
+      expect(result.ok).toBe(true);
+      expect(notesOf(db, created.performanceId)).toEqual(['Satz des Pythagoras']);
+    });
+
+    it('removes the note when it is blank', async () => {
+      const created = await createAs(aCaller());
+      await host.setImpromptuNote(aCaller(), created.assessmentId, 'Thema');
+
+      await host.setImpromptuNote(aCaller(), created.assessmentId, '  ');
+
+      expect(notesOf(db, created.performanceId)).toEqual([]);
+    });
+
+    it('is denied without the assessment:impromptu permission', async () => {
+      const created = await createAs(aCaller());
+
+      const result = await host.setImpromptuNote(aCaller({ permissions: ['course:read'] }), created.assessmentId, 'x');
+
+      expect(errorOf(result)).toBeInstanceOf(PluginPermissionDeniedError);
+      expect(notesOf(db, created.performanceId)).toEqual([]);
+    });
+
+    it('refuses an assessment another plugin created', async () => {
+      const created = await createAs(aCaller({ id: 'at.example.other' }));
+
+      const result = await host.setImpromptuNote(aCaller(), created.assessmentId, 'x');
+
+      expect(errorOf(result)).toBeInstanceOf(PluginPermissionDeniedError);
+    });
+
+    it('refuses an assessment of another course even when the plugin created it there', async () => {
+      const created = await createAs(aCaller({ courseId: 'course-2' }));
+
+      const result = await host.setImpromptuNote(aCaller({ courseId: 'course-1' }), created.assessmentId, 'x');
+
+      expect(errorOf(result)).toBeInstanceOf(NotInCourseError);
+      expect(notesOf(db, created.performanceId)).toEqual([]);
+    });
+
+    it('rejects a note over 2000 characters', async () => {
+      const created = await createAs(aCaller());
+
+      const result = await host.setImpromptuNote(aCaller(), created.assessmentId, 'x'.repeat(2001));
+
+      expect(errorOf(result)).toBeInstanceOf(ValidationError);
+    });
+  });
+
   describe('deleteImpromptu', () => {
     const createAs = async (caller: PluginCaller, studentId = 's-muster') => {
       const categoryId = caller.courseId === 'course-1' ? mitarbeitId : otherCourseMitarbeitId;
@@ -529,6 +623,16 @@ describe('PluginHostService', () => {
       expect(count(db, 'assessments')).toBe(0);
       expect(count(db, 'student_performances')).toBe(0);
       expect(count(db, 'plugin_assessments')).toBe(0);
+    });
+
+    it('deletes the note of the performance as well', async () => {
+      const created = valueOf(
+        await host.createImpromptu(aCaller(), { studentId: 's-muster', categoryId: mitarbeitId, symbol: 'PLUS', note: 'Thema' }),
+      );
+
+      await host.deleteImpromptu(aCaller(), created.assessmentId);
+
+      expect(count(db, 'findings')).toBe(0);
     });
 
     it('leaves the other assessments of the session alone', async () => {

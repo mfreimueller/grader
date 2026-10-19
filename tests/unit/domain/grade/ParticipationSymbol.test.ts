@@ -26,6 +26,11 @@ describe('ParticipationSymbol', () => {
       }
     });
 
+    it.each(['PLUS_WELLE', 'MINUS_WELLE'])('creates %s', (raw) => {
+      const result = ParticipationSymbol.create(raw);
+      expect(result.ok && result.value.value).toBe(raw);
+    });
+
     it('returns DomainError for invalid symbol', () => {
       const result = ParticipationSymbol.create('INVALID');
       expect(result.ok).toBe(false);
@@ -48,7 +53,17 @@ describe('ParticipationSymbol', () => {
       expect(result.ok && result.value.toScore()).toBe(0.5);
     });
 
-    it('returns -1.0 for MINUS', () => {
+    it('returns 0.75 for PLUS_WELLE', () => {
+      const result = ParticipationSymbol.create('PLUS_WELLE');
+      expect(result.ok && result.value.toScore()).toBe(0.75);
+    });
+
+    it('returns 0.25 for MINUS_WELLE', () => {
+      const result = ParticipationSymbol.create('MINUS_WELLE');
+      expect(result.ok && result.value.toScore()).toBe(0.25);
+    });
+
+    it('returns 0.0 for MINUS', () => {
       const result = ParticipationSymbol.create('MINUS');
       expect(result.ok && result.value.toScore()).toBe(0.0);
     });

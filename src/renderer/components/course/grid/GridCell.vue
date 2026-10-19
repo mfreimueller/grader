@@ -170,7 +170,8 @@ defineExpose({ focus: () => root.value?.focus() });
   font-size: 14px;
 }
 
-.cell--plus .value {
+.cell--plus .value,
+.cell--plus_welle .value {
   color: var(--color-success);
 }
 
@@ -178,7 +179,8 @@ defineExpose({ focus: () => root.value?.focus() });
   color: var(--color-text-secondary);
 }
 
-.cell--minus .value {
+.cell--minus .value,
+.cell--minus_welle .value {
   color: var(--color-danger);
 }
 

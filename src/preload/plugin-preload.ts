@@ -11,6 +11,7 @@ const IPC = {
   PLUGIN_HOST_STORAGE_KEYS: 'pluginHost:storageKeys',
   PLUGIN_HOST_CREATE_IMPROMPTU: 'pluginHost:createImpromptu',
   PLUGIN_HOST_DELETE_IMPROMPTU: 'pluginHost:deleteImpromptu',
+  PLUGIN_HOST_SET_IMPROMPTU_NOTE: 'pluginHost:setImpromptuNote',
   PLUGIN_HOST_SECRETS_GET: 'pluginHost:secretsGet',
   PLUGIN_HOST_SECRETS_SET: 'pluginHost:secretsSet',
   PLUGIN_HOST_SECRETS_DELETE: 'pluginHost:secretsDelete',
@@ -35,6 +36,7 @@ const api: GraderPluginApi = {
   assessment: {
     createImpromptu: (request) => ipcRenderer.invoke(IPC.PLUGIN_HOST_CREATE_IMPROMPTU, request),
     deleteImpromptu: (assessmentId) => ipcRenderer.invoke(IPC.PLUGIN_HOST_DELETE_IMPROMPTU, { assessmentId }),
+    setImpromptuNote: (assessmentId, note) => ipcRenderer.invoke(IPC.PLUGIN_HOST_SET_IMPROMPTU_NOTE, { assessmentId, note }),
   },
 };
 

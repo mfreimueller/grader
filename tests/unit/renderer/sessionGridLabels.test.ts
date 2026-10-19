@@ -1,4 +1,4 @@
-import { cellAriaLabel, columnAriaLabel, symbolGlyph, symbolName, valueText } from '../../../src/renderer/utils/sessionGridLabels';
+import { cellAriaLabel, columnAriaLabel, participationGlyph, symbolGlyph, symbolName, valueText } from '../../../src/renderer/utils/sessionGridLabels';
 import type { GridCell, GridColumn } from '../../../src/renderer/utils/sessionGridModel';
 
 const aCell = (o: Partial<GridCell> = {}): GridCell => ({
@@ -28,6 +28,21 @@ describe('symbolGlyph', () => {
     expect(symbolGlyph('PLUS')).toBe('+');
     expect(symbolGlyph('WELLE')).toBe('~');
     expect(symbolGlyph('MINUS')).toBe('−');
+    expect(symbolGlyph('PLUS_WELLE')).toBe('+~');
+    expect(symbolGlyph('MINUS_WELLE')).toBe('−~');
+  });
+});
+
+describe('participationGlyph', () => {
+  it('maps a raw symbol to its glyph', () => {
+    expect(participationGlyph('PLUS_WELLE')).toBe('+~');
+    expect(participationGlyph('MINUS')).toBe('−');
+  });
+
+  it('gives a dash for a missing or unknown symbol', () => {
+    expect(participationGlyph(null)).toBe('—');
+    expect(participationGlyph('BOGUS')).toBe('—');
+    expect(participationGlyph('toString')).toBe('—');
   });
 });
 
@@ -36,6 +51,8 @@ describe('symbolName', () => {
     expect(symbolName('PLUS')).toBe('Plus');
     expect(symbolName('WELLE')).toBe('Welle');
     expect(symbolName('MINUS')).toBe('Minus');
+    expect(symbolName('PLUS_WELLE')).toBe('Plus-Welle');
+    expect(symbolName('MINUS_WELLE')).toBe('Minus-Welle');
   });
 });
 

@@ -159,6 +159,8 @@ app.on('ready', () => {
       sessionService,
       assessmentService,
       impromptuService,
+      gradingService,
+      findingService,
       assessmentRepo,
       pluginAssessmentRepo: new SqlitePluginAssessmentRepository(db),
       now: () => new Date(),

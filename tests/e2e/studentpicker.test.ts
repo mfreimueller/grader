@@ -107,6 +107,49 @@ test('picks a student and records, changes and takes back the grade in the cours
   ]);
 });
 
+/** The notes of today's results: one entry per result that has a note. */
+async function notesOfToday(): Promise<{ symbol: string | null; notes: string[] }[]> {
+  return grader.main.evaluate(
+    async ([id, day]) => {
+      const api = (window as unknown as Api).grdr;
+      const today = (await api.session.listByCourse(id as string)).find((s) => s.date.slice(0, 10) === day);
+      if (!today) return [];
+      const performances = (
+        await Promise.all((await api.assessment.listBySession(today.id)).map((a) => api.grade.getPerformancesByAssessment(a.id)))
+      ).flat();
+      return Promise.all(
+        performances.map(async (p) => ({
+          symbol: p.symbol,
+          notes: (await api.finding.getFindings(p.id)).filter((f) => f.type === 'note').map((f) => f.text ?? ''),
+        })),
+      );
+    },
+    [courseId, localDay(new Date())],
+  );
+}
+
+test('records a comment with the grade, written before or after it, and keeps it when the grade changes', async () => {
+  const page = await openMachine();
+  await page.getByTestId(`pick-${byName('Max Muster').id}`).click();
+
+  // Written first: it waits for the grade. Clicking the grade straight from the field must still record it.
+  await page.getByTestId('grade-note').fill('Bruchrechnen');
+  await expect(page.getByTestId('grade-note-pending')).toBeVisible();
+  await page.getByTestId('grade-PLUS_WELLE').click();
+  await expect(page.getByTestId('grade-PLUS_WELLE')).toHaveAttribute('aria-pressed', 'true');
+  await expect(page.getByTestId('grade-note-pending')).toHaveCount(0);
+  expect(await notesOfToday()).toEqual([{ symbol: 'PLUS_WELLE', notes: ['Bruchrechnen'] }]);
+
+  // A changed grade takes the comment along; a changed comment is saved when the dialog closes.
+  await page.getByTestId('grade-MINUS_WELLE').click();
+  await expect(page.getByTestId('grade-MINUS_WELLE')).toHaveAttribute('aria-pressed', 'true');
+  await page.getByTestId('grade-note').fill('Bruchrechnen, Kürzen');
+  await page.getByTestId('result-close').click();
+  await expect(page.getByTestId('result-name')).toHaveCount(0);
+
+  expect(await notesOfToday()).toEqual([{ symbol: 'MINUS_WELLE', notes: ['Bruchrechnen, Kürzen'] }]);
+});
+
 test('is fair: everybody is called once before anybody is called again', async () => {
   const page = await openMachine();
   const picked = new Set<string>();

@@ -196,6 +196,19 @@ describe('GradeImportService', () => {
     expect(performances[0]!.score).toBeCloseTo(82.68, 2);
   });
 
+  it.each([
+    ['+~', 'PLUS_WELLE'],
+    ['-~', 'MINUS_WELLE'],
+    ['−~', 'MINUS_WELLE'],
+  ])('imports %s as %s', async (note, symbol) => {
+    const csv = 'Nachname;Vorname;Typ;Name;Datum;Max;Note\n'
+      + `Bräuer;Elias;Mitarbeit;Mitarbeit-1;25.02.26;;${note}`;
+
+    await service.importCsv('course-1', csv);
+
+    expect(db.prepare('SELECT symbol FROM student_performances').get()).toEqual({ symbol });
+  });
+
   it('creates participation performance for TERTIARY assessments', async () => {
     const csv = 'Nachname;Vorname;Typ;Name;Datum;Max;Note\n'
       + 'Bräuer;Elias;Mitarbeit;Mitarbeit-1;25.02.26;;+';

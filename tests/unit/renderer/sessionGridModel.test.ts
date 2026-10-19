@@ -162,6 +162,11 @@ describe('buildSessionGrid', () => {
       expect(cell).toMatchObject({ kind: 'symbol', symbol: 'WELLE', points: null, performanceId: 'p-s-1-a-1' });
     });
 
+    it.each(['PLUS_WELLE', 'MINUS_WELLE'])('shows the %s symbol', (symbol) => {
+      const cell = cellOf(anAssessment({ id: 'a-1', numeric: false }), aPerformance('s-1', 'a-1', { symbol }));
+      expect(cell).toMatchObject({ kind: 'symbol', symbol });
+    });
+
     it('treats an unknown symbol as empty but keeps the performance', () => {
       const cell = cellOf(anAssessment({ id: 'a-1', numeric: false }), aPerformance('s-1', 'a-1', { symbol: 'BOGUS' }));
       expect(cell.kind).toBe('empty');

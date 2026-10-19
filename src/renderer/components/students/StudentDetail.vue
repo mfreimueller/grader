@@ -31,10 +31,7 @@
             <td>
               <template v-if="p.type === 'graded'">{{ p.score ?? '—' }} Punkte</template>
               <template v-else>
-                <span v-if="p.symbol === 'PLUS'">+</span>
-                <span v-else-if="p.symbol === 'WELLE'">~</span>
-                <span v-else-if="p.symbol === 'MINUS'">−</span>
-                <span v-else>—</span>
+                <span>{{ participationGlyph(p.symbol) }}</span>
               </template>
             </td>
           </tr>
@@ -46,6 +43,7 @@
 
 <script setup lang="ts">
 import { computed } from 'vue';
+import { participationGlyph } from '../../utils/sessionGridLabels';
 import type { StudentDto, PerformanceDto } from '../../../shared/types';
 
 const props = defineProps<{

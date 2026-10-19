@@ -14,7 +14,10 @@ import { GradeImportResultDto } from '../shared/types';
 
 const SYMBOL_MAP: Record<string, string> = {
   '+': 'PLUS',
+  '+~': 'PLUS_WELLE',
   '~': 'WELLE',
+  '-~': 'MINUS_WELLE',
+  '−~': 'MINUS_WELLE',
   '-': 'MINUS',
 };
 

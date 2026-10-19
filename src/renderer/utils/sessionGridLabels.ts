@@ -2,11 +2,28 @@
 
 import type { GridCell, GridColumn, GridSymbol } from './sessionGridModel';
 
-const GLYPHS: Readonly<Record<GridSymbol, string>> = { PLUS: '+', WELLE: '~', MINUS: '−' };
-const NAMES: Readonly<Record<GridSymbol, string>> = { PLUS: 'Plus', WELLE: 'Welle', MINUS: 'Minus' };
+const GLYPHS: Readonly<Record<GridSymbol, string>> = {
+  PLUS: '+',
+  PLUS_WELLE: '+~',
+  WELLE: '~',
+  MINUS_WELLE: '−~',
+  MINUS: '−',
+};
+const NAMES: Readonly<Record<GridSymbol, string>> = {
+  PLUS: 'Plus',
+  PLUS_WELLE: 'Plus-Welle',
+  WELLE: 'Welle',
+  MINUS_WELLE: 'Minus-Welle',
+  MINUS: 'Minus',
+};
 
 export function symbolGlyph(symbol: GridSymbol): string {
   return GLYPHS[symbol];
+}
+
+/** The glyph of a symbol as it comes over IPC, or a dash when it is missing or unknown. */
+export function participationGlyph(raw: string | null): string {
+  return raw !== null && Object.hasOwn(GLYPHS, raw) ? GLYPHS[raw as GridSymbol] : '—';
 }
 
 export function symbolName(symbol: GridSymbol): string {

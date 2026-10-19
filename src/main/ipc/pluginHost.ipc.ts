@@ -13,6 +13,7 @@ import {
   deleteImpromptuSchema,
   secretKeySchema,
   secretSetSchema,
+  setImpromptuNoteSchema,
   storageKeySchema,
   storageKeysSchema,
   storageSetSchema,
@@ -25,7 +26,7 @@ export interface IpcMainLike {
 
 export interface PluginHostIpcDeps {
   registry: Pick<PluginWindowRegistry<unknown>, 'callerFor'>;
-  host: Pick<PluginHostService, 'context' | 'createImpromptu' | 'deleteImpromptu'>;
+  host: Pick<PluginHostService, 'context' | 'createImpromptu' | 'deleteImpromptu' | 'setImpromptuNote'>;
   storage: Pick<PluginStorageService, 'get' | 'set' | 'delete' | 'keys'>;
   secrets: Pick<PluginSecretService, 'get' | 'set' | 'delete'>;
   /** A plugin created or deleted data of the course. */
@@ -81,6 +82,7 @@ export function registerPluginHostHandlers(ipc: IpcMainLike, deps: PluginHostIpc
   bridge(IPC.PLUGIN_HOST_STORAGE_KEYS, storageKeysSchema, (caller, i) => storage.keys(caller, i.scope, i.prefix));
   bridge(IPC.PLUGIN_HOST_CREATE_IMPROMPTU, createImpromptuSchema, (caller, i) => host.createImpromptu(caller, i), true);
   bridge(IPC.PLUGIN_HOST_DELETE_IMPROMPTU, deleteImpromptuSchema, (caller, i) => host.deleteImpromptu(caller, i.assessmentId), true);
+  bridge(IPC.PLUGIN_HOST_SET_IMPROMPTU_NOTE, setImpromptuNoteSchema, (caller, i) => host.setImpromptuNote(caller, i.assessmentId, i.note), true);
   bridge(IPC.PLUGIN_HOST_SECRETS_GET, secretKeySchema, (caller, i) => secrets.get(caller, i.key));
   bridge(IPC.PLUGIN_HOST_SECRETS_SET, secretSetSchema, (caller, i) => secrets.set(caller, i.key, i.value));
   bridge(IPC.PLUGIN_HOST_SECRETS_DELETE, secretKeySchema, (caller, i) => secrets.delete(caller, i.key));

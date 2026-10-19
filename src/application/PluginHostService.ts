@@ -15,6 +15,8 @@ import { AssessmentCategoryService } from './AssessmentCategoryService';
 import { AssessmentService } from './AssessmentService';
 import { CourseRosterService } from './CourseRosterService';
 import { CourseService } from './CourseService';
+import { FindingService } from './FindingService';
+import { GradingService } from './GradingService';
 import { ImpromptuAssessmentService } from './ImpromptuAssessmentService';
 import { SessionService } from './SessionService';
 import { isCalendarDay, localCalendarDay } from './calendarDay';
@@ -27,6 +29,7 @@ import {
 
 const MITARBEIT_TITLE = 'Mitarbeit';
 const MAX_TITLE_LENGTH = 200;
+const MAX_NOTE_LENGTH = 2000;
 
 export interface PluginHostDeps {
   courseService: CourseService;
@@ -35,6 +38,8 @@ export interface PluginHostDeps {
   sessionService: SessionService;
   assessmentService: AssessmentService;
   impromptuService: ImpromptuAssessmentService;
+  gradingService: Pick<GradingService, 'getPerformancesByAssessment'>;
+  findingService: Pick<FindingService, 'setNote'>;
   assessmentRepo: AssessmentRepository;
   pluginAssessmentRepo: PluginAssessmentRepository;
   now: () => Date;
@@ -134,6 +139,14 @@ export class PluginHostService {
       throw error;
     }
 
+    if (request.note !== undefined && request.note.trim() !== '') {
+      const noted = await this.deps.findingService.setNote(created.value.performance.id, request.note);
+      if (!noted.ok) {
+        await this.deleteImpromptu(caller, created.value.assessmentId);
+        return Result.fail(noted.error);
+      }
+    }
+
     return Result.ok({
       assessmentId: created.value.assessmentId,
       performanceId: created.value.performance.id,
@@ -143,10 +156,35 @@ export class PluginHostService {
 
   /** Only assessments this plugin created in this course can be deleted. */
   async deleteImpromptu(caller: PluginCaller, assessmentId: string): Promise<Result<void>> {
+    const owned = await this.ownAssessment(caller, assessmentId);
+    if (!owned.ok) return owned;
+
+    const deleted = await this.deps.assessmentService.delete(assessmentId);
+    if (!deleted.ok) return Result.fail(deleted.error);
+    await this.deps.pluginAssessmentRepo.remove(assessmentId);
+    return Result.ok(undefined as void);
+  }
+
+  /** Replaces the note of the result of an assessment this plugin created in this course; blank removes it. */
+  async setImpromptuNote(caller: PluginCaller, assessmentId: string, note: string): Promise<Result<void>> {
+    const owned = await this.ownAssessment(caller, assessmentId);
+    if (!owned.ok) return owned;
+    const invalid = validateNote(note);
+    if (invalid) return Result.fail(invalid);
+
+    // A plugin assessment holds the one result it was created with.
+    const [performance] = await this.deps.gradingService.getPerformancesByAssessment(assessmentId);
+    if (!performance) return Result.fail(new NotFoundError('Performance of assessment', assessmentId));
+    const noted = await this.deps.findingService.setNote(performance.id, note);
+    return noted.ok ? Result.ok(undefined as void) : Result.fail(noted.error);
+  }
+
+  /** Succeeds when the plugin may change the assessment: it created it, and it belongs to the caller's course. */
+  private async ownAssessment(caller: PluginCaller, assessmentId: string): Promise<Result<void>> {
     const allowed = requirePermission(caller, 'assessment:impromptu');
     if (!allowed.ok) return Result.fail(allowed.error);
 
-    const { pluginAssessmentRepo, assessmentRepo, assessmentService } = this.deps;
+    const { pluginAssessmentRepo, assessmentRepo } = this.deps;
     if (!(await pluginAssessmentRepo.isCreatedBy(caller.manifest.id, assessmentId))) {
       return Result.fail(new PluginPermissionDeniedError('Assessment was not created by this plugin'));
     }
@@ -159,10 +197,6 @@ export class PluginHostService {
     if (assessment.course.id !== caller.courseId) {
       return Result.fail(new NotInCourseError('Assessment', assessmentId));
     }
-
-    const deleted = await assessmentService.delete(assessmentId);
-    if (!deleted.ok) return Result.fail(deleted.error);
-    await pluginAssessmentRepo.remove(assessmentId);
     return Result.ok(undefined as void);
   }
 
@@ -201,6 +235,10 @@ function validateValues(request: CreateImpromptuRequest): ValidationError | null
     const symbol = ParticipationSymbol.create(request.symbol);
     if (!symbol.ok) return symbol.error;
   }
+  if (request.note !== undefined) {
+    const invalid = validateNote(request.note);
+    if (invalid) return invalid;
+  }
 
   const { score, maxPoints } = request;
   if (score === undefined && maxPoints === undefined) return null;
@@ -214,4 +252,10 @@ function validateValues(request: CreateImpromptuRequest): ValidationError | null
     return new ValidationError('score must be a whole number between 0 and maxPoints');
   }
   return null;
+}
+
+function validateNote(note: string): ValidationError | null {
+  return note.trim().length > MAX_NOTE_LENGTH
+    ? new ValidationError(`Note must have at most ${MAX_NOTE_LENGTH} characters`)
+    : null;
 }

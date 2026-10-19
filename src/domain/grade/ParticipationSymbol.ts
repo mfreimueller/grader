@@ -2,12 +2,15 @@ import { ValueObject } from '../shared/ValueObject';
 import { Result } from '../shared/Result';
 import { ValidationError } from '../../shared/errors';
 
-export const PARTICIPATION_SYMBOLS = ['PLUS', 'MINUS', 'WELLE'] as const;
+// Plus-Welle (+~) and Minus-Welle (−~) sit between Welle and a clear Plus or Minus.
+export const PARTICIPATION_SYMBOLS = ['PLUS', 'PLUS_WELLE', 'WELLE', 'MINUS_WELLE', 'MINUS'] as const;
 export type ParticipationSymbolType = (typeof PARTICIPATION_SYMBOLS)[number];
 
 const SCORE_MAP: Record<ParticipationSymbolType, number> = {
   PLUS: 1.0,
+  PLUS_WELLE: 0.75,
   WELLE: 0.5,
+  MINUS_WELLE: 0.25,
   MINUS: 0.0,
 };
 
@@ -25,7 +28,7 @@ export class ParticipationSymbol extends ValueObject<ParticipationSymbolProps> {
     if (!PARTICIPATION_SYMBOLS.includes(upper as ParticipationSymbolType)) {
       return Result.fail(
         new ValidationError(
-          `Invalid ParticipationSymbol: "${raw}". Must be PLUS, MINUS, or WELLE`,
+          `Invalid ParticipationSymbol: "${raw}". Must be one of ${PARTICIPATION_SYMBOLS.join(', ')}`,
         ),
       );
     }

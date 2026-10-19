@@ -62,6 +62,8 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue';
+import { GRID_SYMBOLS } from '../../utils/sessionGridModel';
+import { symbolGlyph, symbolName } from '../../utils/sessionGridLabels';
 import type { StudentDto, AssessmentCategoryDto } from '../../../shared/types';
 
 const props = defineProps<{
@@ -76,11 +78,7 @@ const emit = defineEmits<{
   saved: [];
 }>();
 
-const symbols = [
-  { value: 'PLUS', icon: '+', label: 'Plus' },
-  { value: 'WELLE', icon: '~', label: 'Welle' },
-  { value: 'MINUS', icon: '−', label: 'Minus' },
-];
+const symbols = GRID_SYMBOLS.map((value) => ({ value, icon: symbolGlyph(value), label: symbolName(value) }));
 
 const firstField = ref<HTMLSelectElement | null>(null);
 onMounted(() => firstField.value?.focus());

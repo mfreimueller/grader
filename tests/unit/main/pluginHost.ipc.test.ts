@@ -47,7 +47,7 @@ const ok = <T>(value: T): Promise<Result<T>> => Promise.resolve(Result.ok(value)
 
 describe('registerPluginHostHandlers', () => {
   let ipc: FakeIpcMain;
-  let host: jest.Mocked<Pick<PluginHostService, 'context' | 'createImpromptu' | 'deleteImpromptu'>>;
+  let host: jest.Mocked<Pick<PluginHostService, 'context' | 'createImpromptu' | 'deleteImpromptu' | 'setImpromptuNote'>>;
   let storage: jest.Mocked<Pick<PluginStorageService, 'get' | 'set' | 'delete' | 'keys'>>;
   let secrets: jest.Mocked<Pick<PluginSecretService, 'get' | 'set' | 'delete'>>;
   let changed: string[];
@@ -56,7 +56,7 @@ describe('registerPluginHostHandlers', () => {
 
   beforeEach(() => {
     ipc = new FakeIpcMain();
-    host = { context: jest.fn(), createImpromptu: jest.fn(), deleteImpromptu: jest.fn() };
+    host = { context: jest.fn(), createImpromptu: jest.fn(), deleteImpromptu: jest.fn(), setImpromptuNote: jest.fn() };
     storage = { get: jest.fn(), set: jest.fn(), delete: jest.fn(), keys: jest.fn() };
     secrets = { get: jest.fn(), set: jest.fn(), delete: jest.fn() };
     changed = [];
@@ -84,6 +84,7 @@ describe('registerPluginHostHandlers', () => {
         IPC.PLUGIN_HOST_STORAGE_KEYS,
         IPC.PLUGIN_HOST_CREATE_IMPROMPTU,
         IPC.PLUGIN_HOST_DELETE_IMPROMPTU,
+        IPC.PLUGIN_HOST_SET_IMPROMPTU_NOTE,
         IPC.PLUGIN_HOST_SECRETS_GET,
         IPC.PLUGIN_HOST_SECRETS_SET,
         IPC.PLUGIN_HOST_SECRETS_DELETE,
@@ -100,6 +101,7 @@ describe('registerPluginHostHandlers', () => {
       [IPC.PLUGIN_HOST_STORAGE_KEYS, { scope: 'course' }],
       [IPC.PLUGIN_HOST_CREATE_IMPROMPTU, { studentId: 's', categoryId: 'c' }],
       [IPC.PLUGIN_HOST_DELETE_IMPROMPTU, { assessmentId: 'a' }],
+      [IPC.PLUGIN_HOST_SET_IMPROMPTU_NOTE, { assessmentId: 'a', note: 'n' }],
       [IPC.PLUGIN_HOST_SECRETS_GET, { key: 'k' }],
       [IPC.PLUGIN_HOST_SECRETS_SET, { key: 'k', value: 'v' }],
       [IPC.PLUGIN_HOST_SECRETS_DELETE, { key: 'k' }],
@@ -250,6 +252,31 @@ describe('registerPluginHostHandlers', () => {
     });
   });
 
+  describe('setImpromptuNote', () => {
+    it('passes the note on and tells Grader the course changed', async () => {
+      host.setImpromptuNote.mockReturnValue(ok(undefined as void));
+
+      const result = await ipc.invoke(IPC.PLUGIN_HOST_SET_IMPROMPTU_NOTE, PLUGIN_SENDER, { assessmentId: 'a-1', note: 'Brüche' });
+
+      expect(host.setImpromptuNote).toHaveBeenCalledWith(caller, 'a-1', 'Brüche');
+      expect(result).toEqual({ ok: true, value: undefined });
+      expect(changed).toEqual(['course-1']);
+    });
+
+    it.each([
+      ['a missing note', { assessmentId: 'a-1' }],
+      ['a note that is not a string', { assessmentId: 'a-1', note: 5 }],
+      ['a missing assessment', { note: 'x' }],
+    ])('rejects %s without calling the service', async (_label, payload) => {
+      const result = (await ipc.invoke(IPC.PLUGIN_HOST_SET_IMPROMPTU_NOTE, PLUGIN_SENDER, payload)) as {
+        error: { code: string };
+      };
+
+      expect(result.error.code).toBe('VALIDATION');
+      expect(host.setImpromptuNote).not.toHaveBeenCalled();
+    });
+  });
+
   describe('createImpromptu', () => {
     const created = { assessmentId: 'a-1', performanceId: 'p-1', sessionId: 'se-1' };
 
@@ -262,6 +289,7 @@ describe('registerPluginHostHandlers', () => {
         symbol: 'PLUS',
         session: { kind: 'date', date: '2026-09-30' },
         title: 'Wortmeldung',
+        note: 'Brüche',
       });
 
       expect(host.createImpromptu).toHaveBeenCalledWith(caller, {
@@ -270,6 +298,7 @@ describe('registerPluginHostHandlers', () => {
         symbol: 'PLUS',
         session: { kind: 'date', date: '2026-09-30' },
         title: 'Wortmeldung',
+        note: 'Brüche',
       });
       expect(result).toEqual({ ok: true, value: created });
       expect(changed).toEqual(['course-1']);

@@ -344,7 +344,9 @@ const seedTransaction = db.transaction(() => {
   function normalizedFromSymbol(symbol: string): number {
     switch (symbol) {
       case 'PLUS': return 1.0;
+      case 'PLUS_WELLE': return 0.75;
       case 'WELLE': return 0.5;
+      case 'MINUS_WELLE': return 0.25;
       case 'MINUS': return 0.0;
       default: return 0.5;
     }

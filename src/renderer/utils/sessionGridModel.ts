@@ -5,7 +5,9 @@
 
 import type { AssessmentDto, PerformanceDto, SessionNoteDto, SessionStudentNoteDto, StudentDto } from '../../shared/types';
 
-export type GridSymbol = 'PLUS' | 'WELLE' | 'MINUS';
+/** Best to worst, the order the pickers show them in. */
+export const GRID_SYMBOLS = ['PLUS', 'PLUS_WELLE', 'WELLE', 'MINUS_WELLE', 'MINUS'] as const;
+export type GridSymbol = (typeof GRID_SYMBOLS)[number];
 export type GridGradingType = 'NUMERIC' | 'TERTIARY';
 export type GridCellKind = 'empty' | 'symbol' | 'points';
 
@@ -73,7 +75,7 @@ export interface BuildSessionGridInput {
   sortAscending: boolean;
 }
 
-const SYMBOLS: readonly string[] = ['PLUS', 'WELLE', 'MINUS'];
+const SYMBOLS: readonly string[] = GRID_SYMBOLS;
 export const MITARBEIT_TITLE = 'Mitarbeit';
 
 const gradingTypeOf = (a: AssessmentDto): GridGradingType => (a.category.gradingType === 'NUMERIC' ? 'NUMERIC' : 'TERTIARY');

@@ -170,12 +170,14 @@ await grader.secrets.delete('github-token');
 const result = await grader.assessment.createImpromptu({
   studentId: 'student-1',
   categoryId: 'category-1',
-  symbol: 'PLUS',                         // PLUS | WELLE | MINUS
+  symbol: 'PLUS',                         // PLUS | PLUS_WELLE | WELLE | MINUS_WELLE | MINUS
   title: 'Mitarbeit',                     // optional, Standard: Titel der Kategorie
   session: { kind: 'today' },             // optional
+  note: 'Bruchrechnen, Kürzen',           // optional, Notiz zur Leistung, max. 2000 Zeichen
 });
 // result.value: { assessmentId, performanceId, sessionId }
 
+await grader.assessment.setImpromptuNote(result.value.assessmentId, 'Bruchrechnen'); // leer = Notiz entfernen
 await grader.assessment.deleteImpromptu(result.value.assessmentId);
 ```
 
@@ -190,8 +192,9 @@ await grader.assessment.deleteImpromptu(result.value.assessmentId);
 Statt eines Symbols lassen sich Punkte eintragen: `score` und `maxPoints` (beide ganze Zahlen, `0 ≤ score ≤ maxPoints`).
 
 Grader prüft vor dem Anlegen, ob Person und Kategorie zum Kurs gehören und ob die Werte stimmen; bei einer
-Ablehnung entsteht nichts – auch keine leere Sitzung. Löschen kann ein Plugin nur Leistungen, die es selbst in
-diesem Kurs angelegt hat.
+Ablehnung entsteht nichts – auch keine leere Sitzung. Löschen und mit einer Notiz versehen kann ein Plugin nur
+Leistungen, die es selbst in diesem Kurs angelegt hat. Die Notiz ist dieselbe, die Lehrkräfte im Sitzungsraster an
+einer Leistung sehen und bearbeiten.
 
 Nach jeder erfolgreichen Änderung lädt der geöffnete Kurs in Grader seine Daten neu.
 

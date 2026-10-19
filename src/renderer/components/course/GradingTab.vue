@@ -269,6 +269,7 @@
 
 <script setup lang="ts">
 import { ref, reactive, computed, onMounted } from 'vue';
+import { participationGlyph } from '../../utils/sessionGridLabels';
 import type {
   CourseDto,
   StudentDto,
@@ -277,6 +278,10 @@ import type {
   PerformanceDto,
   CategoryGradeResultDto,
 } from '../../../shared/types';
+
+const SYMBOL_PERCENT: Readonly<Record<string, string>> = {
+  PLUS: '100%', PLUS_WELLE: '75%', WELLE: '50%', MINUS_WELLE: '25%', MINUS: '0%',
+};
 
 const props = defineProps<{
   course: CourseDto;
@@ -331,11 +336,11 @@ function getPerformancesForCategory(studentId: string, categoryId: string): Arra
       const ass = assessments.value.find(a => a.id === p.assessmentId)!;
       const raw = p.type === 'graded'
         ? `${p.score}/${ass.maxPoints}`
-        : (p.symbol === 'PLUS' ? '+' : p.symbol === 'WELLE' ? '~' : '−');
+        : participationGlyph(p.symbol);
       const norm = p.type === 'graded' && p.score !== null && ass.maxPoints
         ? (p.score / ass.maxPoints * 100).toFixed(1) + '%'
         : p.type === 'participation'
-          ? (p.symbol === 'PLUS' ? '100%' : p.symbol === 'WELLE' ? '50%' : '0%')
+          ? (SYMBOL_PERCENT[p.symbol ?? ''] ?? '—')
           : '—';
       return { id: p.id, date: p.date, title: ass.title, raw, normalized: norm };
     });
@@ -441,8 +446,7 @@ function formatPerformance(studentId: string, assessment: AssessmentDto): string
     return `${perf.score}/${max}`;
   }
   if (perf.type === 'participation' && perf.symbol) {
-    const sym: Record<string, string> = { PLUS: '+', WELLE: '~', MINUS: '−' };
-    return sym[perf.symbol] ?? perf.symbol;
+    return participationGlyph(perf.symbol);
   }
   return '—';
 }

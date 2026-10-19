@@ -23,7 +23,7 @@
 </template>
 
 <script setup lang="ts">
-import type { GridCell, GridSymbol } from '../../../utils/sessionGridModel';
+import { GRID_SYMBOLS as SYMBOLS, type GridCell, type GridSymbol } from '../../../utils/sessionGridModel';
 import { symbolGlyph, symbolName } from '../../../utils/sessionGridLabels';
 import { symbolForKey } from '../../../utils/sessionGridInput';
 import type { PanelAnchor } from '../../../utils/panelAnchor';
@@ -31,8 +31,6 @@ import FloatingPanel from './FloatingPanel.vue';
 
 defineProps<{ cell: GridCell; studentName: string; anchor: PanelAnchor }>();
 const emit = defineEmits<{ pick: [symbol: GridSymbol]; close: [] }>();
-
-const SYMBOLS: readonly GridSymbol[] = ['PLUS', 'WELLE', 'MINUS'];
 
 function onKey(event: KeyboardEvent): void {
   const picked = symbolForKey(event.key);
@@ -53,7 +51,7 @@ function onKey(event: KeyboardEvent): void {
 <style scoped>
 .picker {
   padding: 12px 14px;
-  width: 200px;
+  width: 268px;
 }
 
 .caption {
