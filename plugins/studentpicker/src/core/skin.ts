@@ -1,5 +1,5 @@
 /** How the picker looks; chosen per course and kept in the course storage. */
-export const SKINS = ['slotmachine', 'wheel'] as const;
+export const SKINS = ['slotmachine', 'wheel', 'casino'] as const;
 export type Skin = (typeof SKINS)[number];
 
 export const DEFAULT_SKIN: Skin = 'slotmachine';

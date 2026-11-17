@@ -31,6 +31,7 @@ const de = {
     label: 'Aussehen',
     slotmachine: 'Spielautomat',
     wheel: 'Glücksrad',
+    casino: 'Casino',
   },
   specials: {
     title: 'Spezialfelder',
