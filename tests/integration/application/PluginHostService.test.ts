@@ -79,6 +79,8 @@ describe('PluginHostService', () => {
   let host: PluginHostService;
   let sessionService: SessionService;
   let assessmentService: AssessmentService;
+  let gradingService: GradingService;
+  let findingService: FindingService;
   let pluginAssessmentRepo: SqlitePluginAssessmentRepository;
   let mitarbeitId: string;
   let schularbeitId: string;
@@ -98,7 +100,8 @@ describe('PluginHostService', () => {
     const rosterService = new CourseRosterService(courseRepo, studentRepo, rosterRepo);
     sessionService = new SessionService(sessionRepo, courseRepo, studentRepo, rosterService);
     assessmentService = new AssessmentService(assessmentRepo, sessionRepo, courseRepo);
-    const gradingService = new GradingService(gradeRepo, courseRepo, gradeRepo, studentRepo, assessmentRepo, sessionRepo);
+    gradingService = new GradingService(gradeRepo, courseRepo, gradeRepo, studentRepo, assessmentRepo, sessionRepo);
+    findingService = new FindingService(new SqliteFindingRepository(db), new SqliteUnitOfWork(db));
     pluginAssessmentRepo = new SqlitePluginAssessmentRepository(db);
 
     return new PluginHostService({
@@ -109,7 +112,7 @@ describe('PluginHostService', () => {
       assessmentService,
       impromptuService: new ImpromptuAssessmentService(assessmentService, gradingService),
       gradingService,
-      findingService: new FindingService(new SqliteFindingRepository(db), new SqliteUnitOfWork(db)),
+      findingService,
       assessmentRepo: stubs.assessmentRepo ?? assessmentRepo,
       pluginAssessmentRepo: stubs.pluginAssessments ?? pluginAssessmentRepo,
       now: () => now,
@@ -705,6 +708,177 @@ describe('PluginHostService', () => {
 
       expect(errorOf(result)).toBeInstanceOf(NotFoundError);
       expect(removed).toEqual(['a-gone']);
+    });
+  });
+
+  describe('listAssessments', () => {
+    const readCaller = (overrides: { courseId?: string; permissions?: string[] } = {}): PluginCaller =>
+      aCaller({ permissions: ['course:read', 'assessment:read'], ...overrides });
+
+    const sharedAssessment = async (
+      date: string,
+      title: string,
+      categoryId: string,
+      maxPoints?: number,
+      courseId = 'course-1',
+    ): Promise<string> => {
+      const session = valueOf(await sessionService.findOrCreateOnDate(courseId, date));
+      const created = valueOf(
+        await assessmentService.create({
+          sessionId: session.id,
+          title,
+          categoryId,
+          courseId,
+          isImpromptu: false,
+          ...(maxPoints !== undefined ? { maxPoints } : {}),
+        }),
+      );
+      return created.id;
+    };
+
+    const record = async (assessmentId: string, studentId: string, value: { symbol?: string; score?: number }) =>
+      valueOf(await gradingService.recordPerformance({ assessmentId, studentId, ...value }));
+
+    it('is denied without the assessment:read permission', async () => {
+      const result = await host.listAssessments(aCaller({ permissions: ['course:read', 'assessment:impromptu'] }));
+
+      expect(errorOf(result)).toBeInstanceOf(PluginPermissionDeniedError);
+    });
+
+    it('lists nothing for a course without assessments', async () => {
+      expect(valueOf(await host.listAssessments(readCaller()))).toEqual([]);
+    });
+
+    it('describes a shared symbol assessment with one result per graded student', async () => {
+      const id = await sharedAssessment('2026-10-05', 'Übung 3', mitarbeitId);
+      await record(id, 's-bauer', { symbol: 'PLUS_WELLE' });
+      await record(id, 's-zorn', { symbol: 'MINUS' });
+
+      const [assessment] = valueOf(await host.listAssessments(readCaller()));
+
+      expect(assessment).toEqual({
+        id,
+        title: 'Übung 3',
+        date: '2026-10-05',
+        sessionId: expect.any(String),
+        categoryId: mitarbeitId,
+        gradingType: 'TERTIARY',
+        displayAsGrade: false,
+        maxPoints: null,
+        isImpromptu: false,
+        results: expect.arrayContaining([
+          { studentId: 's-bauer', score: null, symbol: 'PLUS_WELLE', note: null, grade: null },
+          { studentId: 's-zorn', score: null, symbol: 'MINUS', note: null, grade: null },
+        ]),
+      });
+      expect(assessment!.results).toHaveLength(2);
+    });
+
+    it('gives points and max points for a numeric assessment', async () => {
+      const id = await sharedAssessment('2026-10-05', '1. Schularbeit', schularbeitId, 24);
+      await record(id, 's-muster', { score: 17 });
+
+      const [assessment] = valueOf(await host.listAssessments(readCaller()));
+
+      expect(assessment).toMatchObject({
+        gradingType: 'NUMERIC',
+        maxPoints: 24,
+        results: [{ studentId: 's-muster', score: 17, symbol: null, note: null, grade: 3 }],
+      });
+    });
+
+    describe('grade 1-5', () => {
+      const gradeOf = async (assessmentId: string, studentId: string, score: number) => {
+        await record(assessmentId, studentId, { score });
+        const listed = valueOf(await host.listAssessments(readCaller())).find((a) => a.id === assessmentId)!;
+        return listed.results.find((r) => r.studentId === studentId)!.grade;
+      };
+
+      it('flags a displayAsGrade category and converts points with the LBVO thresholds', async () => {
+        const id = await sharedAssessment('2026-10-05', '1. Schularbeit', schularbeitId, 24);
+        const expected: [number, number][] = [
+          [24, 1],
+          [21, 1],
+          [20, 2],
+          [18, 2],
+          [17, 3],
+          [15, 3],
+          [14, 4],
+          [12, 4],
+          [11, 5],
+          [0, 5],
+        ];
+        for (const [score, grade] of expected) {
+          expect(await gradeOf(id, 's-muster', score)).toBe(grade);
+        }
+        const [assessment] = valueOf(await host.listAssessments(readCaller()));
+        expect(assessment!.displayAsGrade).toBe(true);
+      });
+
+      it('gives null for a NUMERIC category without displayAsGrade', async () => {
+        const courseRepo = new SqliteCourseRepository(db);
+        const course = (await courseRepo.findById('course-1'))!;
+        course.addAssessmentCategory(new AssessmentCategory('cat-punkte', 'Punkte', GradingType.NUMERIC, false));
+        courseRepo.save(course);
+        const id = await sharedAssessment('2026-10-05', 'Test', 'cat-punkte', 24);
+
+        expect(await gradeOf(id, 's-muster', 22)).toBeNull();
+        const [assessment] = valueOf(await host.listAssessments(readCaller()));
+        expect(assessment!.displayAsGrade).toBe(false);
+      });
+
+      it('gives null for a TERTIARY assessment', async () => {
+        const id = await sharedAssessment('2026-10-05', 'Übung 3', mitarbeitId);
+        await record(id, 's-bauer', { symbol: 'PLUS' });
+
+        const [assessment] = valueOf(await host.listAssessments(readCaller()));
+        expect(assessment!.results[0]!.grade).toBeNull();
+      });
+    });
+
+    it('gives the note of a result, several notes joined by a line break', async () => {
+      const id = await sharedAssessment('2026-10-05', 'Übung 3', mitarbeitId);
+      const performance = await record(id, 's-bauer', { symbol: 'PLUS' });
+      valueOf(await findingService.addNote({ performanceId: performance.id, text: 'Schleifen sauber' }));
+      valueOf(await findingService.addNote({ performanceId: performance.id, text: 'Abgabe pünktlich' }));
+
+      const [assessment] = valueOf(await host.listAssessments(readCaller()));
+
+      expect(assessment!.results[0]!.note).toBe('Schleifen sauber\nAbgabe pünktlich');
+    });
+
+    it('includes impromptu assessments, marked as such', async () => {
+      const created = valueOf(
+        await host.createImpromptu(aCaller(), { studentId: 's-muster', categoryId: mitarbeitId, symbol: 'PLUS' }),
+      );
+
+      const [assessment] = valueOf(await host.listAssessments(readCaller()));
+
+      expect(assessment).toMatchObject({ id: created.assessmentId, isImpromptu: true, date: '2026-10-12' });
+    });
+
+    it('lists an assessment without results with an empty result list', async () => {
+      await sharedAssessment('2026-10-05', 'Übung 4', mitarbeitId);
+
+      const [assessment] = valueOf(await host.listAssessments(readCaller()));
+
+      expect(assessment!.results).toEqual([]);
+    });
+
+    it('lists the newest session first', async () => {
+      await sharedAssessment('2026-09-28', 'Übung 1', mitarbeitId);
+      await sharedAssessment('2026-10-05', 'Übung 2', mitarbeitId);
+
+      const titles = valueOf(await host.listAssessments(readCaller())).map((a) => a.title);
+
+      expect(titles).toEqual(['Übung 2', 'Übung 1']);
+    });
+
+    it('leaves out assessments of other courses', async () => {
+      await sharedAssessment('2026-10-05', 'Physik-Übung', otherCourseMitarbeitId, undefined, 'course-2');
+
+      expect(valueOf(await host.listAssessments(readCaller()))).toEqual([]);
+      expect(valueOf(await host.listAssessments(readCaller({ courseId: 'course-2' })))).toHaveLength(1);
     });
   });
 });

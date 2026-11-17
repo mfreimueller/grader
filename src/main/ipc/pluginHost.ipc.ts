@@ -26,7 +26,7 @@ export interface IpcMainLike {
 
 export interface PluginHostIpcDeps {
   registry: Pick<PluginWindowRegistry<unknown>, 'callerFor'>;
-  host: Pick<PluginHostService, 'context' | 'createImpromptu' | 'deleteImpromptu' | 'setImpromptuNote'>;
+  host: Pick<PluginHostService, 'context' | 'listAssessments' | 'createImpromptu' | 'deleteImpromptu' | 'setImpromptuNote'>;
   storage: Pick<PluginStorageService, 'get' | 'set' | 'delete' | 'keys'>;
   secrets: Pick<PluginSecretService, 'get' | 'set' | 'delete'>;
   /** A plugin created or deleted data of the course. */
@@ -76,6 +76,7 @@ export function registerPluginHostHandlers(ipc: IpcMainLike, deps: PluginHostIpc
   const noPayload = { safeParse: () => ({ success: true as const, data: undefined }) } as unknown as z.ZodType<undefined>;
 
   bridge(IPC.PLUGIN_HOST_CONTEXT, noPayload, (caller) => host.context(caller));
+  bridge(IPC.PLUGIN_HOST_LIST_ASSESSMENTS, noPayload, (caller) => host.listAssessments(caller));
   bridge(IPC.PLUGIN_HOST_STORAGE_GET, storageKeySchema, (caller, i) => storage.get(caller, i.scope, i.key));
   bridge(IPC.PLUGIN_HOST_STORAGE_SET, storageSetSchema, (caller, i) => storage.set(caller, i.scope, i.key, i.value));
   bridge(IPC.PLUGIN_HOST_STORAGE_DELETE, storageKeySchema, (caller, i) => storage.delete(caller, i.scope, i.key));

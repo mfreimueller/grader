@@ -1,7 +1,7 @@
 import { Result } from '../shared/Result';
 import { ValidationError } from '../../shared/errors';
 
-export const PLUGIN_PERMISSIONS = ['course:read', 'storage', 'assessment:impromptu', 'secrets'] as const;
+export const PLUGIN_PERMISSIONS = ['course:read', 'storage', 'assessment:impromptu', 'assessment:read', 'secrets'] as const;
 
 export type PluginPermission = (typeof PLUGIN_PERMISSIONS)[number];
 

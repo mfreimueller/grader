@@ -47,7 +47,7 @@ const ok = <T>(value: T): Promise<Result<T>> => Promise.resolve(Result.ok(value)
 
 describe('registerPluginHostHandlers', () => {
   let ipc: FakeIpcMain;
-  let host: jest.Mocked<Pick<PluginHostService, 'context' | 'createImpromptu' | 'deleteImpromptu' | 'setImpromptuNote'>>;
+  let host: jest.Mocked<Pick<PluginHostService, 'context' | 'listAssessments' | 'createImpromptu' | 'deleteImpromptu' | 'setImpromptuNote'>>;
   let storage: jest.Mocked<Pick<PluginStorageService, 'get' | 'set' | 'delete' | 'keys'>>;
   let secrets: jest.Mocked<Pick<PluginSecretService, 'get' | 'set' | 'delete'>>;
   let changed: string[];
@@ -56,7 +56,13 @@ describe('registerPluginHostHandlers', () => {
 
   beforeEach(() => {
     ipc = new FakeIpcMain();
-    host = { context: jest.fn(), createImpromptu: jest.fn(), deleteImpromptu: jest.fn(), setImpromptuNote: jest.fn() };
+    host = {
+      context: jest.fn(),
+      listAssessments: jest.fn(),
+      createImpromptu: jest.fn(),
+      deleteImpromptu: jest.fn(),
+      setImpromptuNote: jest.fn(),
+    };
     storage = { get: jest.fn(), set: jest.fn(), delete: jest.fn(), keys: jest.fn() };
     secrets = { get: jest.fn(), set: jest.fn(), delete: jest.fn() };
     changed = [];
@@ -78,6 +84,7 @@ describe('registerPluginHostHandlers', () => {
     expect(ipc.channels().sort()).toEqual(
       [
         IPC.PLUGIN_HOST_CONTEXT,
+        IPC.PLUGIN_HOST_LIST_ASSESSMENTS,
         IPC.PLUGIN_HOST_STORAGE_GET,
         IPC.PLUGIN_HOST_STORAGE_SET,
         IPC.PLUGIN_HOST_STORAGE_DELETE,
@@ -95,6 +102,7 @@ describe('registerPluginHostHandlers', () => {
   describe('who may call', () => {
     it.each([
       [IPC.PLUGIN_HOST_CONTEXT, undefined],
+      [IPC.PLUGIN_HOST_LIST_ASSESSMENTS, undefined],
       [IPC.PLUGIN_HOST_STORAGE_GET, { scope: 'course', key: 'k' }],
       [IPC.PLUGIN_HOST_STORAGE_SET, { scope: 'course', key: 'k', value: 1 }],
       [IPC.PLUGIN_HOST_STORAGE_DELETE, { scope: 'course', key: 'k' }],
@@ -110,6 +118,7 @@ describe('registerPluginHostHandlers', () => {
 
       expect(result).toEqual({ ok: false, error: { code: 'PERMISSION_DENIED', message: 'Not a plugin window' } });
       expect(host.context).not.toHaveBeenCalled();
+      expect(host.listAssessments).not.toHaveBeenCalled();
       expect(host.createImpromptu).not.toHaveBeenCalled();
       expect(storage.set).not.toHaveBeenCalled();
       expect(secrets.get).not.toHaveBeenCalled();
@@ -126,6 +135,18 @@ describe('registerPluginHostHandlers', () => {
 
       expect(host.context).toHaveBeenCalledWith(caller);
       expect(result).toEqual({ ok: true, value: { course: { id: 'course-1' } } });
+    });
+  });
+
+  describe('listAssessments', () => {
+    it('lists the assessments of the course of the sender without announcing a change', async () => {
+      host.listAssessments.mockReturnValue(ok([{ id: 'a-1' }] as never));
+
+      const result = await ipc.invoke(IPC.PLUGIN_HOST_LIST_ASSESSMENTS, PLUGIN_SENDER);
+
+      expect(host.listAssessments).toHaveBeenCalledWith(caller);
+      expect(result).toEqual({ ok: true, value: [{ id: 'a-1' }] });
+      expect(changed).toEqual([]);
     });
   });
 

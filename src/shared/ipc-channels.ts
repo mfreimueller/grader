@@ -93,6 +93,7 @@ export const IPC = {
 
   // Plugin window -> main: the bridge behind window.grader.
   PLUGIN_HOST_CONTEXT: 'pluginHost:context',
+  PLUGIN_HOST_LIST_ASSESSMENTS: 'pluginHost:listAssessments',
   PLUGIN_HOST_STORAGE_GET: 'pluginHost:storageGet',
   PLUGIN_HOST_STORAGE_SET: 'pluginHost:storageSet',
   PLUGIN_HOST_STORAGE_DELETE: 'pluginHost:storageDelete',

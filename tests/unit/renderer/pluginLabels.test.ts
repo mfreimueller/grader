@@ -29,6 +29,7 @@ describe('pluginLabels', () => {
       ['course:read', 'Kurs, Klasse und Namen der Schüler/innen lesen'],
       ['storage', 'Eigene Daten in der Grader-Datenbank speichern'],
       ['assessment:impromptu', 'Spontane Beurteilungen anlegen und eigene wieder löschen'],
+      ['assessment:read', 'Beurteilungen des Kurses mit Ergebnissen und Notizen lesen'],
       ['secrets', 'Zugangsdaten (z. B. ein Zugriffstoken) verschlüsselt auf diesem Computer speichern'],
     ])('explains %s in plain German', (permission, text) => {
       expect(describePermission(permission)).toBe(text);

@@ -9,6 +9,10 @@ describe('PluginPermission', () => {
       expect(PLUGIN_PERMISSIONS).toContain('secrets');
     });
 
+    it('knows the assessment:read permission', () => {
+      expect(PLUGIN_PERMISSIONS).toContain('assessment:read');
+    });
+
     it.each([...PLUGIN_PERMISSIONS])('accepts %p', (raw) => {
       const result = parsePluginPermission(raw);
 

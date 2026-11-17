@@ -5,6 +5,7 @@ import type { GraderPluginApi, KvScope } from '../shared/plugin-api';
 // tests/unit/main/preloadChannels.test.ts keeps these in sync with src/shared/ipc-channels.ts.
 const IPC = {
   PLUGIN_HOST_CONTEXT: 'pluginHost:context',
+  PLUGIN_HOST_LIST_ASSESSMENTS: 'pluginHost:listAssessments',
   PLUGIN_HOST_STORAGE_GET: 'pluginHost:storageGet',
   PLUGIN_HOST_STORAGE_SET: 'pluginHost:storageSet',
   PLUGIN_HOST_STORAGE_DELETE: 'pluginHost:storageDelete',
@@ -34,6 +35,7 @@ const api: GraderPluginApi = {
     delete: (key) => ipcRenderer.invoke(IPC.PLUGIN_HOST_SECRETS_DELETE, { key }),
   },
   assessment: {
+    list: () => ipcRenderer.invoke(IPC.PLUGIN_HOST_LIST_ASSESSMENTS),
     createImpromptu: (request) => ipcRenderer.invoke(IPC.PLUGIN_HOST_CREATE_IMPROMPTU, request),
     deleteImpromptu: (assessmentId) => ipcRenderer.invoke(IPC.PLUGIN_HOST_DELETE_IMPROMPTU, { assessmentId }),
     setImpromptuNote: (assessmentId, note) => ipcRenderer.invoke(IPC.PLUGIN_HOST_SET_IMPROMPTU_NOTE, { assessmentId, note }),

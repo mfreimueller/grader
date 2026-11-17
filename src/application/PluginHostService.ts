@@ -1,4 +1,6 @@
 import { AssessmentRepository } from '../domain/grade/AssessmentRepository';
+import { normalizedToGrade } from '../domain/grade/GradeCalculationService';
+import { GradingType } from '../domain/grade/GradingType';
 import { ParticipationSymbol } from '../domain/grade/ParticipationSymbol';
 import { PluginAssessmentRepository } from '../domain/plugin/PluginAssessmentRepository';
 import { Result } from '../domain/shared/Result';
@@ -7,6 +9,7 @@ import {
   CreateImpromptuRequest,
   CreateImpromptuResult,
   PLUGIN_API_VERSION,
+  PluginAssessment,
   PluginContext,
   PluginStudent,
   SessionTarget,
@@ -39,7 +42,7 @@ export interface PluginHostDeps {
   assessmentService: AssessmentService;
   impromptuService: ImpromptuAssessmentService;
   gradingService: Pick<GradingService, 'getPerformancesByAssessment'>;
-  findingService: Pick<FindingService, 'setNote'>;
+  findingService: Pick<FindingService, 'setNote' | 'listNotesBySession'>;
   assessmentRepo: AssessmentRepository;
   pluginAssessmentRepo: PluginAssessmentRepository;
   now: () => Date;
@@ -95,6 +98,49 @@ export class PluginHostService {
         notes: session.notes,
       })),
     });
+  }
+
+  /** Every assessment of the course with its results and notes, newest session first. */
+  async listAssessments(caller: PluginCaller): Promise<Result<PluginAssessment[]>> {
+    const allowed = requirePermission(caller, 'assessment:read');
+    if (!allowed.ok) return Result.fail(allowed.error);
+
+    const { sessionService, assessmentService, gradingService, findingService } = this.deps;
+    const listed: PluginAssessment[] = [];
+    for (const session of await sessionService.listByCourse(caller.courseId)) {
+      const notes = new Map(
+        (await findingService.listNotesBySession(session.id)).map((n) => [n.performanceId, n.text]),
+      );
+      for (const assessment of await assessmentService.listBySession(session.id)) {
+        const performances = await gradingService.getPerformancesByAssessment(assessment.id);
+        listed.push({
+          id: assessment.id,
+          title: assessment.title,
+          date: session.date.slice(0, 10),
+          sessionId: session.id,
+          categoryId: assessment.category.id,
+          gradingType: assessment.category.gradingType,
+          maxPoints: assessment.maxPoints,
+          displayAsGrade: assessment.category.displayAsGrade,
+          isImpromptu: assessment.isImpromptu,
+          results: performances.map((p) => ({
+            studentId: p.studentId,
+            score: p.score,
+            symbol: p.symbol,
+            note: notes.get(p.id) ?? null,
+            grade:
+              assessment.category.gradingType === GradingType.NUMERIC &&
+              assessment.category.displayAsGrade &&
+              p.score !== null &&
+              assessment.maxPoints !== null &&
+              assessment.maxPoints > 0
+                ? normalizedToGrade(p.score / assessment.maxPoints)
+                : null,
+          })),
+        });
+      }
+    }
+    return Result.ok(listed);
   }
 
   async createImpromptu(

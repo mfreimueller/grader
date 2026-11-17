@@ -65,6 +65,42 @@ export interface PluginContext {
   sessions: PluginSession[];
 }
 
+/** The result of one student in an assessment. */
+export interface PluginAssessmentResult {
+  studentId: string;
+  /** Points reached, for a `NUMERIC` assessment. */
+  score: number | null;
+  /** `PLUS`, `PLUS_WELLE`, `WELLE`, `MINUS_WELLE` or `MINUS`, for a `TERTIARY` assessment. */
+  symbol: string | null;
+  /** The notes on the result, several joined by a line break; null when there is none. */
+  note: string | null;
+  /**
+   * Grade 1-5 for a `NUMERIC` result whose category is shown as a grade (`displayAsGrade`), converted by Grader
+   * from `score / maxPoints`. Null for every other result, or when there is no score.
+   */
+  grade: 1 | 2 | 3 | 4 | 5 | null;
+}
+
+/** An assessment of the course with the results recorded so far. Needs the `assessment:read` permission. */
+export interface PluginAssessment {
+  id: string;
+  title: string;
+  /** Calendar day of its session, `YYYY-MM-DD`. */
+  date: string;
+  sessionId: string;
+  categoryId: string;
+  /** `TERTIARY` (+ ~ −) or `NUMERIC` (points). */
+  gradingType: string;
+  /** Null unless `NUMERIC`. */
+  maxPoints: number | null;
+  /** Whether the category is shown as a grade 1-5; then `NUMERIC` results carry a `grade`. */
+  displayAsGrade: boolean;
+  /** True for a single student's entry (e.g. Mitarbeit), false for a shared column of the session. */
+  isImpromptu: boolean;
+  /** Only students with a recorded result. */
+  results: PluginAssessmentResult[];
+}
+
 /** Which session a new assessment lands in. The session is created when it does not exist yet. */
 export type SessionTarget =
   | { kind: 'today' }
@@ -120,6 +156,8 @@ export interface GraderPluginApi {
   storage: KvScope & { global: KvScope };
   secrets: SecretsApi;
   assessment: {
+    /** Every assessment of the course with its results, newest session first. Needs `assessment:read`. */
+    list(): Promise<PluginResult<PluginAssessment[]>>;
     createImpromptu(request: CreateImpromptuRequest): Promise<PluginResult<CreateImpromptuResult>>;
     /** Only assessments this plugin created in this course. */
     deleteImpromptu(assessmentId: string): Promise<PluginResult<void>>;

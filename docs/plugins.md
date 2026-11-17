@@ -71,7 +71,8 @@ Ein fehlerhaftes Plugin erscheint in den Einstellungen mit der Fehlermeldung; di
 |---|---|---|
 | `course:read` | `context()` | Kurs, Klasse und Namen der anwesenden Schüler/innen lesen |
 | `storage` | `storage.*` | Eigene Daten in der Grader-Datenbank speichern |
-| `assessment:impromptu` | `assessment.*` | Spontane Beurteilungen anlegen und eigene wieder löschen |
+| `assessment:impromptu` | `assessment.createImpromptu`, `…Note`, `…delete` | Spontane Beurteilungen anlegen und eigene wieder löschen |
+| `assessment:read` | `assessment.list()` | Beurteilungen des Kurses mit Ergebnissen und Notizen lesen |
 | `secrets` | `secrets.*` | Zugangsdaten (z. B. ein Zugriffstoken) verschlüsselt auf diesem Computer speichern |
 
 Die Berechtigung `course:read` liefert Kurs, Klasse und Namen der Schüler/innen des Kurses (`students`: die
@@ -198,6 +199,25 @@ einer Leistung sehen und bearbeiten.
 
 Nach jeder erfolgreichen Änderung lädt der geöffnete Kurs in Grader seine Daten neu.
 
+#### Beurteilungen lesen
+
+Mit `assessment:read` liest ein Plugin alle Beurteilungen des Kurses samt Ergebnissen, neueste Sitzung zuerst – etwa
+um sie in ein anderes System zu übertragen:
+
+```ts
+const assessments = (await grader.assessment.list()).value;
+// [{ id, title, date: '2026-10-05', sessionId, categoryId,
+//    gradingType: 'TERTIARY' | 'NUMERIC', maxPoints,      // maxPoints nur bei NUMERIC, sonst null
+//    displayAsGrade,                                      // Kategorie wird als Note 1–5 angezeigt
+//    isImpromptu,                                         // false = gemeinsame Spalte der Sitzung
+//    results: [{ studentId, score, symbol, note, grade }] }]     // nur Schüler/innen mit Ergebnis
+```
+
+`score` ist bei Punkten gesetzt, `symbol` bei + ~ −. `note` sind die Notizen zur Leistung (mehrere durch einen
+Zeilenumbruch getrennt), sonst `null`. `grade` ist die Note 1–5, die Grader aus den Punkten berechnet
+(`score / maxPoints`, nach LBVO-Schwellen): nur bei `NUMERIC` mit `displayAsGrade` und gesetztem `score`, sonst `null`.
+0 Punkte ergeben die Note 5. Lesen ändert nichts.
+
 ## Sicherheit
 
 - Jedes Plugin läuft in einem Fenster mit `sandbox`, `contextIsolation` und ohne Node.js, auf einer eigenen Adresse
@@ -211,7 +231,7 @@ Nach jeder erfolgreichen Änderung lädt der geöffnete Kurs in Grader seine Dat
 - Alles, was ein Plugin sendet, wird geprüft; unerwartete Fehler erscheinen für das Plugin nur als „Internal error“.
 
 Ein Plugin mit `assessment:impromptu` kann Noten verändern, eines mit `course:read` und `network` Schülernamen an die
-erlaubten Server senden. Eigene Plugins daher nur aus Quellen einschalten, denen Sie vertrauen.
+erlaubten Server senden, eines mit `assessment:read` und `network` auch Noten und Notizen. Eigene Plugins daher nur aus Quellen einschalten, denen Sie vertrauen.
 
 ## Ein Plugin entwickeln
 
@@ -256,5 +276,5 @@ drehen“) und `skin` (`slotmachine` oder `wheel`). Ein Aufruf mit `+`, `~` oder
 ## Noch nicht möglich
 
 Das Schreiben von Anwesenheit und Ereignisse von Grader an das Plugin. Die Schnittstelle ist so angelegt, dass sich das
-später ergänzen lässt. Netzwerk, `secrets` und `courseStudents` sind additive Erweiterungen der Schnittstelle Version 1;
+später ergänzen lässt. Netzwerk, `secrets`, `courseStudents` und `assessment.list()` sind additive Erweiterungen der Schnittstelle Version 1;
 ältere Plugins laufen unverändert weiter.

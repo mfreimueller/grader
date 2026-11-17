@@ -72,6 +72,7 @@
     }
   }
   await step('deleteForeign', () => grader.assessment.deleteImpromptu('not-mine'));
+  await step('listAssessments', () => grader.assessment.list());
 
   await step('secretsMissing', () => grader.secrets.get('token'));
   await step('secretsSet', () => grader.secrets.set('token', 'ghp_e2e_secret'));

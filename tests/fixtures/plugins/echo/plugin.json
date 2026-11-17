@@ -6,6 +6,6 @@
   "apiVersion": 1,
   "entry": "index.html",
   "launch": ["course"],
-  "permissions": ["course:read", "storage", "assessment:impromptu", "secrets"],
+  "permissions": ["course:read", "storage", "assessment:impromptu", "assessment:read", "secrets"],
   "network": ["https://granted.example.invalid"]
 }

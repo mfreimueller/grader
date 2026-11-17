@@ -9,7 +9,7 @@ import path from 'node:path';
 import { createCourse as createCourseFor, launchGrader, localDay, repoRoot, type Api, type RunningGrader } from './helpers';
 
 const PLUGIN_ID = 'at.example.echo';
-const PERMISSIONS = ['course:read', 'storage', 'assessment:impromptu', 'secrets'];
+const PERMISSIONS = ['course:read', 'storage', 'assessment:impromptu', 'assessment:read', 'secrets'];
 const NETWORK = ['https://granted.example.invalid'];
 
 type Reply = { ok: boolean; value?: unknown; error?: { code: string; message: string } };
@@ -138,6 +138,12 @@ test('an enabled plugin runs sandboxed, uses the bridge and cannot reach beyond 
   expect(report['createSmuggled']?.ok).toBe(true);
   expect(report['deletePast']?.ok).toBe(true);
   expect(report['deleteForeign']?.error?.code).toBe('PERMISSION_DENIED');
+  const listed = report['listAssessments']?.value as { id: string; isImpromptu: boolean; results: unknown[] }[];
+  expect(report['listAssessments']?.ok).toBe(true);
+  expect(listed.find((a) => a.id === today.assessmentId)).toMatchObject({
+    isImpromptu: true,
+    results: [{ studentId: context.students[0]?.id, score: null, symbol: 'PLUS', note: null, grade: null }],
+  });
 
   // Secrets: round trip when the system can encrypt, a clear refusal (never plain text) when it cannot.
   expect(report['secretsMissing']).toEqual({ ok: true, value: null });
