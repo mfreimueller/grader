@@ -40,10 +40,19 @@ export function parseCasinoSettings(stored: unknown): CasinoSettings {
   const text = (key: 'dealerName' | 'winText' | 'loseText'): string => {
     const value = raw[key];
     const trimmed = typeof value === 'string' ? value.trim() : '';
-    return trimmed !== '' && trimmed.length <= MAX_TEXT_LENGTH ? trimmed : DEFAULT_CASINO_SETTINGS[key];
+    return validText(trimmed) ? trimmed : DEFAULT_CASINO_SETTINGS[key];
   };
   const pushRule = PUSH_RULES.find((rule) => rule === raw['pushRule']) ?? DEFAULT_CASINO_SETTINGS.pushRule;
   return { dealerName: text('dealerName'), winText: text('winText'), loseText: text('loseText'), pushRule };
+}
+
+/** Whether the editor may save the settings: every text has 1 to MAX_TEXT_LENGTH characters once trimmed. */
+export function casinoSettingsValid(settings: CasinoSettings): boolean {
+  return [settings.dealerName, settings.winText, settings.loseText].every((text) => validText(text.trim()));
+}
+
+function validText(trimmed: string): boolean {
+  return trimmed !== '' && trimmed.length <= MAX_TEXT_LENGTH;
 }
 
 export function consequence(outcome: Outcome, settings: CasinoSettings): Consequence {

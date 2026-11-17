@@ -1,5 +1,6 @@
 import {
   addToScore,
+  casinoSettingsValid,
   consequence,
   DEFAULT_CASINO_SETTINGS,
   EMPTY_SCORE,
@@ -48,6 +49,17 @@ describe('casino', () => {
         'pass',
         'answer',
       ]);
+    });
+  });
+
+  describe('casinoSettingsValid', () => {
+    it('accepts texts of 1 to MAX_TEXT_LENGTH characters after trimming', () => {
+      expect(casinoSettingsValid(settings({ dealerName: ' x ', winText: 'y'.repeat(MAX_TEXT_LENGTH) }))).toBe(true);
+    });
+
+    it('refuses a blank or too long text', () => {
+      expect(casinoSettingsValid(settings({ loseText: '  ' }))).toBe(false);
+      expect(casinoSettingsValid(settings({ dealerName: 'z'.repeat(MAX_TEXT_LENGTH + 1) }))).toBe(false);
     });
   });
 

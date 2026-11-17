@@ -1,0 +1,374 @@
+/* The blackjack table, adapted from ClassroomCasino's css/styles.css. */
+.table {
+  --cw: clamp(50px, 8.4vh, 100px);
+  --ch: calc(var(--cw) * 1.4);
+  --fan: calc(var(--cw) * 0.44);
+
+  position: relative;
+  flex: 1 1 auto;
+  min-height: 0;
+  padding: 14px;
+  border-radius: 30px 30px 50% 50% / 30px 30px 31% 31%;
+}
+
+.felt {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 0 20px;
+  border-radius: 18px 18px 50% 50% / 18px 18px 31% 31%;
+  overflow: hidden;
+}
+
+.zone {
+  position: relative;
+  z-index: 3;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+
+.shoe {
+  position: absolute;
+  top: 5%;
+  right: 6%;
+  z-index: 2;
+}
+
+.shoe-body {
+  position: relative;
+  width: calc(var(--cw) * 1.3);
+  height: calc(var(--cw) * 0.92);
+  border-radius: 8px 8px 4px 4px;
+  background: linear-gradient(160deg, rgb(40 40 40 / 95%), rgb(8 8 8 / 95%));
+  box-shadow: inset 0 0 0 1px rgb(255 255 255 / 12%), 0 8px 16px rgb(0 0 0 / 50%);
+  transform: perspective(500px) rotateX(14deg) rotate(-6deg);
+}
+
+.shoe-stack {
+  position: absolute;
+  left: 12%;
+  right: 12%;
+  bottom: 12%;
+  height: calc(10% + var(--fill, 1) * 62%);
+  border-radius: 3px;
+  border: 2px solid #fff;
+  background:
+    repeating-linear-gradient(45deg, rgb(255 255 255 / 22%) 0 1px, transparent 1px 5px),
+    repeating-linear-gradient(-45deg, rgb(255 255 255 / 22%) 0 1px, transparent 1px 5px),
+    var(--c-red);
+  transition: height 0.4s ease;
+}
+
+.print {
+  width: min(70%, 760px);
+  flex: 0 0 auto;
+  height: clamp(32px, 6vh, 64px);
+  overflow: visible;
+  pointer-events: none;
+}
+
+.print-big {
+  font-family: var(--f-display);
+  font-weight: 600;
+  font-size: 38px;
+  letter-spacing: 4px;
+  fill: var(--c-print-dim);
+}
+
+.print-small {
+  font-family: var(--f-display);
+  font-size: 15px;
+  letter-spacing: 3px;
+  fill: rgb(243 236 221 / 62%);
+}
+
+.hand-row {
+  display: flex;
+  justify-content: center;
+  min-height: var(--ch);
+  margin-top: 1.6em;
+}
+
+.hand {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.cards {
+  position: relative;
+  width: calc(var(--cw) + var(--k, 0) * var(--fan));
+  height: var(--ch);
+  transition: width 0.35s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.hand.bust .cards {
+  filter: brightness(0.6) saturate(0.6);
+  transition: filter 0.4s;
+}
+
+.total {
+  position: absolute;
+  left: 50%;
+  top: -2.1em;
+  transform: translateX(-50%);
+  padding: 2px 11px 1px;
+  border-radius: 4px;
+  white-space: nowrap;
+  font: 500 max(14px, calc(var(--cw) * 0.17)) var(--f-num);
+  letter-spacing: 0.04em;
+  background: rgb(5 4 4 / 78%);
+  color: var(--c-ivory);
+  opacity: 0;
+  transition: opacity 0.2s, background 0.2s;
+}
+
+.dealer .total {
+  top: calc(var(--ch) / 2 - 0.8em);
+  left: calc(100% + 14px);
+  transform: none;
+}
+
+.total.show {
+  opacity: 1;
+}
+
+.total.bust {
+  background: var(--c-red-bright);
+}
+
+.total.gold {
+  background: var(--c-brass);
+  color: #1f1608;
+}
+
+.total.bj {
+  background: linear-gradient(90deg, #b8913f, #f2dc9b, #b8913f) 0 0 / 200% 100%;
+  color: #1f1608;
+  animation: shimmer 1.6s linear infinite;
+}
+
+.bet {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: calc(var(--cw) * 0.62);
+  height: calc(var(--cw) * 0.62);
+  margin-top: calc(var(--cw) * 0.12);
+  border-radius: 50%;
+  box-shadow: inset 0 0 0 2px rgb(243 236 221 / 60%);
+}
+
+.chip {
+  --c: var(--c-red);
+
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: calc(var(--cw) * 0.48);
+  height: calc(var(--cw) * 0.48);
+  border-radius: 50%;
+  background:
+    radial-gradient(circle, #f6f1e4 0 37%, var(--c) 37.5% 39%, #f6f1e4 39.5% 43%, transparent 43.5%),
+    radial-gradient(circle, transparent 0 43%, var(--c) 43.5% 61%, transparent 61.5%),
+    repeating-conic-gradient(from 10deg, var(--c) 0 40deg, #f6f1e4 40deg 60deg);
+  box-shadow: 0 2px 0 color-mix(in srgb, var(--c) 55%, black), 0 4px 7px rgb(0 0 0 / 50%);
+  animation: chip-in 0.42s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+}
+
+.chip + .chip {
+  margin-left: calc(var(--cw) * -0.3);
+}
+
+.chip span {
+  font: 600 calc(var(--cw) * 0.13) / 1 var(--f-num);
+  color: var(--c);
+}
+
+.bet.lost .chip {
+  animation: chip-out 0.6s ease-in forwards;
+}
+
+@keyframes chip-in {
+  from {
+    opacity: 0;
+    transform: translateY(calc(var(--cw) * 0.8)) scale(0.6);
+  }
+}
+
+@keyframes chip-out {
+  to {
+    opacity: 0;
+    transform: translateY(calc(var(--ch) * -2.5)) scale(0.6);
+  }
+}
+
+.toast {
+  position: absolute;
+  left: 50%;
+  top: 47%;
+  z-index: 20;
+  padding: 9px 20px 8px;
+  border-radius: 6px;
+  background: rgb(5 4 4 / 85%);
+  color: var(--c-ivory);
+  font-size: 18px;
+  font-weight: 600;
+  white-space: nowrap;
+  opacity: 0;
+  transform: translate(-50%, -50%) translateY(8px);
+  transition: opacity 0.25s, transform 0.3s;
+  pointer-events: none;
+}
+
+.toast.show {
+  opacity: 1;
+  transform: translate(-50%, -50%);
+}
+
+.banner {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  z-index: 25;
+  text-align: center;
+  padding: 18px 44px;
+  border-radius: 6px;
+  background: rgb(8 7 6 / 90%);
+  box-shadow:
+    inset 0 0 0 1px rgb(226 196 110 / 70%),
+    inset 0 0 0 5px rgb(8 7 6 / 90%),
+    inset 0 0 0 6px rgb(226 196 110 / 35%),
+    0 30px 70px rgb(0 0 0 / 60%);
+  transform: translate(-50%, -50%);
+  animation: banner-in 0.5s cubic-bezier(0.3, 1.4, 0.5, 1) both, banner-dock 0.6s cubic-bezier(0.2, 0.8, 0.2, 1) 2.6s forwards;
+  pointer-events: none;
+}
+
+@keyframes banner-in {
+  from {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.85);
+  }
+}
+
+/* After a moment the result shrinks so the class can see the cards again. */
+@keyframes banner-dock {
+  to {
+    transform: translate(-50%, -50%) scale(0.7);
+    background: rgb(8 7 6 / 82%);
+  }
+}
+
+.banner-title {
+  font: 700 clamp(30px, 6vh, 64px) / 1.05 var(--f-display);
+  color: var(--c-ivory);
+}
+
+.banner.win .banner-title {
+  color: var(--c-print);
+}
+
+.banner.lose .banner-title {
+  color: #ec5b65;
+}
+
+.banner.blackjack .banner-title {
+  background: linear-gradient(100deg, #b8913f 0%, #fff1c4 25%, #d6a933 50%, #fff1c4 75%, #b8913f 100%) 0 0 / 200% 100%;
+  background-clip: text;
+  color: transparent;
+  animation: shimmer 2s linear infinite;
+}
+
+.banner-line {
+  margin-top: 6px;
+  font-size: 18px;
+  color: var(--c-ivory-dim);
+}
+
+.banner-stake {
+  display: inline-block;
+  margin-top: 12px;
+  padding: 7px 18px 6px;
+  border-radius: 4px;
+  border: 1px solid rgb(243 236 221 / 35%);
+  color: var(--c-ivory);
+  font-weight: 600;
+  font-size: 19px;
+}
+
+@keyframes shimmer {
+  to {
+    background-position: -200% 0;
+  }
+}
+
+.controls {
+  height: 84px;
+  display: flex;
+  gap: 14px;
+  align-items: center;
+  justify-content: center;
+}
+
+.act {
+  --c: #1d7a45;
+  --t: var(--c-ivory);
+
+  min-width: 150px;
+  height: 56px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  border-radius: 6px;
+  border: 1px solid rgb(0 0 0 / 40%);
+  background: linear-gradient(180deg, color-mix(in srgb, var(--c) 88%, white), var(--c));
+  color: var(--t);
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 20%), 0 3px 0 color-mix(in srgb, var(--c) 55%, black), 0 8px 16px rgb(0 0 0 / 40%);
+  font: 500 21px var(--f-num);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+
+.act:hover:not(:disabled) {
+  background: linear-gradient(180deg, color-mix(in srgb, var(--c) 88%, white), var(--c));
+  filter: brightness(1.08);
+}
+
+.act:active:not(:disabled) {
+  transform: translateY(3px);
+}
+
+.act:disabled {
+  opacity: 0.3;
+  cursor: default;
+}
+
+.act.stand {
+  --c: #a5141f;
+}
+
+.act.double {
+  --c: #c9a24a;
+  --t: #1f1608;
+}
+
+.act kbd {
+  font-size: 0.55em;
+  letter-spacing: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .chip,
+  .banner,
+  .bet.lost .chip {
+    animation: none;
+  }
+}

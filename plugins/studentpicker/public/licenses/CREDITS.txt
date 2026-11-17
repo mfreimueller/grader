@@ -1,0 +1,10 @@
+Casino skin
+-----------
+Roulette wheel, blackjack rules, table design and sound effects adapted from
+ClassroomCasino by Miguel Haudek (https://github.com/MiguelHaudek/ClassroomCasino),
+used with the author's permission. The outcome steering of the original is not included.
+
+Fonts (SIL Open Font License 1.1, see the OFL-*.txt files)
+- Bodoni Moda, The Bodoni Moda Project Authors
+- Instrument Sans, The Instrument Sans Project Authors
+- Oswald, The Oswald Project Authors

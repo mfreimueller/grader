@@ -21,19 +21,33 @@
           </label>
           <button type="button" data-testid="edit-specials" :disabled="picking" @click="editingSpecials = true">{{ t('machine.specials') }}</button>
           <button type="button" data-testid="reset-counts" :disabled="picking" @click="confirmingReset = true">{{ t('machine.reset') }}</button>
-          <span class="hint">{{ skin === 'wheel' ? t('wheel.hint') : t('machine.hint') }}</span>
+          <span v-if="skin !== 'casino'" class="hint">{{ skin === 'wheel' ? t('wheel.hint') : t('machine.hint') }}</span>
         </div>
         <p v-if="error" class="error" role="alert" data-testid="error">{{ error }}</p>
 
-        <div class="layout">
-          <SpinningWheel v-if="skin === 'wheel'" ref="machine" :items="items" :disabled="picking" @spin="spin" />
+        <div class="layout" :class="{ wide: atCasinoTable }">
+          <CasinoStage
+            v-if="skin === 'casino'"
+            ref="casino"
+            :students="students"
+            :specials="specials"
+            :fair="fair"
+            :disabled="dialogOpen"
+            @answer="pickDirect"
+            @special="special = $event"
+            @busy="picking = $event"
+            @scene="casinoScene = $event"
+            @error="error = $event"
+          />
+          <SpinningWheel v-else-if="skin === 'wheel'" ref="machine" :items="items" :disabled="picking" @spin="spin" />
           <SlotMachine v-else ref="machine" :items="items" :disabled="picking" @spin="spin" />
           <StudentTable
+            v-if="!atCasinoTable"
             :students="students"
             :picking="picking"
             @set-count="setCount"
             @invalid-count="error = t('machine.countInvalid')"
-            @pick="pickDirect"
+            @pick="(id: string) => (skin === 'casino' ? casino?.dealFor(id) : pickDirect(id))"
           />
         </div>
       </template>
@@ -43,6 +57,7 @@
     <SpecialsEditor v-if="editingSpecials" :specials="specials" :persist="saveSpecials" @close="editingSpecials = false" />
     <SpecialDialog v-if="special" :special="special" @close="special = null" />
     <ConfettiRain v-if="confetti" :key="confetti" @done="confetti = 0" />
+    <CasinoDisclaimer v-if="disclaimer" @close="disclaimer = false" />
 
     <div v-if="confirmingReset" class="overlay" @click.self="confirmingReset = false">
       <div class="dialog" style="--dialog-width: 400px" role="dialog" aria-modal="true" :aria-label="t('machine.reset')">
@@ -65,6 +80,8 @@ import StudentTable from './components/StudentTable.vue';
 import PickResultDialog from './components/PickResultDialog.vue';
 import SpecialDialog from './components/SpecialDialog.vue';
 import SpecialsEditor from './components/SpecialsEditor.vue';
+import CasinoStage from './components/casino/CasinoStage.vue';
+import CasinoDisclaimer from './components/casino/CasinoDisclaimer.vue';
 import { errorText, toPlain, unwrap } from './core/bridgeError';
 import { activeSpecials, draw, fairPool, type DrawResult } from './core/draw';
 import { layoutItems } from './core/layout';
@@ -101,13 +118,20 @@ const machine = ref<{ spinTo: (id: string, durationMs: number) => Promise<void> 
 const confetti = ref(0);
 const editingSpecials = ref(false);
 const confirmingReset = ref(false);
+const casino = ref<{ dealFor: (studentId: string) => void } | null>(null);
+const casinoScene = ref<'roulette' | 'table'>('roulette');
+const atCasinoTable = computed(() => skin.value === 'casino' && casinoScene.value === 'table');
+/** Shown whenever the casino skin is chosen; it must be clicked away. */
+const disclaimer = ref(false);
 
 const students = computed(() => applyCounts(context.value?.students ?? [], counts.value));
 const items = computed(() => {
   const pool = fair.value ? fairPool(students.value) : students.value;
   return layoutItems(pool, activeSpecials(specials.value, fair.value));
 });
-const dialogOpen = computed(() => !!result.value || !!special.value || editingSpecials.value || confirmingReset.value);
+const dialogOpen = computed(
+  () => !!result.value || !!special.value || editingSpecials.value || confirmingReset.value || disclaimer.value,
+);
 
 async function load(): Promise<void> {
   try {
@@ -218,6 +242,8 @@ async function changeSkin(event: Event): Promise<void> {
   const next = parseSkin((event.target as HTMLSelectElement).value);
   const previous = skin.value;
   skin.value = next;
+  casinoScene.value = 'roulette';
+  if (next === 'casino') disclaimer.value = true;
   await run(async () => {
     try {
       unwrap(await window.grader.storage.set(SKIN_KEY, next));
@@ -267,5 +293,9 @@ async function saveSpecials(next: Special[]): Promise<string | null> {
   grid-template-columns: minmax(0, 1fr) max-content;
   gap: var(--space-6);
   align-items: start;
+}
+
+.layout.wide {
+  grid-template-columns: minmax(0, 1fr);
 }
 </style>
