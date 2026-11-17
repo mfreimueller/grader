@@ -241,9 +241,41 @@ describe('GradeImportService', () => {
     expect(sessions).toHaveLength(3);
   });
 
-  it('handles empty note value', async () => {
+  it('does not create a performance for an empty points cell and warns', async () => {
     const csv = 'Nachname;Vorname;Typ;Name;Datum;Max;Note\n'
       + 'Bräuer;Elias;Projekt;EmptyTest;01.11.25;10;';
+
+    const result = await service.importCsv('course-1', csv);
+    expect(result.performancesCreated).toBe(0);
+    expect(result.performancesUpdated).toBe(0);
+    expect(result.warnings).toHaveLength(1);
+    expect(result.warnings[0]).toContain('EmptyTest');
+
+    const sessions = await sessionRepo.findByCourse('course-1');
+    const performances = await perfRepo.findPerformancesByAssessment(
+      sessions[0]!.assessments.find(a => a.title === 'EmptyTest')!.id,
+    );
+    expect(performances).toHaveLength(0);
+  });
+
+  it('does not create a performance for an unparsable points cell and warns', async () => {
+    const csv = 'Nachname;Vorname;Typ;Name;Datum;Max;Note\n'
+      + 'Bräuer;Elias;Projekt;BadTest;01.11.25;10;abc';
+
+    const result = await service.importCsv('course-1', csv);
+    expect(result.performancesCreated).toBe(0);
+    expect(result.warnings).toHaveLength(1);
+
+    const sessions = await sessionRepo.findByCourse('course-1');
+    const performances = await perfRepo.findPerformancesByAssessment(
+      sessions[0]!.assessments.find(a => a.title === 'BadTest')!.id,
+    );
+    expect(performances).toHaveLength(0);
+  });
+
+  it('stores 0 points for an explicit 0 in the points cell', async () => {
+    const csv = 'Nachname;Vorname;Typ;Name;Datum;Max;Note\n'
+      + 'Bräuer;Elias;Projekt;ZeroTest;01.11.25;10;0';
 
     const result = await service.importCsv('course-1', csv);
     expect(result.performancesCreated).toBe(1);
@@ -251,9 +283,79 @@ describe('GradeImportService', () => {
 
     const sessions = await sessionRepo.findByCourse('course-1');
     const performances = await perfRepo.findPerformancesByAssessment(
-      sessions[0]!.assessments.find(a => a.title === 'EmptyTest')!.id,
+      sessions[0]!.assessments.find(a => a.title === 'ZeroTest')!.id,
     );
+    expect(performances).toHaveLength(1);
     expect(performances[0]!.score).toBe(0);
+  });
+
+  it('leaves an existing performance untouched when re-importing an empty cell', async () => {
+    const header = 'Nachname;Vorname;Typ;Name;Datum;Max;Note\n';
+    await service.importCsv('course-1', header + 'Bräuer;Elias;Projekt;KeepTest;01.11.25;10;7');
+
+    const result = await service.importCsv('course-1', header + 'Bräuer;Elias;Projekt;KeepTest;01.11.25;10;');
+    expect(result.performancesCreated).toBe(0);
+    expect(result.performancesUpdated).toBe(0);
+    expect(result.warnings).toHaveLength(1);
+
+    const sessions = await sessionRepo.findByCourse('course-1');
+    const performances = await perfRepo.findPerformancesByAssessment(
+      sessions[0]!.assessments.find(a => a.title === 'KeepTest')!.id,
+    );
+    expect(performances).toHaveLength(1);
+    expect(performances[0]!.score).toBe(7);
+  });
+
+  describe('symbol (participation) cells', () => {
+    const header = 'Nachname;Vorname;Typ;Name;Datum;Max;Note\n';
+    const row = (name: string, note: string): string =>
+      header + `Bräuer;Elias;Mitarbeit;${name};25.02.26;;${note}`;
+    const symbols = (): unknown[] =>
+      db.prepare('SELECT symbol FROM student_performances').all();
+
+    it('does not create a performance for an empty symbol cell and warns', async () => {
+      const result = await service.importCsv('course-1', row('Sym-1', ''));
+      expect(result.performancesCreated).toBe(0);
+      expect(result.performancesUpdated).toBe(0);
+      expect(result.warnings).toEqual([
+        'Sym-1: Kein Symbol für Elias Bräuer, nicht beurteilt übersprungen',
+      ]);
+      expect(symbols()).toHaveLength(0);
+    });
+
+    it('does not create a performance for an unknown symbol text and warns', async () => {
+      const result = await service.importCsv('course-1', row('Sym-2', 'abc'));
+      expect(result.performancesCreated).toBe(0);
+      expect(result.warnings).toEqual([
+        'Sym-2: Unbekanntes Symbol „abc“ für Elias Bräuer, übersprungen',
+      ]);
+      expect(symbols()).toHaveLength(0);
+    });
+
+    it('keeps an existing PLUS when re-importing an empty cell', async () => {
+      await service.importCsv('course-1', row('Sym-3', '+'));
+      const result = await service.importCsv('course-1', row('Sym-3', ''));
+      expect(result.performancesUpdated).toBe(0);
+      expect(result.warnings).toHaveLength(1);
+      expect(symbols()).toEqual([{ symbol: 'PLUS' }]);
+    });
+
+    it('keeps an existing PLUS when re-importing an unknown symbol text', async () => {
+      await service.importCsv('course-1', row('Sym-4', '+'));
+      const result = await service.importCsv('course-1', row('Sym-4', 'xyz'));
+      expect(result.performancesUpdated).toBe(0);
+      expect(result.warnings).toHaveLength(1);
+      expect(symbols()).toEqual([{ symbol: 'PLUS' }]);
+    });
+
+    it('still creates and updates a recognised symbol', async () => {
+      const first = await service.importCsv('course-1', row('Sym-5', '+'));
+      expect(first.performancesCreated).toBe(1);
+      const second = await service.importCsv('course-1', row('Sym-5', '-'));
+      expect(second.performancesUpdated).toBe(1);
+      expect(second.warnings).toEqual([]);
+      expect(symbols()).toEqual([{ symbol: 'MINUS' }]);
+    });
   });
 
   it('skips duplicate student names with warning', async () => {

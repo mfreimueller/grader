@@ -185,29 +185,43 @@ export class GradeImportService {
     const perfId = existing?.id ?? generateId();
 
     if (assessment instanceof GradedAssessment) {
-      const scoreValue = row.note.length > 0 ? this.parseDecimal(row.note) : null;
-      if (scoreValue === null) {
-        const created = GradedPerformance.create(perfId, student, assessment, 0);
-        if (!created.ok) {
-          result.warnings.push(`${row.name}: ${created.error.message}`);
-          return;
-        }
-        await this.perfRepo.savePerformance(created.value);
-      } else {
-        const created = GradedPerformance.create(perfId, student, assessment, scoreValue);
-        if (!created.ok) {
-          result.warnings.push(`${row.name}: ${created.error.message}`);
-          return;
-        }
-        await this.perfRepo.savePerformance(created.value);
+      const parsed = row.note.length > 0 ? this.parseDecimal(row.note) : Number.NaN;
+      if (Number.isNaN(parsed)) {
+        // Blank means "Nicht beurteilt", not 0 points (= Nicht genügend): store nothing
+        // and never touch an existing result.
+        result.warnings.push(
+          `${row.name}: Keine Punkte für ${row.firstname} ${row.lastname}, nicht beurteilt übersprungen`,
+        );
+        return;
       }
+      const scoreValue = parsed;
+      const created = GradedPerformance.create(perfId, student, assessment, scoreValue);
+      if (!created.ok) {
+        result.warnings.push(`${row.name}: ${created.error.message}`);
+        return;
+      }
+      await this.perfRepo.savePerformance(created.value);
       console.log(
         '[GRADE]',
         `Import performance: student=${row.firstname} ${row.lastname}, assessment=${row.name}, ` +
-          `score=${scoreValue ?? 0}, action=${existing ? 'updated' : 'created'}`,
+          `score=${scoreValue}, action=${existing ? 'updated' : 'created'}`,
       );
     } else {
-      const symbolRaw = row.note.length > 0 ? (SYMBOL_MAP[row.note] ?? 'WELLE') : 'WELLE';
+      // Blank or unrecognised means "Nicht beurteilt", not WELLE: store nothing and never
+      // touch an existing result.
+      if (row.note.length === 0) {
+        result.warnings.push(
+          `${row.name}: Kein Symbol für ${row.firstname} ${row.lastname}, nicht beurteilt übersprungen`,
+        );
+        return;
+      }
+      const symbolRaw = Object.hasOwn(SYMBOL_MAP, row.note) ? SYMBOL_MAP[row.note] : undefined;
+      if (symbolRaw === undefined) {
+        result.warnings.push(
+          `${row.name}: Unbekanntes Symbol „${row.note}“ für ${row.firstname} ${row.lastname}, übersprungen`,
+        );
+        return;
+      }
       const symbolResult = ParticipationSymbol.create(symbolRaw);
       if (!symbolResult.ok) {
         result.warnings.push(`${row.name}: ${symbolResult.error.message}`);
