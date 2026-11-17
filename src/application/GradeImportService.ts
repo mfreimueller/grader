@@ -105,14 +105,14 @@ export class GradeImportService {
     const students = await this.studentRepo.findByName(row.firstname, row.lastname);
     if (students.length === 0) {
       result.warnings.push(`Schüler/in "${row.firstname} ${row.lastname}" nicht gefunden, überspringe`);
-      console.log('[GRADE]', `Import skip: student not found (${row.firstname} ${row.lastname})`);
+      console.log('[GRADE]', 'Import skip: student not found');
       return;
     }
     if (students.length > 1) {
       result.warnings.push(
         `Mehrere Schüler/innen mit Namen "${row.firstname} ${row.lastname}" gefunden, überspringe`,
       );
-      console.log('[GRADE]', `Import skip: duplicate student name (${row.firstname} ${row.lastname})`);
+      console.log('[GRADE]', 'Import skip: duplicate student name');
       return;
     }
     const student = students[0]!;
@@ -122,7 +122,7 @@ export class GradeImportService {
       result.warnings.push(
         `Kategorie "${row.type}" im Kurs "${course.title}" nicht gefunden, überspringe`,
       );
-      console.log('[GRADE]', `Import skip: category not found (${row.type}) for ${row.firstname} ${row.lastname}`);
+      console.log('[GRADE]', `Import skip: category not found (${row.type}) for student=${student.id.value}`);
       return;
     }
 
@@ -203,7 +203,7 @@ export class GradeImportService {
       await this.perfRepo.savePerformance(created.value);
       console.log(
         '[GRADE]',
-        `Import performance: student=${row.firstname} ${row.lastname}, assessment=${row.name}, ` +
+        `Import performance: student=${student.id.value}, assessment=${row.name}, ` +
           `score=${scoreValue}, action=${existing ? 'updated' : 'created'}`,
       );
     } else {
@@ -237,7 +237,7 @@ export class GradeImportService {
       await this.perfRepo.savePerformance(created.value);
       console.log(
         '[GRADE]',
-        `Import performance: student=${row.firstname} ${row.lastname}, assessment=${row.name}, ` +
+        `Import performance: student=${student.id.value}, assessment=${row.name}, ` +
           `symbol=${symbolRaw}, action=${existing ? 'updated' : 'created'}`,
       );
     }

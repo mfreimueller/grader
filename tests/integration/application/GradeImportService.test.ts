@@ -374,4 +374,42 @@ describe('GradeImportService', () => {
     expect(result.warnings.length).toBeGreaterThan(0);
     expect(result.warnings[0]).toContain('Bräuer');
   });
+
+  describe('logging', () => {
+    let logSpy: jest.SpyInstance;
+    const header = 'Nachname;Vorname;Typ;Name;Datum;Max;Note\n';
+    const loggedText = (): string => logSpy.mock.calls.flat().map(String).join('\n');
+
+    beforeEach(() => {
+      logSpy = jest.spyOn(console, 'log').mockImplementation(() => {});
+    });
+
+    afterEach(() => {
+      logSpy.mockRestore();
+    });
+
+    it('does not log student names for graded and symbol rows', async () => {
+      const csv = header
+        + 'Bräuer;Elias;Projekt;Log-1;01.11.25;5;5\n'
+        + 'Bräuer;Elias;Mitarbeit;Log-2;02.11.25;;+';
+      const result = await service.importCsv('course-1', csv);
+      expect(result.performancesCreated).toBe(2);
+
+      expect(loggedText()).not.toContain('Elias');
+      expect(loggedText()).not.toContain('Bräuer');
+    });
+
+    it('does not log student names when skipping a row', async () => {
+      const csv = header
+        + 'Unbekannt;Erika;Projekt;Log-3;01.11.25;5;5\n'
+        + 'Bräuer;Elias;Gibtesnicht;Log-4;01.11.25;5;5';
+      const result = await service.importCsv('course-1', csv);
+      expect(result.warnings).toHaveLength(2);
+
+      expect(loggedText()).not.toContain('Elias');
+      expect(loggedText()).not.toContain('Bräuer');
+      expect(loggedText()).not.toContain('Erika');
+      expect(loggedText()).not.toContain('Unbekannt');
+    });
+  });
 });

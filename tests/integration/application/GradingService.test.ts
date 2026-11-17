@@ -114,4 +114,26 @@ describe('GradingService', () => {
     if (!grade.ok) return;
     expect(grade.value!.score).toBe(4);
   });
+
+  describe('logging', () => {
+    let logSpy: jest.SpyInstance;
+
+    beforeEach(() => {
+      logSpy = jest.spyOn(console, 'log').mockImplementation(() => {});
+    });
+
+    afterEach(() => {
+      logSpy.mockRestore();
+    });
+
+    it('does not log the student name when recording a performance', async () => {
+      const result = await service.recordPerformance({ studentId, assessmentId, symbol: 'PLUS' });
+      expect(result.ok).toBe(true);
+
+      const logged = logSpy.mock.calls.flat().map(String).join('\n');
+      expect(logged).not.toContain('Max');
+      expect(logged).not.toContain('Mustermann');
+      expect(logged).toContain(studentId);
+    });
+  });
 });

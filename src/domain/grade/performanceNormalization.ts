@@ -33,7 +33,7 @@ export function performanceToValue(
     if (normalized.ok) {
       console.log(
         '[GRADE]',
-        `Normalize: student=${performance.student.name.firstName} ${performance.student.name.lastName}, ` +
+        `Normalize: student=${performance.student.id.value}, ` +
           `assessment=${performance.assessment.title}, category=${performance.assessment.category.title}, ` +
           `score=${performance.score}, maxPoints=${gradedAssessment.maxPoints}, normalized=${normalized.value}`,
       );
@@ -44,7 +44,7 @@ export function performanceToValue(
     const value = performance.toScore();
     console.log(
       '[GRADE]',
-      `Normalize: student=${performance.student.name.firstName} ${performance.student.name.lastName}, ` +
+      `Normalize: student=${performance.student.id.value}, ` +
         `assessment=${performance.assessment.title}, category=${performance.assessment.category.title}, ` +
         `symbol=${performance.symbol.value}, toScore=${value}`,
     );

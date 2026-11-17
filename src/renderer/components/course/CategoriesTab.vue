@@ -251,7 +251,6 @@ async function handleSave(): Promise<void> {
         return;
       }
     } else {
-      console.log(props.course.id, form.title, form.gradingType, form.displayAsGrade, form.isHidden);
       const result = await window.grdr.assessmentCategory.create({
         courseId: props.course.id,
         title: form.title,

@@ -71,7 +71,7 @@ export class GradingService {
 
     console.log(
       '[GRADE]',
-      `Record: student=${student.name.firstName} ${student.name.lastName}, assessment=${assessment.title}, ` +
+      `Record: student=${student.id.value}, assessment=${assessment.title}, ` +
         `category=${assessment.category.title}, existing=${existing ? 'yes' : 'no'}, ` +
         `score=${input.score ?? '?'}, symbol=${input.symbol ?? '?'}`,
     );
