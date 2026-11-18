@@ -38,11 +38,13 @@ Beurteilt wird gegen PostgreSQL. Syntax, die dort fehlschlägt, zählt als Fehle
 
 ## Symbole (Beurteilung ohne Punkte)
 
-- PLUS: Ergebnis vollständig korrekt, sauber formuliert, passend zum DBMS.
-- PLUS_WELLE: Ergebnis korrekt; kleine Mängel bei Formatierung, Aliassen oder Stil.
-- WELLE: Im Kern richtig, aber ein Fehler im Ergebnis (z. B. fehlende Zeilen, falsche Gruppierung) oder mehrere Stilmängel.
-- MINUS_WELLE: Wesentliche Fehler im Ergebnis oder in der Struktur; nur Teile der Aufgabe gelöst.
-- MINUS: Abfrage nicht lauffähig oder ohne Bezug zur Aufgabe; Aufgabe nicht gelöst.
+Großzügig beurteilen: Entscheidend ist, ob die Aufgabe gelöst wurde, nicht ob die Abfrage fehlerfrei ist. Kleine Fehler wie ein fehlendes Semikolon, ein Tippfehler in einem Bezeichner oder ein Stilmangel kosten höchstens eine Stufe. Im Zweifel gilt die bessere Stufe.
+
+- PLUS: Aufgabe vollständig gelöst; höchstens ein oder zwei kleine Fehler.
+- PLUS_WELLE: Aufgabe fast vollständig gelöst; kann mehrere kleine Fehler enthalten (z. B. fehlende Semikolons, Tippfehler) oder einen kleinen Fehler im Ergebnis.
+- WELLE: Im Großen und Ganzen in Ordnung, aber einige Fehler im Ergebnis oder in der Struktur (z. B. fehlende Zeilen, falsche Gruppierung, falscher Join-Typ).
+- MINUS_WELLE: Erhebliche Fehler; wesentliche Teile der Aufgabe falsch oder nicht gelöst.
+- MINUS: Keine Abgabe oder nur Gerüste und Ansätze ohne erkennbaren Aufwand.
 
 ## Punkte (Beurteilung mit Punkten)
 
@@ -53,9 +55,9 @@ Beurteilt wird gegen PostgreSQL. Syntax, die dort fehlschlägt, zählt als Fehle
 
 ## Sonderfälle
 
-- Leere oder unvollständige Abgabe: nur das Vorhandene beurteilen; fehlt alles Wesentliche, gilt die niedrigste Stufe.
+- Leere oder unvollständige Abgabe: nur das Vorhandene beurteilen; die niedrigste Stufe gilt nur, wenn nichts oder nur ein Gerüst ohne erkennbaren Aufwand abgegeben wurde.
 - Abgabe ohne Bezug zur Aufgabe: niedrigste Stufe bzw. 0 Punkte; im Kommentar sachlich festhalten, dass die Aufgabe nicht bearbeitet wurde.
-- Syntaktisch ungültige oder auf PostgreSQL nicht lauffähige Anweisung: als Fehler werten; ist die Absicht klar erkennbar und der Fehler klein, nur geringer Abzug.
+- Syntaktisch ungültige oder auf PostgreSQL nicht lauffähige Anweisung: als Fehler werten, nicht als ungelöste Aufgabe. Ist die Absicht klar erkennbar (z. B. fehlendes Semikolon, Tippfehler, vertauschte Schlüsselwörter), zählt es als kleiner Fehler.
 - Offensichtliche Kopie der Musterlösung: die Arbeit wie jede andere beurteilen und im Kommentar neutral vermerken, dass sie der Musterlösung stark entspricht. Keine Vorwürfe, keine Mutmaßungen über Herkunft.
 
 ## Kommentar
