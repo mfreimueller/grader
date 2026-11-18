@@ -27,11 +27,11 @@
   />
   <GridMenu
     v-if="overlay?.type === 'column-menu'"
-    :entries="columnMenu()"
+    :entries="columnMenu(overlay.column)"
     :anchor="overlay.anchor"
     :gap="overlay.gap"
     label="Spaltenmenü"
-    @select="emit('deleteColumn')"
+    @select="(action) => emit('selectColumnAction', action)"
     @close="emit('close')"
   />
   <NoteEditor
@@ -85,7 +85,7 @@ import type { Confirmation, Overlay } from '../../../controllers/useSessionGridI
 import type { NewAssessmentInput, PendingImpromptu } from '../../../controllers/useSessionGrid';
 import type { GridCell, GridSymbol } from '../../../utils/sessionGridModel';
 import type { PanelAnchor } from '../../../utils/panelAnchor';
-import { cellMenu, columnMenu, type CellMenuAction } from '../../../utils/sessionGridMenu';
+import { cellMenu, columnMenu, type CellMenuAction, type ColumnMenuAction } from '../../../utils/sessionGridMenu';
 import TertiaryPicker from './TertiaryPicker.vue';
 import NewAssessmentPopover from './NewAssessmentPopover.vue';
 import GridMenu from './GridMenu.vue';
@@ -115,7 +115,7 @@ const emit = defineEmits<{
   close: [];
   createAssessment: [input: NewAssessmentInput];
   selectCellAction: [action: CellMenuAction];
-  deleteColumn: [];
+  selectColumnAction: [action: ColumnMenuAction];
   saveNote: [text: string];
   saveStudentNote: [text: string];
   closeImpromptu: [];

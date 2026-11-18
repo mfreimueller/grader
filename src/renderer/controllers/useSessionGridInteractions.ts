@@ -5,7 +5,7 @@ import { computed, nextTick, onBeforeUnmount, ref, watch } from 'vue';
 import type { useSessionGrid, NewAssessmentInput } from './useSessionGrid';
 import type { useGridFocus } from './useGridFocus';
 import { parsePoints, resolveSymbolPick, symbolForKey, type CommitDirection } from '../utils/sessionGridInput';
-import { cellMenu, type CellMenuAction } from '../utils/sessionGridMenu';
+import { cellMenu, type CellMenuAction, type ColumnMenuAction } from '../utils/sessionGridMenu';
 import { resultCount, type GridCell, type GridColumn, type GridSymbol } from '../utils/sessionGridModel';
 import { targetAt, type NavigationTarget } from '../utils/sessionGridNavigation';
 import type { PanelAnchor } from '../utils/panelAnchor';
@@ -30,7 +30,17 @@ const DIRECTION_KEYS: Readonly<Record<Exclude<CommitDirection, 'stay'>, string>>
 const NAVIGATION_KEYS: readonly string[] = ['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Home', 'End'];
 const TOOLTIP_DELAY_MS = 350;
 
-export function useSessionGridInteractions(grid: ReturnType<typeof useSessionGrid>, focus: ReturnType<typeof useGridFocus>) {
+/** What the grid hands over to the rest of the app. */
+export interface GridHooks {
+  /** The teacher wants to grade this assessment with Gradeflow. */
+  gradeflow: (assessmentId: string) => void;
+}
+
+export function useSessionGridInteractions(
+  grid: ReturnType<typeof useSessionGrid>,
+  focus: ReturnType<typeof useGridFocus>,
+  hooks: GridHooks,
+) {
   const { model, errorMessage } = grid;
 
   const overlay = ref<Overlay | null>(null);
@@ -194,11 +204,15 @@ export function useSessionGridInteractions(grid: ReturnType<typeof useSessionGri
     focus.focusPosition();
   }
 
-  function requestDeleteColumn(): void {
+  function selectColumnAction(action: ColumnMenuAction): void {
     const current = overlay.value;
     overlay.value = null;
     if (current?.type !== 'column-menu') return;
-    const column = current.column;
+    if (action === 'gradeflow') hooks.gradeflow(current.column.assessmentId);
+    else requestDeleteColumn(current.column);
+  }
+
+  function requestDeleteColumn(column: GridColumn): void {
     const count = resultCount(model.value, column.assessmentId);
     const consequence =
       count === 0
@@ -344,7 +358,7 @@ export function useSessionGridInteractions(grid: ReturnType<typeof useSessionGri
     saveNote,
     onStudentNote,
     saveStudentNote,
-    requestDeleteColumn,
+    selectColumnAction,
     onHover,
     onHeaderAdd,
     createAssessment,

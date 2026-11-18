@@ -41,6 +41,8 @@ describe('registerGradeflowHandlers', () => {
   let picks: [number, PickPathRequest][];
   let pickResult: string | null;
   let logged: string[];
+  let opened: number;
+  let openFailure: string;
 
   beforeEach(() => {
     ipc = new FakeIpcMain();
@@ -58,7 +60,13 @@ describe('registerGradeflowHandlers', () => {
     picks = [];
     pickResult = '/picked';
     logged = [];
+    opened = 0;
+    openFailure = '';
     registerGradeflowHandlers(ipc, {
+      openSkillsFolder: async () => {
+        opened += 1;
+        return openFailure;
+      },
       service,
       pickPath: async (senderId, request) => {
         picks.push([senderId, request]);
@@ -231,6 +239,22 @@ describe('registerGradeflowHandlers', () => {
       const invalid = (await ipc.invoke(IPC.GRADEFLOW_PICK_PATH, { kind: 'x', title: '' })) as { ok: boolean };
       expect(invalid.ok).toBe(false);
       expect(picks).toHaveLength(1);
+    });
+  });
+
+  describe('openSkillsFolder', () => {
+    it('opens the folder of the user skills', async () => {
+      expect(await ipc.invoke(IPC.GRADEFLOW_OPEN_SKILLS_FOLDER)).toEqual({ ok: true, value: undefined });
+      expect(opened).toBe(1);
+    });
+
+    it('reports a folder that could not be opened without leaking the system message', async () => {
+      openFailure = '/Users/someone/secret: no such file';
+
+      const result = await ipc.invoke(IPC.GRADEFLOW_OPEN_SKILLS_FOLDER);
+
+      expect(result).toEqual({ ok: false, error: { name: 'OpenFolderError', message: 'Could not open the skills folder' } });
+      expect(logged).toEqual(['Gradeflow skills folder could not be opened']);
     });
   });
 

@@ -1,3 +1,4 @@
+import { GRADEFLOW_ROUTE } from './utils/gradeflowRoute';
 import { createRouter, createWebHashHistory, type RouteRecordRaw } from 'vue-router';
 
 const routes: RouteRecordRaw[] = [
@@ -24,6 +25,11 @@ const routes: RouteRecordRaw[] = [
     path: '/courses/:courseId',
     name: 'CourseWorkspace',
     component: () => import('./views/CourseWorkspaceView.vue'),
+  },
+  {
+    path: '/courses/:courseId/gradeflow',
+    name: GRADEFLOW_ROUTE,
+    component: () => import('./views/GradeflowView.vue'),
   },
   {
     path: '/reports',

@@ -478,6 +478,8 @@ export interface IpcApi {
     pickPath: (request: PickPathRequest) => Promise<GradeflowResultDto<string | null>>;
     getSettings: () => Promise<GradeflowResultDto<GradeflowSettingsDto>>;
     setSettings: (settings: GradeflowSettingsDto) => Promise<GradeflowResultDto<GradeflowSettingsDto>>;
+    /** Opens the folder of the user's own skills in the file manager. */
+    openSkillsFolder: () => Promise<GradeflowResultDto<void>>;
     onProgress: (callback: (progress: GradeflowProgressEventDto) => void) => () => void;
   };
 }

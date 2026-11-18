@@ -11,8 +11,12 @@
     </button>
 
     <div v-if="open" class="menu" role="menu" data-testid="plugin-menu">
+      <button class="menu-item" role="menuitem" data-testid="gradeflow-menu-item" @click="openGradeflow">
+        <span class="name">Gradeflow</span>
+        <span class="description">Abgaben mit KI bewerten und die Ergebnisse prüfen</span>
+      </button>
       <p v-if="plugins.length === 0" class="empty">
-        Keine Werkzeuge eingeschaltet. Plugins schalten Sie in den Einstellungen ein.
+        Keine Plugins eingeschaltet. Plugins schalten Sie in den Einstellungen ein.
       </p>
       <button
         v-for="plugin in plugins"
@@ -32,10 +36,13 @@
 
 <script setup lang="ts">
 import { onMounted, onUnmounted, ref } from 'vue';
+import { useRouter } from 'vue-router';
 import type { PluginInfo } from '../../../shared/plugin-catalog';
+import { gradeflowLocation } from '../../utils/gradeflowRoute';
 
 const props = defineProps<{ courseId: string }>();
 
+const router = useRouter();
 const root = ref<HTMLElement | null>(null);
 const open = ref(false);
 const plugins = ref<PluginInfo[]>([]);
@@ -50,6 +57,11 @@ async function toggle(): Promise<void> {
   }
   plugins.value = await window.grdr.plugin.launchable();
   open.value = true;
+}
+
+function openGradeflow(): void {
+  open.value = false;
+  void router.push(gradeflowLocation(props.courseId));
 }
 
 async function start(plugin: PluginInfo): Promise<void> {

@@ -19,3 +19,8 @@ export function gradeflowSkillRoots(input: GradeflowPathInput): { bundled: strin
     user: join(input.userDataPath, 'gradeflow', 'skills'),
   };
 }
+
+/** Development and end-to-end tests may swap the Claude agent for a fake; a packaged app never does. */
+export function useFakeGradeflowRunner(input: { isPackaged: boolean; env: Record<string, string | undefined> }): boolean {
+  return !input.isPackaged && input.env['GRDR_GRADEFLOW_FAKE_RUNNER'] === '1';
+}

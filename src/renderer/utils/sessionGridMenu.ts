@@ -1,9 +1,10 @@
 // Which entries the context menus of the session grid offer, as pure functions.
 
-import type { GridCell } from './sessionGridModel';
+import { gradeflowColumnEligible } from './gradeflowRoute';
+import type { GridCell, GridColumn } from './sessionGridModel';
 
 export type CellMenuAction = 'note-add' | 'note-edit' | 'note-delete' | 'reset-result' | 'delete-impromptu';
-export type ColumnMenuAction = 'delete-column';
+export type ColumnMenuAction = 'gradeflow' | 'delete-column';
 
 export interface MenuEntry<A extends string> {
   action: A;
@@ -38,6 +39,11 @@ export function cellMenu(cell: GridCell): MenuEntry<CellMenuAction>[] {
   return [...note, remove];
 }
 
-export function columnMenu(): MenuEntry<ColumnMenuAction>[] {
-  return [entry('delete-column', 'Leistung für alle löschen', { danger: true })];
+/** Gradeflow proposes symbols or points for a whole assessment, so it is offered on shared columns of those types. */
+export function columnMenu(column: GridColumn): MenuEntry<ColumnMenuAction>[] {
+  const gradeflow = gradeflowColumnEligible(column.gradingType) ? [entry('gradeflow', 'Mit Gradeflow bewerten…')] : [];
+  return [
+    ...gradeflow,
+    entry('delete-column', 'Leistung für alle löschen', { danger: true, separatorBefore: gradeflow.length > 0 }),
+  ];
 }

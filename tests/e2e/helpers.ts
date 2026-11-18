@@ -23,6 +23,10 @@ export interface RunningGrader {
 export interface LaunchOptions {
   /** Plugin folders to put into the user's plugin folder: folder name -> source folder. */
   userPlugins?: Record<string, string>;
+  /** Grading skills for the user's skill folder: folder name -> content of its SKILL.md. */
+  userSkills?: Record<string, string>;
+  /** Extra environment variables of the app, e.g. GRDR_GRADEFLOW_FAKE_RUNNER=1. */
+  env?: Record<string, string>;
 }
 
 export async function launchGrader(options: LaunchOptions = {}): Promise<RunningGrader> {
@@ -33,8 +37,14 @@ export async function launchGrader(options: LaunchOptions = {}): Promise<Running
     fs.cpSync(source, path.join(userData, 'plugins', name), { recursive: true });
   }
 
+  for (const [name, markdown] of Object.entries(options.userSkills ?? {})) {
+    fs.mkdirSync(path.join(userData, 'gradeflow', 'skills', name), { recursive: true });
+    fs.writeFileSync(path.join(userData, 'gradeflow', 'skills', name, 'SKILL.md'), markdown);
+  }
+
   const app = await electron.launch({
     cwd: repoRoot,
+    env: { ...(process.env as Record<string, string>), ...options.env },
     args: ['.', `--user-data-dir=${userData}`, `--db-path=${path.join(tmp, 'grdr.db')}`],
   });
   const main = await app.firstWindow();

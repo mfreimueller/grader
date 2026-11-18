@@ -6,6 +6,7 @@ import { createAppMenu } from './menu';
 import {
   claudeCodeExecutablePath,
   ensureDbDirectory,
+  gradeflowFakeRunnerEnabled,
   resolveDbPath,
   resolveGradeflowSkillRoots,
   resolvePluginRoots,
@@ -65,6 +66,7 @@ import { registerPluginHostHandlers } from './ipc/pluginHost.ipc';
 import { registerGradeflowHandlers } from './ipc/gradeflow.ipc';
 import { GradeflowService } from '../application/GradeflowService';
 import { ClaudeAgentSdkRunner } from '../infrastructure/gradeflow/ClaudeAgentSdkRunner';
+import { FakeAgentRunner } from '../infrastructure/gradeflow/FakeAgentRunner';
 import { FsHandinDirectory } from '../infrastructure/gradeflow/FsHandinDirectory';
 import { FsHandinWorkspaceBuilder } from '../infrastructure/gradeflow/FsHandinWorkspaceBuilder';
 import { FsSkillCatalog } from '../infrastructure/gradeflow/FsSkillCatalog';
@@ -207,11 +209,13 @@ app.on('ready', () => {
     workspaceBuilder: new FsHandinWorkspaceBuilder(),
     handinDirectory: new FsHandinDirectory(),
     skillCatalog: new FsSkillCatalog(skillRoots.bundled, skillRoots.user),
-    agentRunner: new ClaudeAgentSdkRunner({
-      loadQuery: loadClaudeAgentSdkQuery,
-      executablePath: claudeCodeExecutablePath(),
-      debug: (line) => console.debug('[gradeflow]', line),
-    }),
+    agentRunner: gradeflowFakeRunnerEnabled()
+      ? new FakeAgentRunner()
+      : new ClaudeAgentSdkRunner({
+          loadQuery: loadClaudeAgentSdkQuery,
+          executablePath: claudeCodeExecutablePath(),
+          debug: (line) => console.debug('[gradeflow]', line),
+        }),
     randomIndex: (exclusiveMax) => randomInt(exclusiveMax),
     settings: () => toRunSettings(loadSettings()),
     debug: (line) => console.debug('[gradeflow]', line),
@@ -227,6 +231,7 @@ app.on('ready', () => {
       });
       return picked.canceled ? null : (picked.filePaths[0] ?? null);
     },
+    openSkillsFolder: () => shell.openPath(skillRoots.user),
     settings: {
       get: () => readGradeflowSettings(loadSettings()),
       set: (value) => saveSettings(withGradeflowSettings(loadSettings(), value)),

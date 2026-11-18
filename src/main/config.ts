@@ -2,7 +2,7 @@ import { app } from 'electron';
 import { existsSync, mkdirSync } from 'node:fs';
 import { findClaudeCodeBinary } from './claudeCodeBinary';
 import { dirname, join } from 'node:path';
-import { gradeflowSkillRoots } from './gradeflowPaths';
+import { gradeflowSkillRoots, useFakeGradeflowRunner } from './gradeflowPaths';
 import { loadSettings } from './settings';
 
 const ENV_VAR = 'GRDR_DB_PATH';
@@ -72,6 +72,11 @@ export function claudeCodeExecutablePath(): string | null {
     arch: process.arch,
     exists: existsSync,
   });
+}
+
+/** True only in development with GRDR_GRADEFLOW_FAKE_RUNNER=1; the end-to-end tests grade with a fake agent. */
+export function gradeflowFakeRunnerEnabled(): boolean {
+  return useFakeGradeflowRunner({ isPackaged: app.isPackaged, env: process.env });
 }
 
 export function ensureDbDirectory(dbPath: string): void {

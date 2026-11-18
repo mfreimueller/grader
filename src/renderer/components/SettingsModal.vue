@@ -41,6 +41,10 @@
 
         <PluginSettings :visible="visible" />
 
+        <hr class="separator" />
+
+        <GradeflowSettings :visible="visible" />
+
         <p v-if="saveSuccess" class="success-msg">{{ saveSuccess }}</p>
         <p v-if="error" class="error-msg">{{ error }}</p>
 
@@ -55,6 +59,7 @@
 <script setup lang="ts">
 import { ref, watch } from 'vue';
 import PluginSettings from './PluginSettings.vue';
+import GradeflowSettings from './GradeflowSettings.vue';
 
 const props = defineProps<{ visible: boolean }>();
 const emit = defineEmits<{ (e: 'close'): void }>();

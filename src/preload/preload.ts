@@ -103,6 +103,7 @@ const IPC = {
   GRADEFLOW_PICK_PATH: 'gradeflow:pickPath',
   GRADEFLOW_GET_SETTINGS: 'gradeflow:getSettings',
   GRADEFLOW_SET_SETTINGS: 'gradeflow:setSettings',
+  GRADEFLOW_OPEN_SKILLS_FOLDER: 'gradeflow:openSkillsFolder',
   GRADEFLOW_PROGRESS: 'gradeflow:progress',
 } as const;
 
@@ -238,6 +239,7 @@ const api: IpcApi = {
     pickPath: (request) => ipcRenderer.invoke(IPC.GRADEFLOW_PICK_PATH, request),
     getSettings: () => ipcRenderer.invoke(IPC.GRADEFLOW_GET_SETTINGS),
     setSettings: (settings) => ipcRenderer.invoke(IPC.GRADEFLOW_SET_SETTINGS, settings),
+    openSkillsFolder: () => ipcRenderer.invoke(IPC.GRADEFLOW_OPEN_SKILLS_FOLDER),
     onProgress: (callback) => {
       const listener = (_event: unknown, progress: Parameters<typeof callback>[0]): void => callback(progress);
       ipcRenderer.on(IPC.GRADEFLOW_PROGRESS, listener);

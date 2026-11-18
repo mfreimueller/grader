@@ -1,3 +1,4 @@
+import type { GridColumn } from '../../../src/renderer/utils/sessionGridModel';
 import { cellMenu, columnMenu, type MenuEntry } from '../../../src/renderer/utils/sessionGridMenu';
 import type { GridCell } from '../../../src/renderer/utils/sessionGridModel';
 
@@ -81,9 +82,22 @@ describe('cellMenu', () => {
 });
 
 describe('columnMenu', () => {
-  it('only offers deleting the assessment for everybody', () => {
-    const entries = columnMenu();
-    expect(summary(entries)).toEqual(['delete-column:danger']);
-    expect(entries[0]!.label).toBe('Leistung für alle löschen');
+  const aColumn = (gradingType: 'TERTIARY' | 'NUMERIC' = 'NUMERIC'): GridColumn => ({
+    assessmentId: 'a1',
+    title: 'Test',
+    categoryTitle: 'Tests',
+    gradingType,
+    maxPoints: gradingType === 'NUMERIC' ? 10 : null,
+  });
+
+  it('offers grading with Gradeflow before deleting the assessment for everybody', () => {
+    const entries = columnMenu(aColumn());
+
+    expect(summary(entries)).toEqual(['gradeflow', 'delete-column:danger:sep']);
+    expect(entries.map((e) => e.label)).toEqual(['Mit Gradeflow bewerten…', 'Leistung für alle löschen']);
+  });
+
+  it('offers Gradeflow for symbol columns as well', () => {
+    expect(columnMenu(aColumn('TERTIARY')).map((e) => e.action)).toEqual(['gradeflow', 'delete-column']);
   });
 });

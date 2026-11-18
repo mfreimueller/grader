@@ -117,6 +117,7 @@ export const IPC = {
   GRADEFLOW_PICK_PATH: 'gradeflow:pickPath',
   GRADEFLOW_GET_SETTINGS: 'gradeflow:getSettings',
   GRADEFLOW_SET_SETTINGS: 'gradeflow:setSettings',
+  GRADEFLOW_OPEN_SKILLS_FOLDER: 'gradeflow:openSkillsFolder',
   /** main -> Grader UI: what the agent is doing in a run that was started with GRADEFLOW_START. */
   GRADEFLOW_PROGRESS: 'gradeflow:progress',
 } as const;

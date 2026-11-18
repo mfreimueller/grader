@@ -41,6 +41,8 @@ export interface GradeflowIpcDeps {
   >;
   /** Shows a dialog on the window of the sender; null when the teacher cancelled. */
   pickPath(senderId: number, request: PickPathRequest): Promise<string | null>;
+  /** Opens the folder of the user's skills; resolves to the failure text of the system, '' on success. */
+  openSkillsFolder(): Promise<string>;
   settings: { get(): GradeflowSettingsDto; set(value: GradeflowSettingsDto): void };
   /** Receives the call and the name of the error only: messages and stacks may hold student data. */
   logError(message: string): void;
@@ -114,6 +116,12 @@ export function registerGradeflowHandlers(ipc: GradeflowIpcMain, deps: Gradeflow
     ok: true,
     value: await deps.pickPath(event.sender.id, i),
   }));
+  route(IPC.GRADEFLOW_OPEN_SKILLS_FOLDER, null, async () => {
+    // The text of the system may hold a path; it stays in the main process.
+    if ((await deps.openSkillsFolder()) === '') return { ok: true, value: undefined };
+    deps.logError('Gradeflow skills folder could not be opened');
+    return failure('OpenFolderError', 'Could not open the skills folder');
+  });
   route(IPC.GRADEFLOW_GET_SETTINGS, null, () => ({ ok: true, value: deps.settings.get() }));
   route(IPC.GRADEFLOW_SET_SETTINGS, gradeflowSettingsSchema, (i) => {
     deps.settings.set(i);

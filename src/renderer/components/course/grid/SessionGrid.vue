@@ -61,7 +61,7 @@
       @close="ui.closeOverlay"
       @create-assessment="ui.createAssessment"
       @select-cell-action="ui.selectCellAction"
-      @delete-column="ui.requestDeleteColumn"
+      @select-column-action="ui.selectColumnAction"
       @save-note="ui.saveNote"
       @save-student-note="ui.saveStudentNote"
       @close-impromptu="ui.closeImpromptu"
@@ -77,6 +77,8 @@
 import { computed, onMounted, ref } from 'vue';
 import { useSessionGrid } from '../../../controllers/useSessionGrid';
 import { useGridFocus } from '../../../controllers/useGridFocus';
+import { useRouter } from 'vue-router';
+import { gradeflowLocation } from '../../../utils/gradeflowRoute';
 import { useSessionGridInteractions } from '../../../controllers/useSessionGridInteractions';
 import GridHeaderRow from './GridHeaderRow.vue';
 import GridBodyRow from './GridBodyRow.vue';
@@ -90,7 +92,10 @@ const { loading, errorMessage, sortAscending, model, categories, pendingDelete, 
 
 const root = ref<HTMLElement | null>(null);
 const focus = useGridFocus(root, model);
-const ui = useSessionGridInteractions(grid, focus);
+const router = useRouter();
+const ui = useSessionGridInteractions(grid, focus, {
+  gradeflow: (assessmentId) => void router.push(gradeflowLocation(props.courseId, assessmentId)),
+});
 
 const formattedDate = computed(() =>
   props.sessionDate ? new Date(props.sessionDate).toLocaleDateString('de-AT', { day: '2-digit', month: '2-digit', year: 'numeric' }) : null,
