@@ -7,7 +7,9 @@ import { GradingType } from "../../../../src/domain/grade/GradingType";
 
 const tokens = ["k3f9a2zb", "p0q8x1mm"];
 
-function ok<T>(result: { ok: true; value: T } | { ok: false; error: Error }): T {
+function ok<T>(
+  result: { ok: true; value: T } | { ok: false; error: Error },
+): T {
   if (!result.ok) throw result.error;
   return result.value;
 }
@@ -24,10 +26,31 @@ describe("OutputInstructions", () => {
       );
       expect(text).toContain('"version": 1');
       expect(text).toContain('"symbol"');
-      for (const symbol of ["PLUS", "PLUS_WELLE", "WELLE", "MINUS_WELLE", "MINUS"])
+      for (const symbol of [
+        "PLUS",
+        "PLUS_WELLE",
+        "WELLE",
+        "MINUS_WELLE",
+        "MINUS",
+      ])
         expect(text).toContain(symbol);
       expect(text).not.toContain('"score"');
       for (const token of tokens) expect(text).toContain(token);
+    });
+
+    it("requires German, impersonal comments for both grading types", () => {
+      for (const contract of [
+        { gradingType: GradingType.TERTIARY, maxPoints: null, tokens },
+        { gradingType: GradingType.NUMERIC, maxPoints: 10, tokens },
+      ]) {
+        const text = ok(renderOutputInstructions(contract));
+        expect(text).toContain("auf Deutsch");
+        expect(text).toContain("unpersönlich");
+        expect(text).toContain("keine direkte Anrede");
+        expect(text).toContain(
+          "Eingabeprüfung fehlt; Schleife endet einen Schritt zu früh.",
+        );
+      }
     });
 
     it("describes the NUMERIC shape and the point range", () => {

@@ -23,6 +23,16 @@ PROJECT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
 mkdir -p "$HOME/.cache/electron" "$HOME/.cache/electron-builder"
 
+# Gradeflow: the Agent SDK runs the Claude Code binary of its per-platform package, but npm in this Linux
+# container only installs the linux-x64 one. Install the Windows package (version = the pinned SDK version) into
+# a separate prefix (--force skips npm's platform check) and copy it into node_modules, leaving the rest of the
+# tree untouched. Runs after `npm run build`, which needs the Linux binaries of the build tools.
+SDK_VERSION="$(node -p "require('${PROJECT_DIR}/package.json').dependencies['@anthropic-ai/claude-agent-sdk']")"
+INSTALL_WIN_SDK_BINARY="rm -rf /tmp/sdk-win \
+  && npm install --no-save --force --no-audit --no-fund --prefix /tmp/sdk-win @anthropic-ai/claude-agent-sdk-win32-x64@${SDK_VERSION} \
+  && rm -rf node_modules/@anthropic-ai/claude-agent-sdk-win32-x64 \
+  && cp -R /tmp/sdk-win/node_modules/@anthropic-ai/claude-agent-sdk-win32-x64 node_modules/@anthropic-ai/"
+
 TTY_ARGS=""
 if [ -t 0 ] && [ -t 1 ]; then
   TTY_ARGS="-ti"
@@ -36,4 +46,4 @@ docker run --rm "$TTY_ARGS" \
   -v "$HOME/.cache/electron-builder:/root/.cache/electron-builder" \
   -w /project \
   "${IMAGE}" \
-  /bin/bash -c "npm ci && npm run build && npx electron-builder --win"
+  /bin/bash -c "npm ci && npm run build && ${INSTALL_WIN_SDK_BINARY} && npx electron-builder --win"

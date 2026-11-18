@@ -75,7 +75,10 @@ describe("FsSkillCatalog", () => {
     const { skills, invalid } = await catalog.list();
 
     expect(skills.map((s) => s.id)).toEqual(["ok"]);
-    expect(invalid.map((i) => i.id).sort()).toEqual(["Bad_Id", "no-frontmatter"]);
+    expect(invalid.map((i) => i.id).sort()).toEqual([
+      "Bad_Id",
+      "no-frontmatter",
+    ]);
     expect(invalid.every((i) => i.reason.length > 0)).toBe(true);
     expect(await catalog.dirOf("no-frontmatter")).toBeNull();
     expect(await catalog.dirOf("Bad_Id")).toBeNull();
@@ -123,5 +126,74 @@ describe("FsSkillCatalog", () => {
     const catalog = new FsSkillCatalog(bundled, user);
     expect(await catalog.dirOf("../outside")).toBeNull();
     expect(await catalog.dirOf("")).toBeNull();
+  });
+});
+
+describe("FsSkillCatalog with the bundled starter skills", () => {
+  const bundledDir = path.join(
+    __dirname,
+    "../../../../assets/gradeflow/skills",
+  );
+  const expected: Array<[string, "opus" | null]> = [
+    ["java-einsteiger", null],
+    ["java-fortgeschritten", null],
+    ["java-profi", "opus"],
+    ["sql-mssql", null],
+    ["sql-mysql", null],
+    ["sql-postgresql", null],
+  ];
+
+  it("ships seven valid skills with the specified ids and models", async () => {
+    const { skills, invalid } = await new FsSkillCatalog(
+      bundledDir,
+      path.join(bundledDir, "does-not-exist"),
+    ).list();
+
+    expect(invalid).toEqual([]);
+    expect(skills.map((s) => s.id).sort()).toEqual(
+      expected.map(([id]) => id).sort(),
+    );
+    for (const [id, model] of expected) {
+      const skill = skills.find((s) => s.id === id);
+      expect(skill?.model).toBe(model);
+      expect(skill?.source).toBe("bundled");
+    }
+  });
+
+  it("names the dialect in every SQL skill description", async () => {
+    const { skills } = await new FsSkillCatalog(bundledDir, bundledDir).list();
+    const description = (id: string): string =>
+      skills.find((s) => s.id === id)?.description ?? "";
+    expect(description("sql-mysql")).toContain("MySQL");
+    expect(description("sql-mssql")).toMatch(/SQL Server|T-SQL/);
+    expect(description("sql-postgresql")).toContain("PostgreSQL");
+  });
+
+  it("uses no direct address (du/Sie/dein/Ihr) anywhere in the skill texts", async () => {
+    const direct = /\b(du|dein\w*|Sie|Ihr\w*)\b/;
+    for (const [id] of expected) {
+      const text = await fs.readFile(
+        path.join(bundledDir, id, "SKILL.md"),
+        "utf8",
+      );
+      expect({ id, hit: direct.exec(text)?.[0] ?? null }).toEqual({
+        id,
+        hit: null,
+      });
+    }
+  });
+
+  it("tells the agent to read the assignment and OUTPUT_SCHEMA.md and never to run code", async () => {
+    for (const [id] of expected) {
+      const text = await fs.readFile(
+        path.join(bundledDir, id, "SKILL.md"),
+        "utf8",
+      );
+      expect(text).toContain("OUTPUT_SCHEMA.md");
+      expect(text).toContain("ASSIGNMENT");
+      expect(text).toMatch(/nie ausgeführt/);
+      for (const symbol of ["PLUS_WELLE", "WELLE", "MINUS_WELLE", "MINUS"])
+        expect(text).toContain(symbol);
+    }
   });
 });

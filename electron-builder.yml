@@ -29,6 +29,9 @@ mac:
 win:
   target:
     - nsis
+  # Only the Windows Claude Code binary belongs into the installer (the build container also has the Linux one).
+  files:
+    - '!node_modules/@anthropic-ai/claude-agent-sdk-{darwin,linux}-*/**'
 linux:
   category: Education
   target:

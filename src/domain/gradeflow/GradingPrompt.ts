@@ -16,6 +16,7 @@ export function buildGradingPrompt(input: GradingPromptInput): string {
     `Grade every folder under handins/ (exactly ${input.tokenCount} folders).`,
     "Work only inside the current directory.",
     "Never mention tokens or names in comments.",
+    "Write all comments in German and impersonal: no direct address (no du/Sie/dein/Ihr), short factual statements about the work.",
     "Return the result as your structured output.",
   ].join("\n");
 }

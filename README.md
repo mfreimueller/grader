@@ -35,6 +35,9 @@ komplett offline, alle Daten bleiben auf dem eigenen Rechner.
   wird die **Zufallsauswahl**, die Schüler am Spielautomaten oder Glücksrad aufruft und die Mitarbeit direkt als
   spontane Leistung einträgt. Eigene Plugins lassen sich in einen Ordner legen und nach Zustimmung einschalten, siehe
   [docs/plugins.md](docs/plugins.md).
+- **Gradeflow** – KI-gestützte Beurteilung von Abgaben (Moodle-Ordner) mit Claude Code. Namen werden vorher
+  pseudonymisiert, das Ergebnis wird in einer Übersicht geprüft, bevor etwas gespeichert wird. Eigene Bewertungs-Skills
+  sind möglich, siehe [docs/gradeflow.md](docs/gradeflow.md).
 - **MCP-Server** – optionaler, lokaler Server, der KI-Agenten einen gelesenen Zugriff auf die
   Notendaten ermöglicht.
 

@@ -66,6 +66,8 @@ export function renderOutputInstructions(
       "",
       `A comment must never contain a token, a person's name or the placeholder \`${SCRUB_PLACEHOLDER}\` that stands in for names in the hand-ins. Write about the work, not the person.`,
       "",
+      'Comments must be written in German (auf Deutsch) and impersonal (unpersönlich), i.e. keine direkte Anrede (kein "du", "Sie", "dein", "Ihr"), but short, factual statements about the work (kurze, sachliche Aussagen über die Arbeit), for example: "Eingabeprüfung fehlt; Schleife endet einen Schritt zu früh."',
+      "",
     ].join("\n"),
   );
 }
@@ -80,7 +82,9 @@ export function outputJsonSchema(
   const resultProperty =
     rule.value.kind === "tertiary"
       ? { symbol: { type: "string", enum: [...PARTICIPATION_SYMBOLS] } }
-      : { score: { type: "number", minimum: 0, maximum: rule.value.maxPoints } };
+      : {
+          score: { type: "number", minimum: 0, maximum: rule.value.maxPoints },
+        };
   const resultKey = rule.value.kind === "tertiary" ? "symbol" : "score";
 
   return Result.ok({

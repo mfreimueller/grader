@@ -27,6 +27,12 @@ describe("GradingPrompt", () => {
       expect(prompt).toMatch(/structured output/i);
     });
 
+    it("asks for German, impersonal comments", () => {
+      expect(prompt).toMatch(/comments in German/);
+      expect(prompt).toMatch(/impersonal/);
+      expect(prompt).toMatch(/no direct address/);
+    });
+
     it("leaves out the solution when there is none", () => {
       const without = buildGradingPrompt({
         skillId: "s",
