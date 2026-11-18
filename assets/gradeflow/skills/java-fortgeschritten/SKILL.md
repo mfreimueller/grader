@@ -27,11 +27,13 @@ Ein einzelner Mangel senkt die Beurteilung nur leicht; mehrere Mängel oder ein 
 
 ## Symbole (Beurteilung ohne Punkte)
 
-- PLUS: Anforderungen vollständig und korrekt erfüllt; saubere Struktur, Randfälle bedacht.
-- PLUS_WELLE: Korrekt und gut strukturiert; kleine Mängel bei Namen, Randfällen oder Duplikaten.
-- WELLE: Kernfunktion überwiegend korrekt; deutliche Mängel bei Struktur, Randfällen oder Fehlerbehandlung.
-- MINUS_WELLE: Wesentliche Anforderungen fehlen oder sind fehlerhaft; Struktur kaum erkennbar.
-- MINUS: Kaum Brauchbares; Aufgabe nicht gelöst.
+Großzügig beurteilen: Entscheidend ist, ob die Aufgabe gelöst wurde, nicht ob der Code fehlerfrei ist. Kleine Fehler wie ein fehlendes Semikolon, ein Tippfehler, ein fehlender Import, ein unglücklicher Name oder ein vergessener Randfall kosten höchstens eine Stufe. Im Zweifel gilt die bessere Stufe.
+
+- PLUS: Aufgabe vollständig gelöst; höchstens ein oder zwei kleine Fehler.
+- PLUS_WELLE: Aufgabe fast vollständig gelöst; kann mehrere kleine Fehler enthalten (z. B. fehlende Semikolons, Tippfehler) oder einen kleinen Fehler in der Logik.
+- WELLE: Im Großen und Ganzen in Ordnung, aber einige Fehler in Logik oder Struktur (z. B. einzelne Anforderungen fehlerhaft, Randfälle falsch behandelt).
+- MINUS_WELLE: Erhebliche Fehler; wesentliche Teile der Aufgabe falsch oder nicht gelöst.
+- MINUS: Keine Abgabe oder nur Gerüste und Ansätze ohne erkennbaren Aufwand.
 
 ## Punkte (Beurteilung mit Punkten)
 
@@ -42,9 +44,9 @@ Ein einzelner Mangel senkt die Beurteilung nur leicht; mehrere Mängel oder ein 
 
 ## Sonderfälle
 
-- Leere oder unvollständige Abgabe: nur das Vorhandene beurteilen; fehlt alles Wesentliche, gilt die niedrigste Stufe.
+- Leere oder unvollständige Abgabe: nur das Vorhandene beurteilen; die niedrigste Stufe gilt nur, wenn nichts oder nur ein Gerüst ohne erkennbaren Aufwand abgegeben wurde.
 - Abgabe ohne Bezug zur Aufgabe: niedrigste Stufe bzw. 0 Punkte; im Kommentar sachlich festhalten, dass die Aufgabe nicht bearbeitet wurde.
-- Nicht kompilierbarer Code: durch Lesen einschätzen, wie groß der Fehler ist. Ein einzelner Tippfehler oder fehlender Import mindert wenig; Code, der als Ganzes nicht lauffähig sein kann, gilt als nicht gelöst.
+- Nicht kompilierbarer Code: als Fehler werten, nicht als ungelöste Aufgabe. Durch Lesen einschätzen, wie groß der Fehler ist: Tippfehler, fehlende Semikolons oder Imports zählen als kleine Fehler; ist die Logik trotz größerer Compilerfehler erkennbar, nach der Logik beurteilen und die Fehler als erhebliche Mängel werten.
 - Offensichtliche Kopie der Musterlösung: die Arbeit wie jede andere beurteilen und im Kommentar neutral vermerken, dass sie der Musterlösung stark entspricht. Keine Vorwürfe, keine Mutmaßungen über Herkunft.
 
 ## Kommentar

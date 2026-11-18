@@ -89,7 +89,7 @@ Erwartet wird der Ordner, den Moodle beim Herunterladen aller Abgaben erzeugt, m
 |---|---|
 | `java-einsteiger` | Java, milde Beurteilung: Lauffähigkeit, erfüllte Anforderungen, Kontrollstrukturen; Stil zählt nicht |
 | `java-fortgeschritten` | Java: zusätzlich Struktur, Namenskonventionen, Randfälle, Ausnahmen, Collections |
-| `java-profi` | Java, streng: Clean Code, OOP-Design, Ausnahmebehandlung, try-with-resources; läuft mit Opus |
+| `java-profi` | Java, hoher Qualitätsanspruch: Clean Code, OOP-Design, Ausnahmebehandlung, try-with-resources; läuft mit Opus |
 | `sql-mysql` | SQL (mittleres Niveau), beurteilt gegen MySQL |
 | `sql-mssql` | SQL (mittleres Niveau), beurteilt gegen Microsoft SQL Server (T-SQL) |
 | `sql-postgresql` | SQL (mittleres Niveau), beurteilt gegen PostgreSQL |
