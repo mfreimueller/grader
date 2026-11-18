@@ -104,4 +104,19 @@ export const IPC = {
   PLUGIN_HOST_SECRETS_GET: 'pluginHost:secretsGet',
   PLUGIN_HOST_SECRETS_SET: 'pluginHost:secretsSet',
   PLUGIN_HOST_SECRETS_DELETE: 'pluginHost:secretsDelete',
+
+  // Gradeflow: AI-assisted grading of hand-ins (Grader UI -> main, and one push channel back).
+  GRADEFLOW_LIST_SKILLS: 'gradeflow:listSkills',
+  GRADEFLOW_PREPARE: 'gradeflow:prepare',
+  GRADEFLOW_CONFIRM: 'gradeflow:confirm',
+  GRADEFLOW_EXCLUDE_FILES: 'gradeflow:excludeFiles',
+  GRADEFLOW_START: 'gradeflow:start',
+  GRADEFLOW_CANCEL: 'gradeflow:cancel',
+  GRADEFLOW_SAVE: 'gradeflow:save',
+  GRADEFLOW_DISCARD: 'gradeflow:discard',
+  GRADEFLOW_PICK_PATH: 'gradeflow:pickPath',
+  GRADEFLOW_GET_SETTINGS: 'gradeflow:getSettings',
+  GRADEFLOW_SET_SETTINGS: 'gradeflow:setSettings',
+  /** main -> Grader UI: what the agent is doing in a run that was started with GRADEFLOW_START. */
+  GRADEFLOW_PROGRESS: 'gradeflow:progress',
 } as const;

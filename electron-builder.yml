@@ -8,6 +8,8 @@ files:
   - build/**/*
   - '!build/plugins/**'
   - assets/**/*
+  # Bundled grading skills are copied into a workspace, which cannot be done from inside the asar archive.
+  - '!assets/gradeflow/**'
   - package.json
 # The Agent SDK runs the Claude Code binary of its per-platform package; a binary cannot be executed from
 # inside the asar archive, so those packages are unpacked (the SDK's JavaScript stays in the asar).
@@ -17,6 +19,8 @@ asarUnpack:
 extraResources:
   - from: build/plugins
     to: plugins
+  - from: assets/gradeflow/skills
+    to: gradeflow/skills
 afterSign: scripts/afterSign.js
 mac:
   target:

@@ -91,6 +91,19 @@ const IPC = {
   PLUGIN_LAUNCH: 'plugin:launch',
   PLUGIN_OPEN_FOLDER: 'plugin:openFolder',
   PLUGIN_DATA_CHANGED: 'plugin:dataChanged',
+
+  GRADEFLOW_LIST_SKILLS: 'gradeflow:listSkills',
+  GRADEFLOW_PREPARE: 'gradeflow:prepare',
+  GRADEFLOW_CONFIRM: 'gradeflow:confirm',
+  GRADEFLOW_EXCLUDE_FILES: 'gradeflow:excludeFiles',
+  GRADEFLOW_START: 'gradeflow:start',
+  GRADEFLOW_CANCEL: 'gradeflow:cancel',
+  GRADEFLOW_SAVE: 'gradeflow:save',
+  GRADEFLOW_DISCARD: 'gradeflow:discard',
+  GRADEFLOW_PICK_PATH: 'gradeflow:pickPath',
+  GRADEFLOW_GET_SETTINGS: 'gradeflow:getSettings',
+  GRADEFLOW_SET_SETTINGS: 'gradeflow:setSettings',
+  GRADEFLOW_PROGRESS: 'gradeflow:progress',
 } as const;
 
 const api: IpcApi = {
@@ -210,6 +223,25 @@ const api: IpcApi = {
       const listener = (_event: unknown, change: { courseId: string }): void => callback(change);
       ipcRenderer.on(IPC.PLUGIN_DATA_CHANGED, listener);
       return () => ipcRenderer.removeListener(IPC.PLUGIN_DATA_CHANGED, listener);
+    },
+  },
+  gradeflow: {
+    listSkills: () => ipcRenderer.invoke(IPC.GRADEFLOW_LIST_SKILLS),
+    prepare: (input) => ipcRenderer.invoke(IPC.GRADEFLOW_PREPARE, input),
+    confirm: (runId, overrides) => ipcRenderer.invoke(IPC.GRADEFLOW_CONFIRM, { runId, overrides }),
+    excludeFiles: (runId, files) => ipcRenderer.invoke(IPC.GRADEFLOW_EXCLUDE_FILES, { runId, files }),
+    start: (runId) => ipcRenderer.invoke(IPC.GRADEFLOW_START, { runId }),
+    cancel: (runId) => ipcRenderer.invoke(IPC.GRADEFLOW_CANCEL, { runId }),
+    save: (runId, rows, overwriteConfirmed) =>
+      ipcRenderer.invoke(IPC.GRADEFLOW_SAVE, { runId, rows, overwriteConfirmed }),
+    discard: (runId) => ipcRenderer.invoke(IPC.GRADEFLOW_DISCARD, { runId }),
+    pickPath: (request) => ipcRenderer.invoke(IPC.GRADEFLOW_PICK_PATH, request),
+    getSettings: () => ipcRenderer.invoke(IPC.GRADEFLOW_GET_SETTINGS),
+    setSettings: (settings) => ipcRenderer.invoke(IPC.GRADEFLOW_SET_SETTINGS, settings),
+    onProgress: (callback) => {
+      const listener = (_event: unknown, progress: Parameters<typeof callback>[0]): void => callback(progress);
+      ipcRenderer.on(IPC.GRADEFLOW_PROGRESS, listener);
+      return () => ipcRenderer.removeListener(IPC.GRADEFLOW_PROGRESS, listener);
     },
   },
 };

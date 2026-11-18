@@ -1,8 +1,15 @@
-import { app, dialog, ipcMain, safeStorage, shell } from 'electron';
+import { randomInt } from 'node:crypto';
+import { app, BrowserWindow, dialog, ipcMain, safeStorage, shell } from 'electron';
 import { autoUpdater } from 'electron-updater';
 import { createMainWindow } from './window';
 import { createAppMenu } from './menu';
-import { resolveDbPath, ensureDbDirectory, resolvePluginRoots } from './config';
+import {
+  claudeCodeExecutablePath,
+  ensureDbDirectory,
+  resolveDbPath,
+  resolveGradeflowSkillRoots,
+  resolvePluginRoots,
+} from './config';
 import { createFileDb, runMigrations } from '../infrastructure/persistence/db';
 
 import { SqliteStudentRepository } from '../infrastructure/persistence/SqliteStudentRepository';
@@ -35,6 +42,8 @@ import { BinService } from '../application/BinService';
 import { GraderMcpServer } from '../mcp/mcpServer';
 import { McpService } from '../mcp/mcpService';
 import { loadSettings, saveSettings } from './settings';
+import { withTimeout } from './withTimeout';
+import { readGradeflowSettings, toRunSettings, withGradeflowSettings } from './gradeflowSettings';
 import { IPC } from '../shared/ipc-channels';
 
 import { SqlitePluginDataRepository } from '../infrastructure/persistence/SqlitePluginDataRepository';
@@ -53,6 +62,13 @@ import { registerPluginScheme } from './plugins/pluginProtocol';
 import { createPluginWindow } from './plugins/pluginWindow';
 import { registerPluginHandlers } from './ipc/plugin.ipc';
 import { registerPluginHostHandlers } from './ipc/pluginHost.ipc';
+import { registerGradeflowHandlers } from './ipc/gradeflow.ipc';
+import { GradeflowService } from '../application/GradeflowService';
+import { ClaudeAgentSdkRunner } from '../infrastructure/gradeflow/ClaudeAgentSdkRunner';
+import { FsHandinDirectory } from '../infrastructure/gradeflow/FsHandinDirectory';
+import { FsHandinWorkspaceBuilder } from '../infrastructure/gradeflow/FsHandinWorkspaceBuilder';
+import { FsSkillCatalog } from '../infrastructure/gradeflow/FsSkillCatalog';
+import { loadClaudeAgentSdkQuery } from '../infrastructure/gradeflow/loadClaudeAgentSdk';
 
 import { registerStudentHandlers } from './ipc/student.ipc';
 import { registerCourseHandlers } from './ipc/course.ipc';
@@ -70,6 +86,10 @@ import { SqliteUnitOfWork } from '../infrastructure/persistence/SqliteUnitOfWork
 
 let mcpServer: GraderMcpServer;
 let database: ReturnType<typeof createFileDb> | undefined;
+let gradeflow: GradeflowService | undefined;
+let gradeflowDisposed = false;
+/** A hanging agent must not keep the app from quitting. */
+const QUIT_CLEANUP_TIMEOUT_MS = 5000;
 
 // A custom scheme has to be registered before the app is ready.
 registerPluginScheme();
@@ -177,6 +197,43 @@ app.on('ready', () => {
     logError: (message, error) => console.error(message, error),
   });
 
+  const skillRoots = resolveGradeflowSkillRoots();
+  const gradeflowService = new GradeflowService({
+    rosterService,
+    sessionService,
+    assessmentService,
+    gradingService,
+    findingService,
+    workspaceBuilder: new FsHandinWorkspaceBuilder(),
+    handinDirectory: new FsHandinDirectory(),
+    skillCatalog: new FsSkillCatalog(skillRoots.bundled, skillRoots.user),
+    agentRunner: new ClaudeAgentSdkRunner({
+      loadQuery: loadClaudeAgentSdkQuery,
+      executablePath: claudeCodeExecutablePath(),
+      debug: (line) => console.debug('[gradeflow]', line),
+    }),
+    randomIndex: (exclusiveMax) => randomInt(exclusiveMax),
+    settings: () => toRunSettings(loadSettings()),
+    debug: (line) => console.debug('[gradeflow]', line),
+  });
+  gradeflow = gradeflowService;
+  registerGradeflowHandlers(ipcMain, {
+    service: gradeflowService,
+    pickPath: async (senderId, request) => {
+      const owner = BrowserWindow.getAllWindows().find((w) => w.webContents.id === senderId) ?? win;
+      const picked = await dialog.showOpenDialog(owner, {
+        title: request.title,
+        properties: [request.kind === 'file' ? 'openFile' : 'openDirectory'],
+      });
+      return picked.canceled ? null : (picked.filePaths[0] ?? null);
+    },
+    settings: {
+      get: () => readGradeflowSettings(loadSettings()),
+      set: (value) => saveSettings(withGradeflowSettings(loadSettings(), value)),
+    },
+    logError: (message) => console.error(message),
+  });
+
   createAppMenu(win);
   win.loadFile('build/renderer/index.html');
 
@@ -243,7 +300,14 @@ app.on('ready', () => {
   }
 });
 
-app.on('before-quit', () => {
+app.on('before-quit', (event) => {
+  // An open Gradeflow run leaves a workspace with hand-ins in the temp folder; remove it before quitting.
+  if (gradeflow && !gradeflowDisposed) {
+    gradeflowDisposed = true;
+    event.preventDefault();
+    void withTimeout(gradeflow.disposeAll(), QUIT_CLEANUP_TIMEOUT_MS).then(() => app.quit());
+    return;
+  }
   mcpServer.stop().catch(() => {});
   database?.close();
 });

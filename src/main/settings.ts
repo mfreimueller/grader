@@ -7,6 +7,8 @@ export interface Settings {
   mcpEnabled?: boolean;
   mcpPort?: number;
   /** What the user decided about each plugin on this machine, keyed by plugin id. */
+  /** Limits of one Gradeflow run; read through readGradeflowSettings, which tolerates hand-edited values. */
+  gradeflow?: { maxBudgetUsd?: number; timeoutMinutes?: number };
   plugins?: Record<string, { enabled: boolean; grantedPermissions: string[]; grantedNetwork?: string[] }>;
 }
 

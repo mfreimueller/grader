@@ -2,6 +2,7 @@ import { app } from 'electron';
 import { existsSync, mkdirSync } from 'node:fs';
 import { findClaudeCodeBinary } from './claudeCodeBinary';
 import { dirname, join } from 'node:path';
+import { gradeflowSkillRoots } from './gradeflowPaths';
 import { loadSettings } from './settings';
 
 const ENV_VAR = 'GRDR_DB_PATH';
@@ -48,6 +49,18 @@ export function resolvePluginRoots(): { bundled: string; user: string } {
   const user = join(app.getPath('userData'), 'plugins');
   mkdirSync(user, { recursive: true });
   return { bundled, user };
+}
+
+/** Where Gradeflow grading skills live; the user folder exists after this call so it can be opened. */
+export function resolveGradeflowSkillRoots(): { bundled: string; user: string } {
+  const roots = gradeflowSkillRoots({
+    isPackaged: app.isPackaged,
+    resourcesPath: process.resourcesPath,
+    appPath: app.getAppPath(),
+    userDataPath: app.getPath('userData'),
+  });
+  mkdirSync(roots.user, { recursive: true });
+  return roots;
 }
 
 /** Path of the Claude Code binary for the Agent SDK when packaged, null in development (the SDK finds it itself). */

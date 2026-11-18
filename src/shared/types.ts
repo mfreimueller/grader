@@ -1,3 +1,17 @@
+import type {
+  ConfirmedRunDto,
+  GradeflowProgressEventDto,
+  GradeflowResultDto,
+  GradeflowSettingsDto,
+  MatchOverride,
+  PickPathRequest,
+  PrepareInput,
+  PreparedRunDto,
+  ProposalsDto,
+  SaveResultDto,
+  SaveRow,
+  SkillListDto,
+} from './gradeflow-api';
 import type { PluginInfo } from './plugin-catalog';
 
 export type ResultDto<T, E = { name: string; message: string }> =
@@ -448,5 +462,22 @@ export interface IpcApi {
     openFolder: () => Promise<void>;
     /** Called after a plugin created or deleted data of a course. */
     onDataChanged: (callback: (event: { courseId: string }) => void) => () => void;
+  };
+  /** AI-assisted grading of hand-ins; one run at a time, kept in memory until saved or discarded. */
+  gradeflow: {
+    listSkills: () => Promise<GradeflowResultDto<SkillListDto>>;
+    prepare: (input: PrepareInput) => Promise<GradeflowResultDto<PreparedRunDto>>;
+    confirm: (runId: string, overrides: MatchOverride[]) => Promise<GradeflowResultDto<ConfirmedRunDto>>;
+    excludeFiles: (runId: string, files: { studentId: string; path: string }[]) => Promise<GradeflowResultDto<void>>;
+    /** Resolves when the run ends; progress arrives through onProgress meanwhile. */
+    start: (runId: string) => Promise<GradeflowResultDto<ProposalsDto>>;
+    cancel: (runId: string) => Promise<GradeflowResultDto<void>>;
+    save: (runId: string, rows: SaveRow[], overwriteConfirmed: boolean) => Promise<GradeflowResultDto<SaveResultDto>>;
+    discard: (runId: string) => Promise<GradeflowResultDto<void>>;
+    /** null when the dialog was cancelled. */
+    pickPath: (request: PickPathRequest) => Promise<GradeflowResultDto<string | null>>;
+    getSettings: () => Promise<GradeflowResultDto<GradeflowSettingsDto>>;
+    setSettings: (settings: GradeflowSettingsDto) => Promise<GradeflowResultDto<GradeflowSettingsDto>>;
+    onProgress: (callback: (progress: GradeflowProgressEventDto) => void) => () => void;
   };
 }
