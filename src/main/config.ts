@@ -1,5 +1,6 @@
 import { app } from 'electron';
 import { existsSync, mkdirSync } from 'node:fs';
+import { findClaudeCodeBinary } from './claudeCodeBinary';
 import { dirname, join } from 'node:path';
 import { loadSettings } from './settings';
 
@@ -47,6 +48,17 @@ export function resolvePluginRoots(): { bundled: string; user: string } {
   const user = join(app.getPath('userData'), 'plugins');
   mkdirSync(user, { recursive: true });
   return { bundled, user };
+}
+
+/** Path of the Claude Code binary for the Agent SDK when packaged, null in development (the SDK finds it itself). */
+export function claudeCodeExecutablePath(): string | null {
+  return findClaudeCodeBinary({
+    isPackaged: app.isPackaged,
+    resourcesPath: process.resourcesPath,
+    platform: process.platform,
+    arch: process.arch,
+    exists: existsSync,
+  });
 }
 
 export function ensureDbDirectory(dbPath: string): void {

@@ -9,6 +9,10 @@ files:
   - '!build/plugins/**'
   - assets/**/*
   - package.json
+# The Agent SDK runs the Claude Code binary of its per-platform package; a binary cannot be executed from
+# inside the asar archive, so those packages are unpacked (the SDK's JavaScript stays in the asar).
+asarUnpack:
+  - node_modules/@anthropic-ai/claude-agent-sdk-*/**
 # Bundled plugins are served from disk, not from inside the asar archive.
 extraResources:
   - from: build/plugins

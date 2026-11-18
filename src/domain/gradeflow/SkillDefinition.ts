@@ -1,5 +1,6 @@
 import { Result } from "../shared/Result";
 import { ValidationError } from "../../shared/errors";
+import { AgentModel } from "./AgentRunner";
 
 export type SkillSource = "bundled" | "user";
 
@@ -7,6 +8,8 @@ export interface SkillDefinition {
   id: string;
   name: string;
   description: string;
+  /** From the frontmatter `model:`; null means the default model. */
+  model: AgentModel | null;
   source: SkillSource;
 }
 
@@ -44,6 +47,13 @@ function readFrontmatter(markdown: string): Map<string, string> | null {
   return values;
 }
 
+function readModel(raw: string): AgentModel | null | undefined {
+  const value = raw.toLowerCase();
+  if (value === "") return null;
+  if (value === "sonnet" || value === "opus") return value;
+  return undefined;
+}
+
 /** The returned `source` is `user`; the catalog that knows where the file came from overrides it. */
 export function parseSkillFile(
   id: string,
@@ -65,5 +75,11 @@ export function parseSkillFile(
       new ValidationError("SKILL.md frontmatter needs name and description"),
     );
   }
-  return Result.ok({ id, name, description, source: "user" });
+  const model = readModel(frontmatter.get("model") ?? "");
+  if (model === undefined) {
+    return Result.fail(
+      new ValidationError("SKILL.md model must be sonnet or opus"),
+    );
+  }
+  return Result.ok({ id, name, description, model, source: "user" });
 }

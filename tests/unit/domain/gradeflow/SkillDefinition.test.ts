@@ -15,6 +15,7 @@ describe("SkillDefinition", () => {
           id: "beginner",
           name: "Beginner",
           description: "Grades gently",
+          model: null,
           source: "user",
         },
       });
@@ -70,6 +71,36 @@ describe("SkillDefinition", () => {
         expect(result.ok).toBe(false);
       },
     );
+
+    it.each([
+      ["sonnet", "sonnet"],
+      ["opus", "opus"],
+      ["Opus", "opus"],
+      ["'SONNET'", "sonnet"],
+    ])("reads the model %p as %p", (raw, expected) => {
+      const result = parseSkillFile(
+        "a1",
+        file("---", "name: N", "description: D", `model: ${raw}`, "---"),
+      );
+      expect(result.ok && result.value.model).toBe(expected);
+    });
+
+    it("treats an empty model as not set", () => {
+      const result = parseSkillFile(
+        "a1",
+        file("---", "name: N", "description: D", "model:", "---"),
+      );
+      expect(result.ok && result.value.model).toBeNull();
+    });
+
+    it("fails for an unknown model with a reason", () => {
+      const result = parseSkillFile(
+        "a1",
+        file("---", "name: N", "description: D", "model: haiku", "---"),
+      );
+      expect(result.ok).toBe(false);
+      if (!result.ok) expect(result.error.message).toMatch(/model/i);
+    });
 
     it("accepts a 64 character id", () => {
       const result = parseSkillFile(
