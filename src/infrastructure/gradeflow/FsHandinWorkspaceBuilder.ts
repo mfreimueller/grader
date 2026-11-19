@@ -7,9 +7,15 @@ import {
   HandinWorkspaceBuilder,
   WorkspaceReportEntry,
 } from "../../domain/gradeflow/HandinWorkspaceBuilder";
+import {
+  MaterialKind,
+  MaterialRole,
+  workspaceMaterialName,
+} from "../../domain/gradeflow/WorkspaceMaterial";
 import { Result } from "../../domain/shared/Result";
 import { ValidationError } from "../../shared/errors";
 import { HandinCopier } from "./HandinCopier";
+import { copyMaterialDir } from "./MaterialCopier";
 import { DEFAULT_WORKSPACE_LIMITS, WorkspaceLimits } from "./WorkspaceLimits";
 import { errorCode, isStrictlyInside } from "./workspacePaths";
 
@@ -76,20 +82,25 @@ export class FsHandinWorkspaceBuilder implements HandinWorkspaceBuilder {
     }
   }
 
+  private async copyMaterial(
+    root: string,
+    role: MaterialRole,
+    source: string,
+    kind: MaterialKind,
+  ): Promise<void> {
+    const target = path.join(root, workspaceMaterialName(role, kind, path.extname(source)));
+    if (kind === "file") await fs.copyFile(source, target);
+    else await copyMaterialDir(role, source, target, this.limits);
+  }
+
   private async populate(
     root: string,
     input: BuildWorkspaceInput,
   ): Promise<WorkspaceReportEntry[]> {
     // The teacher's own files are copied as they are: not scrubbed, not reported.
-    await fs.copyFile(
-      input.assignmentPath,
-      path.join(root, `ASSIGNMENT${path.extname(input.assignmentPath)}`),
-    );
-    if (input.solutionPath !== null) {
-      await fs.copyFile(
-        input.solutionPath,
-        path.join(root, `SOLUTION${path.extname(input.solutionPath)}`),
-      );
+    await this.copyMaterial(root, "assignment", input.assignmentPath, input.assignmentKind);
+    if (input.solutionPath !== null && input.solutionKind !== null) {
+      await this.copyMaterial(root, "solution", input.solutionPath, input.solutionKind);
     }
     await fs.writeFile(path.join(root, "OUTPUT_SCHEMA.md"), input.outputInstructions, "utf8");
     await fs.cp(input.skill.dir, path.join(root, ".claude", "skills", input.skill.id), {

@@ -61,17 +61,31 @@ describe("FsHandinDirectory", () => {
     });
   });
 
-  describe("isFile", () => {
-    it("is true for a regular file", async () => {
+  describe("kindOf", () => {
+    it("is file for a regular file", async () => {
       const file = path.join(tmp, "a.pdf");
       await fs.writeFile(file, "x");
 
-      expect(await directory.isFile(file)).toBe(true);
+      expect(await directory.kindOf(file)).toBe("file");
     });
 
-    it("is false for a directory and for a missing path", async () => {
-      expect(await directory.isFile(tmp)).toBe(false);
-      expect(await directory.isFile(path.join(tmp, "missing"))).toBe(false);
+    it("is directory for a folder", async () => {
+      expect(await directory.kindOf(tmp)).toBe("directory");
+    });
+
+    it("follows a symlink at the top level", async () => {
+      const file = path.join(tmp, "a.pdf");
+      await fs.writeFile(file, "x");
+      await fs.symlink(file, path.join(tmp, "link-file"));
+      await fs.mkdir(path.join(tmp, "d"));
+      await fs.symlink(path.join(tmp, "d"), path.join(tmp, "link-dir"));
+
+      expect(await directory.kindOf(path.join(tmp, "link-file"))).toBe("file");
+      expect(await directory.kindOf(path.join(tmp, "link-dir"))).toBe("directory");
+    });
+
+    it("is null for a missing path", async () => {
+      expect(await directory.kindOf(path.join(tmp, "missing"))).toBeNull();
     });
   });
 });

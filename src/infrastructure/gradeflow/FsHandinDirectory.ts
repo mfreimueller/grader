@@ -1,5 +1,6 @@
 import fs from "node:fs/promises";
 import { HandinDirectory } from "../../domain/gradeflow/HandinDirectory";
+import { MaterialKind } from "../../domain/gradeflow/WorkspaceMaterial";
 import { Result } from "../../domain/shared/Result";
 import { ValidationError } from "../../shared/errors";
 
@@ -20,11 +21,13 @@ export class FsHandinDirectory implements HandinDirectory {
     }
   }
 
-  async isFile(path: string): Promise<boolean> {
+  async kindOf(path: string): Promise<MaterialKind | null> {
     try {
-      return (await fs.stat(path)).isFile();
+      const stat = await fs.stat(path);
+      if (stat.isFile()) return "file";
+      return stat.isDirectory() ? "directory" : null;
     } catch {
-      return false;
+      return null;
     }
   }
 }

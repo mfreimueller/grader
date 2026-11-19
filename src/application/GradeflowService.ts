@@ -7,6 +7,7 @@ import { BuiltWorkspace } from '../domain/gradeflow/HandinWorkspaceBuilder';
 import { groupHandins } from '../domain/gradeflow/MoodleHandinFolder';
 import { outputJsonSchema, renderOutputInstructions } from '../domain/gradeflow/OutputInstructions';
 import { PseudonymMap } from '../domain/gradeflow/PseudonymMap';
+import { workspaceMaterialName } from '../domain/gradeflow/WorkspaceMaterial';
 import { generateId } from '../domain/shared/IdGenerator';
 import { Result } from '../domain/shared/Result';
 import { NotFoundError, ValidationError } from '../shared/errors';
@@ -50,7 +51,7 @@ export class GradeflowService {
     if (this.runs.size > 0) return invalid('Another Gradeflow run is still open');
     const checked = await checkInput(this.deps, input);
     if (!checked.ok) return Result.fail(checked.error);
-    const { assessment, skill, students } = checked.value;
+    const { assignmentKind, solutionKind, assessment, skill, students } = checked.value;
 
     const folders = await this.deps.handinDirectory.listFolderNames(input.handinsDir);
     if (!folders.ok) return Result.fail(folders.error);
@@ -61,6 +62,8 @@ export class GradeflowService {
     this.runs.set(runId, {
       phase: 'prepared',
       input,
+      assignmentKind,
+      solutionKind,
       assessment,
       skill,
       students,
@@ -111,7 +114,9 @@ export class GradeflowService {
     const built = await this.deps.workspaceBuilder.build({
       handinsDir: run.input.handinsDir,
       assignmentPath: run.input.assignmentPath,
+      assignmentKind: run.assignmentKind,
       solutionPath: run.input.solutionPath,
+      solutionKind: run.solutionKind,
       handins: confirmed.value,
       pseudonyms: pseudonyms.value,
       students: run.students.map(({ firstName, lastName }) => ({ firstName, lastName })),
@@ -182,8 +187,17 @@ export class GradeflowService {
         workspaceRoot: workspace.root,
         prompt: buildGradingPrompt({
           skillId: run.input.skillId,
-          assignmentFile: `ASSIGNMENT${extname(run.input.assignmentPath)}`,
-          solutionFile: run.input.solutionPath === null ? null : `SOLUTION${extname(run.input.solutionPath)}`,
+          assignment: {
+            name: workspaceMaterialName('assignment', run.assignmentKind, extname(run.input.assignmentPath)),
+            kind: run.assignmentKind,
+          },
+          solution:
+            run.input.solutionPath === null || run.solutionKind === null
+              ? null
+              : {
+                  name: workspaceMaterialName('solution', run.solutionKind, extname(run.input.solutionPath)),
+                  kind: run.solutionKind,
+                },
           tokenCount: pseudonyms.size,
         }),
         jsonSchema: schema.value,

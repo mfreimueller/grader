@@ -37,10 +37,22 @@ export interface GradeflowDeps {
   loadAssessments: (courseId: string) => Promise<AssessmentDto[]>;
 }
 
-const PICK_REQUESTS: Readonly<Record<PathField, { kind: 'file' | 'directory'; title: string }>> = {
-  assignmentPath: { kind: 'file', title: 'Aufgabenstellung wählen' },
-  solutionPath: { kind: 'file', title: 'Musterlösung wählen' },
-  handinsDir: { kind: 'directory', title: 'Abgabenordner wählen' },
+export type PickKind = 'file' | 'directory';
+
+/** Assignment and solution may be a file or a folder; the hand-ins are always a folder. */
+const PICK_REQUESTS: Readonly<Record<PathField, Readonly<Record<PickKind, { kind: PickKind; title: string }>>>> = {
+  assignmentPath: {
+    file: { kind: 'file', title: 'Aufgabenstellung wählen' },
+    directory: { kind: 'directory', title: 'Aufgabenordner wählen' },
+  },
+  solutionPath: {
+    file: { kind: 'file', title: 'Musterlösung wählen' },
+    directory: { kind: 'directory', title: 'Musterlösungsordner wählen' },
+  },
+  handinsDir: {
+    file: { kind: 'directory', title: 'Abgabenordner wählen' },
+    directory: { kind: 'directory', title: 'Abgabenordner wählen' },
+  },
 };
 
 /** The controller as the components see it: refs unwrapped, so `g.step` reads the value. */
@@ -124,8 +136,8 @@ export function useGradeflow(courseId: string, preselectedAssessmentId: string |
     }
   }
 
-  async function pick(field: PathField): Promise<void> {
-    const path = await guarded(() => api.pickPath(PICK_REQUESTS[field]));
+  async function pick(field: PathField, kind: PickKind = 'file'): Promise<void> {
+    const path = await guarded(() => api.pickPath(PICK_REQUESTS[field][kind]));
     if (path !== null) form[field] = path;
   }
 

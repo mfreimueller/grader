@@ -1,6 +1,7 @@
 import {
   archiveKind,
   classifyContent,
+  isSkippedMaterialPath,
   isSkippedPath,
 } from "../../../../src/domain/gradeflow/handinFileRules";
 
@@ -45,6 +46,38 @@ describe("handinFileRules", () => {
       expect(isSkippedPath("binary/Main.java")).toBe(false);
       expect(isSkippedPath("notes.class.txt")).toBe(false);
       expect(isSkippedPath("a/.DS_Store_backup")).toBe(false);
+    });
+  });
+
+  describe("isSkippedMaterialPath", () => {
+    it("skips everything isSkippedPath skips", () => {
+      expect(isSkippedMaterialPath("src/node_modules/x.js")).toBe(true);
+      expect(isSkippedMaterialPath(".git/config")).toBe(true);
+      expect(isSkippedMaterialPath("src/Main.class")).toBe(true);
+      expect(isSkippedMaterialPath("a/.DS_Store")).toBe(true);
+    });
+
+    it("skips a .claude segment at any depth", () => {
+      expect(isSkippedMaterialPath(".claude")).toBe(true);
+      expect(isSkippedMaterialPath(".claude/settings.json")).toBe(true);
+      expect(isSkippedMaterialPath("a/.claude/hooks/x.sh")).toBe(true);
+      expect(isSkippedMaterialPath(".Claude/settings.json")).toBe(true);
+      expect(isSkippedMaterialPath("a/.CLAUDE/skills/x/SKILL.md")).toBe(true);
+    });
+
+    it("skips CLAUDE.md and CLAUDE.local.md case-insensitively", () => {
+      expect(isSkippedMaterialPath("CLAUDE.md")).toBe(true);
+      expect(isSkippedMaterialPath("sub/claude.md")).toBe(true);
+      expect(isSkippedMaterialPath("sub/Claude.Local.md")).toBe(true);
+      expect(isSkippedMaterialPath("CLAUDE.local.md")).toBe(true);
+    });
+
+    it("keeps ordinary files and look-alikes", () => {
+      expect(isSkippedMaterialPath("task.md")).toBe(false);
+      expect(isSkippedMaterialPath("src/Main.java")).toBe(false);
+      expect(isSkippedMaterialPath("docs/CLAUDE.md.txt")).toBe(false);
+      expect(isSkippedMaterialPath("claude/notes.md")).toBe(false);
+      expect(isSkippedMaterialPath("x.claude/notes.md")).toBe(false);
     });
   });
 

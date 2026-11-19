@@ -41,6 +41,26 @@ export function isSkippedPath(relativePath: string): boolean {
   );
 }
 
+const MATERIAL_SKIPPED_SEGMENT = ".claude";
+const MATERIAL_SKIPPED_BASENAMES: ReadonlySet<string> = new Set([
+  "claude.md",
+  "claude.local.md",
+]);
+
+/**
+ * Like `isSkippedPath`, plus what must never reach the workspace from a teacher's folder: the runner
+ * loads project settings, so `.claude/`, `CLAUDE.md` and `CLAUDE.local.md` (any case: macOS file
+ * systems ignore it) are dropped.
+ */
+export function isSkippedMaterialPath(relativePath: string): boolean {
+  if (isSkippedPath(relativePath)) return true;
+  const basename = relativePath.slice(relativePath.lastIndexOf("/") + 1);
+  return (
+    relativePath.toLowerCase().split("/").includes(MATERIAL_SKIPPED_SEGMENT) ||
+    MATERIAL_SKIPPED_BASENAMES.has(basename.toLowerCase())
+  );
+}
+
 export type ContentEncoding =
   | "utf8"
   | "utf16le"

@@ -7,7 +7,7 @@ description: Java, Einsteigerniveau: milde Beurteilung; bewertet werden Lauffäh
 
 ## Vorgehen
 
-1. Zuerst die Aufgabenstellung (ASSIGNMENT), die Musterlösung (SOLUTION, falls vorhanden) und OUTPUT_SCHEMA.md lesen. OUTPUT_SCHEMA.md legt Ausgabeformat und erlaubte Werte fest.
+1. Zuerst die Aufgabenstellung (Datei ASSIGNMENT oder Ordner assignment/), die Musterlösung (Datei SOLUTION oder Ordner solution/, falls vorhanden) und OUTPUT_SCHEMA.md lesen. Ein Ordner kann Vorlagecode enthalten, den die Schüler/innen erhalten haben – nur Änderungen daran sind ihre eigene Leistung. OUTPUT_SCHEMA.md legt Ausgabeformat und erlaubte Werte fest.
 2. Beurteilt wird ausschließlich gegen die Aufgabenstellung. Die Musterlösung ist eine Referenz, nicht der einzig richtige Weg; abweichende, aber korrekte Lösungen gelten voll.
 3. Jede Abgabe wird einzeln beurteilt, aber nach demselben Maßstab wie alle anderen. Vor dem Ergebnis kurz prüfen, ob ähnliche Arbeiten ähnlich bewertet wurden.
 4. Code wird nie ausgeführt (nur Read, Glob und Grep stehen zur Verfügung). Die Beurteilung erfolgt durch sorgfältiges Lesen.

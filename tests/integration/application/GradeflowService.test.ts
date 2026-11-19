@@ -20,6 +20,7 @@ import type {
   PrepareInput,
   SaveRow,
 } from '../../../src/application/GradeflowTypes';
+import type { MaterialKind } from '../../../src/domain/gradeflow/WorkspaceMaterial';
 import { GradingService } from '../../../src/application/GradingService';
 import { SessionService } from '../../../src/application/SessionService';
 import {
@@ -63,13 +64,18 @@ const errorOf = <T>(result: Result<T, Error>): Error => {
 
 class FakeDirectory implements HandinDirectory {
   folders: string[] = [MAX_FOLDER, ANNA_FOLDER, STRANGER_FOLDER, 'readme'];
-  files = new Set(['/in/assignment.pdf', '/in/solution.pdf']);
+  kinds = new Map<string, MaterialKind>([
+    ['/in/assignment.pdf', 'file'],
+    ['/in/solution.pdf', 'file'],
+    ['/in/assignment-dir', 'directory'],
+    ['/in/solution-dir', 'directory'],
+  ]);
   unreadable = false;
   async listFolderNames(): Promise<Result<string[]>> {
     return this.unreadable ? Result.fail(new ValidationError('unreadable')) : Result.ok(this.folders);
   }
-  async isFile(path: string): Promise<boolean> {
-    return this.files.has(path);
+  async kindOf(path: string): Promise<MaterialKind | null> {
+    return this.kinds.get(path) ?? null;
   }
 }
 
@@ -378,9 +384,28 @@ describe('GradeflowService', () => {
       expect(errorOf(await service.prepare(input({ solutionPath: 's.pdf' })))).toBeInstanceOf(ValidationError);
     });
 
-    it('refuses missing assignment and solution files', async () => {
-      expect(errorOf(await service.prepare(input({ assignmentPath: '/in/none.pdf' })))).toBeInstanceOf(ValidationError);
-      expect(errorOf(await service.prepare(input({ solutionPath: '/in/none.pdf' })))).toBeInstanceOf(ValidationError);
+    it('refuses a missing assignment and a missing solution', async () => {
+      const noAssignment = errorOf(await service.prepare(input({ assignmentPath: '/in/none.pdf' })));
+      expect(noAssignment).toBeInstanceOf(ValidationError);
+      expect(noAssignment.message).toBe('The assignment does not exist');
+      const noSolution = errorOf(await service.prepare(input({ solutionPath: '/in/none.pdf' })));
+      expect(noSolution).toBeInstanceOf(ValidationError);
+      expect(noSolution.message).toBe('The solution does not exist');
+    });
+
+    it('accepts folders for the assignment and the solution', async () => {
+      const result = await service.prepare(
+        input({ assignmentPath: '/in/assignment-dir', solutionPath: '/in/solution-dir' }),
+      );
+
+      expect(result.ok).toBe(true);
+    });
+
+    it('refuses a missing assignment folder', async () => {
+      const error = errorOf(await service.prepare(input({ assignmentPath: '/in/none-dir' })));
+
+      expect(error).toBeInstanceOf(ValidationError);
+      expect(error.message).toBe('The assignment does not exist');
     });
 
     it('fails when the hand-ins folder cannot be read', async () => {
@@ -415,6 +440,8 @@ describe('GradeflowService', () => {
       expect(built.handinsDir).toBe('/in/handins');
       expect(built.assignmentPath).toBe('/in/assignment.pdf');
       expect(built.solutionPath).toBe('/in/solution.pdf');
+      expect(built.assignmentKind).toBe('file');
+      expect(built.solutionKind).toBe('file');
       expect(built.skill).toEqual({ id: 'beginner', dir: '/skills/beginner' });
       expect(built.handins.map((h) => [h.studentId, h.folders])).toEqual([
         ['s-max', [MAX_FOLDER]],
@@ -611,6 +638,27 @@ describe('GradeflowService', () => {
       expect(request.prompt).toContain('SOLUTION.pdf');
       expect(request.prompt).toContain('exactly 2 folders');
       expect(JSON.stringify(request.jsonSchema)).toContain('PLUS_WELLE');
+    });
+
+    it('hands folder materials to the builder and names them in the prompt', async () => {
+      const runId = await confirmed({ assignmentPath: '/in/assignment-dir', solutionPath: '/in/solution-dir' });
+      runner.respond = (tokens) => outcome(tertiaryOutput(tokens));
+
+      valueOf(await service.start(runId, () => undefined));
+
+      const built = builder.inputs[0]!;
+      expect(built.assignmentKind).toBe('directory');
+      expect(built.solutionKind).toBe('directory');
+      const prompt = runner.requests[0]!.prompt;
+      expect(prompt).toContain('Read every file in assignment/ (the assignment).');
+      expect(prompt).toContain('Read every file in solution/ (the sample solution).');
+      expect(prompt).not.toContain('ASSIGNMENT');
+    });
+
+    it('passes no solution kind when there is no solution', async () => {
+      await confirmed({ solutionPath: null });
+
+      expect(builder.inputs[0]!.solutionKind).toBeNull();
     });
 
     it('uses the model of the skill', async () => {

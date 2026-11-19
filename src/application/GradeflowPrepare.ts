@@ -35,12 +35,14 @@ export async function checkInput(deps: GradeflowDeps, input: PrepareInput): Prom
 
   const paths = [input.handinsDir, input.assignmentPath, ...(input.solutionPath === null ? [] : [input.solutionPath])];
   if (!paths.every((p) => isAbsolute(p))) return invalid('Paths must be absolute');
-  if (!(await handinDirectory.isFile(input.assignmentPath))) return invalid('The assignment file does not exist');
-  if (input.solutionPath !== null && !(await handinDirectory.isFile(input.solutionPath))) {
-    return invalid('The solution file does not exist');
-  }
+  const assignmentKind = await handinDirectory.kindOf(input.assignmentPath);
+  if (assignmentKind === null) return invalid('The assignment does not exist');
+  const solutionKind = input.solutionPath === null ? null : await handinDirectory.kindOf(input.solutionPath);
+  if (input.solutionPath !== null && solutionKind === null) return invalid('The solution does not exist');
 
   return Result.ok({
+    assignmentKind,
+    solutionKind,
     assessment: found,
     skill: { dir: skillDir, model: skill.model },
     students: roster.value.map((s) => ({

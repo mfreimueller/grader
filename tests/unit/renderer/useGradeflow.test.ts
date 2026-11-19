@@ -161,6 +161,34 @@ describe('useGradeflow', () => {
       expect(t.api.pickPath.mock.calls.map(([r]) => r.kind)).toEqual(['file', 'directory', 'file']);
     });
 
+    it('asks for a folder dialog with its own title when a folder is wanted', async () => {
+      const t = setup({ pickPath: jest.fn().mockResolvedValue(ok('/in/task-dir')) });
+
+      await t.g.pick('assignmentPath', 'directory');
+      await t.g.pick('solutionPath', 'directory');
+
+      expect(t.g.form.assignmentPath).toBe('/in/task-dir');
+      expect(t.g.form.solutionPath).toBe('/in/task-dir');
+      expect(t.api.pickPath.mock.calls.map(([r]) => [r.kind, r.title])).toEqual([
+        ['directory', 'Aufgabenordner wählen'],
+        ['directory', 'Musterlösungsordner wählen'],
+      ]);
+    });
+
+    it('uses the file titles for files and ignores a kind for the hand-ins folder', async () => {
+      const t = setup({ pickPath: jest.fn().mockResolvedValue(ok('/x')) });
+
+      await t.g.pick('assignmentPath', 'file');
+      await t.g.pick('solutionPath');
+      await t.g.pick('handinsDir', 'file');
+
+      expect(t.api.pickPath.mock.calls.map(([r]) => [r.kind, r.title])).toEqual([
+        ['file', 'Aufgabenstellung wählen'],
+        ['file', 'Musterlösung wählen'],
+        ['directory', 'Abgabenordner wählen'],
+      ]);
+    });
+
     it('keeps the old path when the dialog is cancelled', async () => {
       const t = setup({ pickPath: jest.fn().mockResolvedValue(ok(null)) });
       t.g.form.assignmentPath = '/old';

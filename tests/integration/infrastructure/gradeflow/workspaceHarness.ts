@@ -77,10 +77,12 @@ export class Harness {
     handins: ConfirmedHandin[],
     overrides: Partial<BuildWorkspaceInput> = {},
   ): BuildWorkspaceInput {
-    return {
+    const merged: BuildWorkspaceInput = {
       handinsDir: this.handinsDir,
       assignmentPath: path.join(this.src, "assignment.md"),
+      assignmentKind: "file",
       solutionPath: path.join(this.src, "solution.java"),
+      solutionKind: "file",
       handins,
       pseudonyms: this.map,
       students: STUDENTS.map(({ firstName, lastName }) => ({ firstName, lastName })),
@@ -88,6 +90,11 @@ export class Harness {
       skill: { id: "grading", dir: path.join(this.src, "skill") },
       ...overrides,
     };
+    // No solution path means no solution kind, unless a test says otherwise.
+    if (merged.solutionPath === null && overrides.solutionKind === undefined) {
+      merged.solutionKind = null;
+    }
+    return merged;
   }
 
   async build(

@@ -2,6 +2,7 @@ import { Result } from "../shared/Result";
 import { ConfirmedHandin } from "./HandinMatcher";
 import { LoneNameHit, ScrubStudent } from "./NameScrubber";
 import { PseudonymMap } from "./PseudonymMap";
+import { MaterialKind } from "./WorkspaceMaterial";
 
 export type WorkspaceEntryKind =
   | "text"
@@ -26,7 +27,10 @@ export interface WorkspaceReportEntry {
 export interface BuildWorkspaceInput {
   handinsDir: string;
   assignmentPath: string;
+  assignmentKind: MaterialKind;
   solutionPath: string | null;
+  /** Null exactly when `solutionPath` is null. */
+  solutionKind: MaterialKind | null;
   handins: ConfirmedHandin[];
   pseudonyms: PseudonymMap;
   students: ScrubStudent[];

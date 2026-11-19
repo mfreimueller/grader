@@ -17,10 +17,15 @@
       Aufgabenstellung
       <div class="gf-path">
         <span :class="['gf-path-value', { 'gf-path-value--empty': !g.form.assignmentPath }]" data-testid="gradeflow-assignment">
-          {{ g.form.assignmentPath ?? 'Keine Datei gewählt' }}
+          {{ g.form.assignmentPath ?? 'Nichts gewählt' }}
         </span>
-        <button type="button" class="gf-btn gf-btn-secondary" data-testid="gradeflow-pick-assignment" @click="g.pick('assignmentPath')">Datei wählen…</button>
+        <button type="button" class="gf-btn gf-btn-secondary" data-testid="gradeflow-pick-assignment" @click="g.pick('assignmentPath', 'file')">Datei wählen…</button>
+        <button type="button" class="gf-btn gf-btn-secondary" data-testid="gradeflow-pick-assignment-dir" @click="g.pick('assignmentPath', 'directory')">Ordner wählen…</button>
       </div>
+      <span class="gf-hint">
+        Ein Ordner wird mit allen Dateien übernommen (z. B. Angabe und Vorlageprojekt).
+        Dateien aus Ordnern werden nicht anonymisiert – keine Schülerdaten hineinlegen.
+      </span>
     </div>
 
     <div class="gf-field">
@@ -38,9 +43,10 @@
       Musterlösung (optional)
       <div class="gf-path">
         <span :class="['gf-path-value', { 'gf-path-value--empty': !g.form.solutionPath }]">
-          {{ g.form.solutionPath ?? 'Keine Datei gewählt' }}
+          {{ g.form.solutionPath ?? 'Nichts gewählt' }}
         </span>
-        <button type="button" class="gf-btn gf-btn-secondary" @click="g.pick('solutionPath')">Datei wählen…</button>
+        <button type="button" class="gf-btn gf-btn-secondary" data-testid="gradeflow-pick-solution" @click="g.pick('solutionPath', 'file')">Datei wählen…</button>
+        <button type="button" class="gf-btn gf-btn-secondary" data-testid="gradeflow-pick-solution-dir" @click="g.pick('solutionPath', 'directory')">Ordner wählen…</button>
         <button v-if="g.form.solutionPath" type="button" class="gf-btn gf-btn-secondary" @click="g.clearSolution()">Entfernen</button>
       </div>
     </div>

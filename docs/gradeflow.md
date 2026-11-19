@@ -9,8 +9,10 @@ Gestartet wird im Kurs über „Werkzeuge“ → „Gradeflow“. Die Leistung, 
 
 ## Ablauf
 
-1. **Einrichten:** Leistung, Aufgabenstellung (Datei), Ordner mit den Abgaben, optional eine Musterlösung (Datei) und
-   das Bewertungs-Skill wählen.
+1. **Einrichten:** Leistung, Aufgabenstellung (Datei **oder Ordner**), Ordner mit den Abgaben, optional eine
+   Musterlösung (Datei **oder Ordner**) und das Bewertungs-Skill wählen. Ein Ordner eignet sich für Angabe samt
+   Vorlageprojekt; der Agent liest dann alle Dateien darin und weiß, dass Vorlagecode nicht zur eigenen Leistung der
+   Schüler/innen zählt.
 2. **Zuordnen:** Grader ordnet die Abgabeordner den Schülerinnen und Schülern des Kurses zu. Die Zuordnung lässt sich
    korrigieren; nicht erkannte Ordner werden aufgelistet und übersprungen.
 3. **Prüfung vor dem Start:** Grader baut den Arbeitsbereich und meldet, was sich nicht sicher von Namen befreien lässt
@@ -38,6 +40,8 @@ Gestartet wird im Kurs über „Werkzeuge“ → „Gradeflow“. Die Leistung, 
   abbrechen. Weitere personenbezogene Angaben (E-Mail-Adressen, Matrikelnummern) werden nicht erkannt.
 - **Kopie im temporären Ordner:** Die Abgaben werden in einen temporären Ordner kopiert; die Originale bleiben
   unverändert. Der Ordner wird nach dem Lauf gelöscht.
+- **Ordner der Lehrperson werden nicht anonymisiert:** Dateien aus einem Aufgaben- oder Musterlösungsordner werden
+  unverändert übernommen (wie eine einzelne Datei auch). Keine Schülerdaten in diese Ordner legen.
 - **Isolierter Agent:** Claude Code läuft ohne MCP-Server und ohne Benutzereinstellungen und darf nur mit den
   Werkzeugen Read, Glob und Grep innerhalb des Arbeitsbereichs lesen. Code wird nie ausgeführt, Dateien werden nicht
   geschrieben.
@@ -135,5 +139,10 @@ Kopien der Musterlösung).
   die Arbeit, zum Beispiel „Eingabeprüfung fehlt; Schleife endet einen Schritt zu früh.“ Namen und Kürzel sind
   verboten.
 - Der Arbeitsbereich: Aufgabenstellung, optional Musterlösung, `handins/<Kürzel>/`; der Agent darf nur dort lesen.
+  Eine Datei liegt als `ASSIGNMENT.<Endung>` bzw. `SOLUTION.<Endung>` im Arbeitsbereich, ein Ordner als
+  `assignment/` bzw. `solution/`. Aus Ordnern werden `.claude/`, `CLAUDE.md` und `CLAUDE.local.md` (damit keine
+  Einstellungen oder Anweisungen eingeschleust werden), Build- und Versionsverwaltungsordner (`.git`, `node_modules`,
+  `build` …), Symlinks und Dateien über 2 MB nicht übernommen. Höchstens 2000 Dateien und 50 MB je Ordner; ist ein
+  Ordner größer, bricht Grader die Vorbereitung ab.
 
 Die mitgelieferten Skills wiederholen die Kommentarregeln trotzdem kurz; ein eigener Skill kann darauf verzichten.
