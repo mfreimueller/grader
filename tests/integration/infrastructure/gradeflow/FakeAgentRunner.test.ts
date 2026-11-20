@@ -36,6 +36,35 @@ const request = (gradingType: GradingType, maxPoints: number | null): AgentRunRe
 };
 
 describe("FakeAgentRunner", () => {
+  describe("run for a J;DE schema", () => {
+    it("adds a line comment on the first line of the first file of each hand-in", async () => {
+      fs.mkdirSync(path.join(root, "handins", "aaaa1111", "src"), { recursive: true });
+      fs.writeFileSync(path.join(root, "handins", "aaaa1111", "src", "B.java"), "x\n");
+      fs.writeFileSync(path.join(root, "handins", "aaaa1111", "A.java"), "x\n");
+      const schema = outputJsonSchema({
+        gradingType: GradingType.TERTIARY,
+        maxPoints: null,
+        tokens: ["aaaa1111", "bbbb2222"],
+        source: "jide",
+      });
+      if (!schema.ok) throw schema.error;
+
+      const outcome = await new FakeAgentRunner().run(
+        { ...request(GradingType.TERTIARY, null), jsonSchema: schema.value },
+        () => {},
+        new AbortController().signal,
+      );
+
+      expect(outcome.ok && outcome.value.structuredOutput).toEqual({
+        version: 1,
+        results: [
+          { token: "aaaa1111", symbol: "WELLE", comment: "Testkommentar", lineComments: [{ path: "A.java", line: 1, text: "Testzeilenkommentar" }] },
+          { token: "bbbb2222", symbol: "WELLE", comment: "Testkommentar", lineComments: [] },
+        ],
+      });
+    });
+  });
+
   describe("run", () => {
     it("proposes WELLE for every hand-in folder of a TERTIARY assessment", async () => {
       const outcome = await new FakeAgentRunner().run(request(GradingType.TERTIARY, null), () => {}, new AbortController().signal);

@@ -12,14 +12,18 @@ import type {
   SaveResultDto,
   SkillListDto,
 } from '../../shared/gradeflow-api';
+import type { JideExerciseDto } from '../../shared/jide-api';
 import type { AssessmentDto, IpcApi } from '../../shared/types';
 import { gradeflowErrorMessage, isOverwriteConfirmation } from '../utils/gradeflowErrors';
+import { describeSendSummary, missingJideFields, type GradeflowSource } from '../utils/gradeflowJide';
 import { buildMatchRows, duplicateAssignments, studentLabel, toOverrides, type MatchRow } from '../utils/gradeflowMatching';
 import { groupPreflight, hasPersonalDataRisk, toExcludedFiles } from '../utils/gradeflowPreflight';
 import { emptyProgress, progressLabel, reduceProgress, type ProgressState } from '../utils/gradeflowProgress';
 import {
-  applyFailures,
+  applySaveResult,
   buildReviewRows,
+  hasOpenJideProblems,
+  jideSendSummary,
   overwriteCount,
   rowProblem,
   toSaveRows,
@@ -27,6 +31,7 @@ import {
 } from '../utils/gradeflowReview';
 import { eligibleAssessments, missingSetupFields, type AssessmentOption } from '../utils/gradeflowSetup';
 import { plain } from '../utils/plain';
+import { useJideLinks } from './useJideLinks';
 
 export type GradeflowStep = 'setup' | 'matching' | 'preflight' | 'running' | 'review' | 'done';
 export type PathField = 'assignmentPath' | 'solutionPath' | 'handinsDir';
@@ -35,7 +40,12 @@ export interface GradeflowDeps {
   api: IpcApi['gradeflow'];
   /** Every assessment of the course, shared and impromptu. */
   loadAssessments: (courseId: string) => Promise<AssessmentDto[]>;
+  /** The J;DE connection; without it the J;DE source is not offered. */
+  jide?: IpcApi['jide'];
 }
+
+/** The skill that is preselected for J;DE runs when it exists. */
+export const JIDE_SKILL_ID = 'java-jide';
 
 export type PickKind = 'file' | 'directory';
 
@@ -66,6 +76,8 @@ export function useGradeflow(courseId: string, preselectedAssessmentId: string |
   const error = ref('');
 
   const form = reactive({
+    source: 'moodle' as GradeflowSource,
+    jideExerciseId: '',
     assessmentId: '',
     assignmentPath: null as string | null,
     solutionPath: null as string | null,
@@ -73,6 +85,9 @@ export function useGradeflow(courseId: string, preselectedAssessmentId: string |
     skillId: '',
   });
   const assessments = ref<AssessmentOption[]>([]);
+  const exercises = ref<JideExerciseDto[]>([]);
+  const exercisesError = ref('');
+  const links = deps.jide ? useJideLinks(courseId, deps.jide) : null;
   const skills = ref<SkillListDto>({ skills: [], invalid: [] });
   const settings = ref<GradeflowSettingsDto | null>(null);
 
@@ -93,6 +108,13 @@ export function useGradeflow(courseId: string, preselectedAssessmentId: string |
 
   const runId = (): string | null => prepared.value?.runId ?? null;
   const selectedAssessment = computed(() => assessments.value.find((a) => a.id === form.assessmentId) ?? null);
+  const isJide = computed(() => form.source === 'jide');
+  /** The columns the teacher can pick: J;DE grades are symbols, so only symbol columns qualify for J;DE. */
+  const columnOptions = computed(() =>
+    isJide.value ? assessments.value.filter((a) => a.gradingType === 'TERTIARY') : assessments.value,
+  );
+  const jideLinked = computed(() => links?.confirmed.value === true);
+  const jideSummary = computed(() => describeSendSummary(jideSendSummary(reviewRows.value)));
   const hasOpenRun = computed(() => prepared.value !== null && step.value !== 'done');
   const gradingType = computed(() => selectedAssessment.value?.gradingType ?? 'TERTIARY');
   const report = computed(() => confirmed.value?.report ?? []);
@@ -149,7 +171,33 @@ export function useGradeflow(courseId: string, preselectedAssessmentId: string |
     await guarded(() => api.openSkillsFolder());
   }
 
+  async function loadExercises(): Promise<void> {
+    exercises.value = [];
+    exercisesError.value = '';
+    if (!deps.jide || !jideLinked.value) return;
+    const result = await deps.jide.listExercises(courseId);
+    if (result.ok) exercises.value = result.value;
+    else exercisesError.value = result.error.message;
+    if (!exercises.value.some((e) => e.id === form.jideExerciseId)) form.jideExerciseId = '';
+  }
+
+  async function setSource(source: GradeflowSource): Promise<void> {
+    form.source = source;
+    error.value = '';
+    if (source === 'moodle') return;
+    if (!columnOptions.value.some((a) => a.id === form.assessmentId)) form.assessmentId = '';
+    if (form.skillId === '' && skills.value.skills.some((s) => s.id === JIDE_SKILL_ID)) form.skillId = JIDE_SKILL_ID;
+    await links?.load();
+    await loadExercises();
+  }
+
+  /** Saves the links of the panel; the exercises of the linked J;DE course are listed afterwards. */
+  async function saveLinks(): Promise<void> {
+    if (links && (await links.save())) await loadExercises();
+  }
+
   async function prepare(): Promise<void> {
+    if (isJide.value) return prepareJide();
     const missing = missingSetupFields(form);
     if (missing.length > 0) {
       error.value = `Bitte noch wählen: ${missing.join(', ')}`;
@@ -173,6 +221,28 @@ export function useGradeflow(courseId: string, preselectedAssessmentId: string |
     step.value = 'matching';
   }
 
+  async function prepareJide(): Promise<void> {
+    const missing = missingJideFields(form, jideLinked.value);
+    if (missing.length > 0 || !deps.jide) {
+      error.value = `Bitte noch wählen: ${missing.join(', ')}`;
+      return;
+    }
+    const value = await guarded(() =>
+      api.prepareJide(
+        plain({
+          courseId,
+          assessmentId: form.assessmentId,
+          jideExerciseId: form.jideExerciseId,
+          skillId: form.skillId,
+        }),
+      ),
+    );
+    if (value === null) return;
+    prepared.value = value;
+    matchRows.value = buildMatchRows(value);
+    step.value = 'matching';
+  }
+
   async function confirm(): Promise<void> {
     const id = runId();
     if (id === null) return;
@@ -182,7 +252,9 @@ export function useGradeflow(courseId: string, preselectedAssessmentId: string |
       return;
     }
     if (matchRows.value.every((r) => r.selected === null)) {
-      error.value = 'Bitte ordnen Sie mindestens eine Abgabe einer Person zu.';
+      error.value = isJide.value
+        ? 'Keine Abgabe ist einer Person zugeordnet. Bitte prüfen Sie die J;DE-Verknüpfung.'
+        : 'Bitte ordnen Sie mindestens eine Abgabe einer Person zu.';
       return;
     }
     const value = await guarded(() => api.confirm(id, plain(toOverrides(matchRows.value))));
@@ -274,8 +346,9 @@ export function useGradeflow(courseId: string, preselectedAssessmentId: string |
       const result = await api.save(id, plain(toSaveRows(reviewRows.value, gradingType.value)), overwriteConfirmed);
       if (result.ok) {
         saveResult.value = result.value;
-        applyFailures(reviewRows.value, result.value.failed);
-        if (result.value.failed.length === 0) step.value = 'done';
+        applySaveResult(reviewRows.value, result.value);
+        // A J;DE row that could not be sent, or was refused, stays on screen with its mark until the teacher is done.
+        if (result.value.failed.length === 0 && !hasOpenJideProblems(reviewRows.value)) step.value = 'done';
       } else if (isOverwriteConfirmation(result.error)) {
         overwriteConfirmation.value = result.error.count as number;
       } else {
@@ -289,6 +362,13 @@ export function useGradeflow(courseId: string, preselectedAssessmentId: string |
   async function confirmOverwrite(): Promise<void> {
     overwriteConfirmation.value = null;
     await save(true);
+  }
+
+  /** Leaves a finished review whose J;DE problems the teacher has seen. */
+  async function finish(): Promise<void> {
+    const id = runId();
+    if (id !== null) await api.discard(id);
+    step.value = 'done';
   }
 
   const declineOverwrite = (): void => {
@@ -314,6 +394,13 @@ export function useGradeflow(courseId: string, preselectedAssessmentId: string |
     error,
     form,
     assessments,
+    columnOptions,
+    isJide,
+    exercises,
+    exercisesError,
+    links,
+    jideLinked,
+    jideSummary,
     selectedAssessment,
     skills,
     settings,
@@ -336,6 +423,9 @@ export function useGradeflow(courseId: string, preselectedAssessmentId: string |
     pick,
     clearSolution,
     openSkillsFolder,
+    setSource,
+    saveLinks,
+    loadExercises,
     prepare,
     confirm,
     toggleExclude,
@@ -346,6 +436,7 @@ export function useGradeflow(courseId: string, preselectedAssessmentId: string |
     save,
     confirmOverwrite,
     declineOverwrite,
+    finish,
     attach,
     detach,
   };

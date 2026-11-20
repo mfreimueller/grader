@@ -1,3 +1,4 @@
+import type { JideLinkOverviewDto, JideResultDto } from '../../../src/shared/jide-api';
 import type {
   ConfirmedRunDto,
   GradeflowErrorDto,
@@ -618,6 +619,186 @@ describe('useGradeflow', () => {
       await t.g.save();
 
       expect(t.api.save).toHaveBeenCalledWith('run-1', [{ studentId: 's1', score: 7.5, comment: '', include: true }], false);
+    });
+  });
+
+  describe('J;DE source', () => {
+    type JideApi = IpcApi['jide'];
+    const jideOk = <T>(value: T): JideResultDto<T> => ({ ok: true, value });
+    const overview: JideLinkOverviewDto = {
+      jideCourses: [{ id: '7', subject: 'Programmieren', className: '3AHIF' }],
+      jideCourseId: '7',
+      courseConfirmed: true,
+      jideStudents: [{ id: '11', name: 'Anna Bauer' }],
+      students: [{ studentId: 's1', firstName: 'Anna', lastName: 'Bauer', jideStudentId: '11', suggestedJideStudentId: null }],
+    };
+    const exerciseList = [{ id: '3', slug: 'summe', title: 'Summe' }];
+    const jidePrepared: PreparedRunDto = {
+      ...prepared,
+      source: 'jide',
+      exercise: { title: 'Summe', slug: 'summe' },
+    };
+    const jideSkills: SkillListDto = {
+      skills: [
+        ...skills.skills,
+        { id: 'java-jide', name: 'Java J;DE', description: 'd', model: null, source: 'bundled' },
+      ],
+      invalid: [],
+    };
+
+    function jideSetup(overrides: Partial<Api> = {}, jideOverrides: Partial<JideApi> = {}) {
+      const t = setup({ listSkills: jest.fn().mockResolvedValue(ok(jideSkills)), prepareJide: jest.fn().mockResolvedValue(ok(jidePrepared)), ...overrides });
+      const jide = {
+        linkOverview: jest.fn().mockResolvedValue(jideOk(overview)),
+        saveLinks: jest.fn().mockResolvedValue(jideOk(undefined)),
+        listExercises: jest.fn().mockResolvedValue(jideOk(exerciseList)),
+        ...jideOverrides,
+      } as unknown as jest.Mocked<JideApi>;
+      const deps: GradeflowDeps = { api: t.api, jide, loadAssessments: jest.fn().mockResolvedValue(assessments) };
+      return { ...t, jide, g: useGradeflow('course', 'a1', deps) };
+    }
+
+    it('offers only symbol columns for J;DE', async () => {
+      const numeric: AssessmentDto = { ...assessments[0]!, id: 'a2', category: { ...assessments[0]!.category, gradingType: 'NUMERIC' }, maxPoints: 10 };
+      const t = jideSetup();
+      t.deps.loadAssessments = jest.fn().mockResolvedValue([assessments[0], numeric]);
+      const g = useGradeflow('course', 'a2', t.deps);
+      await g.init();
+      expect(g.columnOptions.value.map((a) => a.id)).toEqual(['a1', 'a2']);
+
+      await g.setSource('jide');
+
+      expect(g.columnOptions.value.map((a) => a.id)).toEqual(['a1']);
+      expect(g.form.assessmentId).toBe('');
+    });
+
+    it('loads the links and the exercises of the linked course and preselects the J;DE skill', async () => {
+      const t = jideSetup();
+      await t.g.init();
+
+      await t.g.setSource('jide');
+
+      expect(t.g.isJide.value).toBe(true);
+      expect(t.g.jideLinked.value).toBe(true);
+      expect(t.g.exercises.value).toEqual(exerciseList);
+      expect(t.g.form.skillId).toBe('java-jide');
+      expect(t.jide.linkOverview).toHaveBeenCalledWith('course', undefined);
+    });
+
+    it('lists no exercises while the course is not linked', async () => {
+      const t = jideSetup({}, { linkOverview: jest.fn().mockResolvedValue(jideOk({ ...overview, courseConfirmed: false })) });
+      t.deps.loadAssessments = jest.fn();
+      await t.g.init();
+      await t.g.setSource('jide');
+
+      expect(t.g.jideLinked.value).toBe(false);
+      expect(t.jide.listExercises).not.toHaveBeenCalled();
+      expect(t.g.exercises.value).toEqual([]);
+    });
+
+    it('lists the exercises once the links are saved', async () => {
+      const t = jideSetup(
+        {},
+        { linkOverview: jest.fn().mockResolvedValueOnce(jideOk({ ...overview, courseConfirmed: false })).mockResolvedValue(jideOk(overview)) },
+      );
+      await t.g.init();
+      await t.g.setSource('jide');
+      expect(t.g.exercises.value).toEqual([]);
+
+      await t.g.saveLinks();
+
+      expect(t.jide.saveLinks).toHaveBeenCalled();
+      expect(t.g.exercises.value).toEqual(exerciseList);
+    });
+
+    it('shows why the exercises cannot be listed', async () => {
+      const t = jideSetup({}, { listExercises: jest.fn().mockResolvedValue({ ok: false, error: { name: 'JideApiError', message: 'J;DE ist nicht erreichbar.' } }) });
+      await t.g.init();
+      await t.g.setSource('jide');
+      expect(t.g.exercisesError.value).toBe('J;DE ist nicht erreichbar.');
+    });
+
+    it('names what is missing before it prepares', async () => {
+      const t = jideSetup();
+      await t.g.init();
+      await t.g.setSource('jide');
+      t.g.form.skillId = '';
+
+      await t.g.prepare();
+
+      expect(t.g.error.value).toBe('Bitte noch wählen: J;DE-Aufgabe, Bewertungs-Skill');
+      expect(t.api.prepareJide).not.toHaveBeenCalled();
+    });
+
+    it('prepares a J;DE run with the exercise and the column, without paths', async () => {
+      const t = jideSetup();
+      await t.g.init();
+      await t.g.setSource('jide');
+      t.g.form.jideExerciseId = '3';
+
+      await t.g.prepare();
+
+      expect(t.api.prepareJide).toHaveBeenCalledWith({ courseId: 'course', assessmentId: 'a1', jideExerciseId: '3', skillId: 'java-jide' });
+      expect(t.api.prepare).not.toHaveBeenCalled();
+      expect(t.g.step.value).toBe('matching');
+    });
+
+    it('keeps the review open while a hand-in was refused or could not be sent, and finishes on request', async () => {
+      const t = jideSetup({
+        start: jest.fn().mockResolvedValue(
+          ok({
+            ...proposals,
+            source: 'jide',
+            rows: [
+              {
+                studentId: 's1',
+                proposal: { symbol: 'PLUS', score: null },
+                comment: 'Du hast es geschafft.',
+                flags: [],
+                current: null,
+                jide: { files: [{ path: 'Main.java', content: 'a\n' }], lineComments: [], submittedAt: null, late: false, testsPassed: null, testsTotal: null, graded: false },
+              },
+            ],
+          } satisfies ProposalsDto),
+        ),
+        save: jest.fn().mockResolvedValue(ok({ saved: 1, failed: [], jide: [{ studentId: 's1', status: 'newer-handin', message: 'neue Abgabe seit dem Laden' }] })),
+      });
+      await t.g.init();
+      await t.g.setSource('jide');
+      t.g.form.jideExerciseId = '3';
+      await t.g.prepare();
+      await t.g.confirm();
+      await t.g.startRun();
+
+      await t.g.save();
+
+      expect(t.g.step.value).toBe('review');
+      expect(t.g.reviewRows.value[0]?.jide?.status).toBe('newer-handin');
+      expect(t.g.jideSummary.value).toBe('1 nicht gesendet (neue Abgabe seit dem Laden)');
+
+      await t.g.finish();
+      expect(t.api.discard).toHaveBeenCalledWith('run-1');
+      expect(t.g.step.value).toBe('done');
+    });
+
+    it('explains an empty assignment of a J;DE run with the links', async () => {
+      const t = jideSetup({ prepareJide: jest.fn().mockResolvedValue(ok({ ...jidePrepared, entries: [jidePrepared.entries[1]!] })) });
+      await t.g.init();
+      await t.g.setSource('jide');
+      t.g.form.jideExerciseId = '3';
+      await t.g.prepare();
+
+      await t.g.confirm();
+
+      expect(t.g.error.value).toBe('Keine Abgabe ist einer Person zugeordnet. Bitte prüfen Sie die J;DE-Verknüpfung.');
+    });
+
+    it('offers nothing J;DE without the connection', async () => {
+      const t = setup();
+      await t.g.init();
+      await t.g.setSource('jide');
+      expect(t.g.jideLinked.value).toBe(false);
+      expect(t.g.exercises.value).toEqual([]);
     });
   });
 });

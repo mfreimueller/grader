@@ -56,6 +56,7 @@ const assessmentId = typeof route.query.assessmentId === 'string' ? route.query.
 const g = reactive(
   useGradeflow(courseId, assessmentId, {
     api: window.grdr.gradeflow,
+    jide: window.grdr.jide,
     loadAssessments: async (id) => {
       const sessions = await window.grdr.session.listByCourse(id);
       const perSession = await Promise.all(sessions.map((s) => window.grdr.assessment.listBySession(s.id)));

@@ -1,23 +1,30 @@
 <template>
   <section class="gf-card" data-testid="gradeflow-matching">
     <h3>2. Zuordnung der Abgaben</h3>
-    <p class="gf-hint">
+    <p v-if="g.isJide" class="gf-hint" data-testid="gradeflow-jide-matching-hint">
+      Die Zuordnung kommt aus der J;DE-Verknüpfung. Abgaben von J;DE-Personen ohne Verknüpfung werden nicht bewertet;
+      ergänzen Sie die Verknüpfung in der Einrichtung.
+    </p>
+    <p v-else class="gf-hint">
       Ordnen Sie jede Abgabe einer Schülerin oder einem Schüler zu. Abgaben ohne Zuordnung werden nicht bewertet.
     </p>
 
     <table class="gf-table">
       <thead>
-        <tr><th>Name in Moodle</th><th>Schüler/in</th></tr>
+        <tr><th>{{ g.isJide ? 'Name in J;DE' : 'Name in Moodle' }}</th><th>Schüler/in</th></tr>
       </thead>
       <tbody>
         <tr v-for="row in g.matchRows" :key="row.moodleId" :class="`gf-row--${row.status}`" data-testid="gradeflow-match-row">
           <td>
             {{ row.fullName }}
             <span v-if="row.status === 'ambiguous'" class="gf-badge gf-badge--warn">mehrdeutig</span>
-            <span v-else-if="row.status === 'unmatched'" class="gf-badge">nicht erkannt</span>
+            <span v-else-if="row.status === 'unmatched'" class="gf-badge">{{ g.isJide ? 'nicht verknüpft' : 'nicht erkannt' }}</span>
             <div v-if="row.alternativeNames.length > 0" class="gf-hint">auch: {{ row.alternativeNames.join(', ') }}</div>
           </td>
-          <td>
+          <td v-if="g.isJide" data-testid="gradeflow-jide-student">
+            {{ row.selected === null ? '— nicht bewerten —' : studentLabel(g.prepared?.students ?? [], row.selected) }}
+          </td>
+          <td v-else>
             <select v-model="row.selected" :aria-label="`Schüler/in für ${row.fullName}`">
               <option :value="null">— nicht bewerten —</option>
               <option v-for="o in options(row)" :key="o.id" :value="o.id">{{ o.candidate ? '★ ' : '' }}{{ o.label }}</option>
@@ -27,6 +34,9 @@
       </tbody>
     </table>
 
+    <div v-if="g.prepared && g.prepared.exercise" class="gf-hint">
+      J;DE-Aufgabe: {{ g.prepared.exercise.title }} ({{ g.prepared.exercise.slug }})
+    </div>
     <div v-if="g.prepared && g.prepared.unrecognised.length > 0" class="gf-warning">
       Diese Ordner wurden nicht als Moodle-Abgabe erkannt und werden übersprungen:
       <ul class="gf-list"><li v-for="name in g.prepared.unrecognised" :key="name">{{ name }}</li></ul>

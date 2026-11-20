@@ -10,6 +10,20 @@ import {
 import { Result } from "../../domain/shared/Result";
 
 const COMMENT = "Testkommentar";
+const LINE_COMMENT = "Testzeilenkommentar";
+
+/** The first file below `dir` in name order, as a path relative to it with `/`; null when there is none. */
+async function firstFile(dir: string, prefix = ""): Promise<string | null> {
+  const entries = (await readdir(dir, { withFileTypes: true })).sort((a, b) => (a.name < b.name ? -1 : 1));
+  for (const entry of entries) {
+    if (entry.isFile()) return `${prefix}${entry.name}`;
+    if (entry.isDirectory()) {
+      const found = await firstFile(path.join(dir, entry.name), `${prefix}${entry.name}/`);
+      if (found !== null) return found;
+    }
+  }
+  return null;
+}
 
 function asRecord(value: unknown): Record<string, unknown> | null {
   return typeof value === "object" && value !== null
@@ -56,11 +70,19 @@ export class FakeAgentRunner implements AgentRunner {
     onProgress({ kind: "finished" });
 
     const value = isTertiary ? { symbol: "WELLE" } : { score: (maximum as number) / 2 };
+    // A J;DE schema asks for line comments: one on the first line of the first file of each hand-in.
+    const withLineComments = properties?.["lineComments"] !== undefined;
+    const results = [];
+    for (const token of tokens) {
+      const result: Record<string, unknown> = { token, ...value, comment: COMMENT };
+      if (withLineComments) {
+        const file = await firstFile(path.join(request.workspaceRoot, "handins", token));
+        result["lineComments"] = file === null ? [] : [{ path: file, line: 1, text: LINE_COMMENT }];
+      }
+      results.push(result);
+    }
     return Result.ok({
-      structuredOutput: {
-        version: 1,
-        results: tokens.map((token) => ({ token, ...value, comment: COMMENT })),
-      },
+      structuredOutput: { version: 1, results },
       costUsd: 0,
       durationMs: 0,
       turns: 3,

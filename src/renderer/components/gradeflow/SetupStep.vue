@@ -2,17 +2,33 @@
   <section class="gf-card" data-testid="gradeflow-setup">
     <h3>1. Einrichtung</h3>
 
+    <fieldset class="gf-field gf-source" data-testid="gradeflow-source">
+      <legend>Woher kommen die Abgaben?</legend>
+      <label><input type="radio" :checked="!g.isJide" name="gradeflow-source" data-testid="gradeflow-source-moodle" @change="g.setSource('moodle')" /> Moodle (Abgabenordner)</label>
+      <label><input type="radio" :checked="g.isJide" name="gradeflow-source" data-testid="gradeflow-source-jide" @change="g.setSource('jide')" /> J;DE (Java-Lernprogramm)</label>
+    </fieldset>
+
     <label class="gf-field">
       Leistung
       <select v-model="g.form.assessmentId" data-testid="gradeflow-assessment">
         <option value="" disabled>— Leistung wählen —</option>
-        <option v-for="a in g.assessments" :key="a.id" :value="a.id">{{ a.label }} · {{ describeAssessment(a) }}</option>
+        <option v-for="a in g.columnOptions" :key="a.id" :value="a.id">{{ a.label }} · {{ describeAssessment(a) }}</option>
       </select>
-      <span v-if="g.assessments.length === 0" class="gf-hint">
-        Dieser Kurs hat keine gemeinsame Leistung mit Symbolen oder Punkten. Legen Sie zuerst in einer Sitzung eine an.
+      <span v-if="g.columnOptions.length === 0" class="gf-hint">
+        {{
+          g.isJide
+            ? 'Dieser Kurs hat keine gemeinsame Leistung mit Symbolen. J;DE bewertet mit Symbolen; legen Sie zuerst in einer Sitzung eine an.'
+            : 'Dieser Kurs hat keine gemeinsame Leistung mit Symbolen oder Punkten. Legen Sie zuerst in einer Sitzung eine an.'
+        }}
       </span>
     </label>
 
+    <template v-if="g.isJide && g.links">
+      <JideLinksPanel :g="g" />
+      <JideExercisePicker :g="g" />
+    </template>
+
+    <template v-if="!g.isJide">
     <div class="gf-field">
       Aufgabenstellung
       <div class="gf-path">
@@ -50,6 +66,7 @@
         <button v-if="g.form.solutionPath" type="button" class="gf-btn gf-btn-secondary" @click="g.clearSolution()">Entfernen</button>
       </div>
     </div>
+    </template>
 
     <label class="gf-field">
       Bewertungs-Skill
@@ -87,10 +104,15 @@
 <script setup lang="ts">
 import type { GradeflowState } from '../../controllers/useGradeflow';
 import { describeAssessment, describeLimits } from '../../utils/gradeflowSetup';
+import JideExercisePicker from './JideExercisePicker.vue';
+import JideLinksPanel from './JideLinksPanel.vue';
 
 defineProps<{ g: GradeflowState }>();
 </script>
 
 <style scoped>
+.gf-source { border: none; padding: 0; }
+.gf-source legend { font-size: 13px; font-weight: 600; margin-bottom: 4px; }
+.gf-source label { display: block; font-weight: 400; margin-bottom: 2px; }
 .gf-link { background: none; border: none; color: var(--color-primary); cursor: pointer; font: inherit; text-decoration: underline; padding: 0; margin-left: 6px; }
 </style>
