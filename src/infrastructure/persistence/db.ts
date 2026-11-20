@@ -292,7 +292,33 @@ const MIGRATION_015: Migration = {
   `,
 };
 
-const ALL_MIGRATIONS: Migration[] = [MIGRATION_001, MIGRATION_002, MIGRATION_003, MIGRATION_004, MIGRATION_005, MIGRATION_006, MIGRATION_007, MIGRATION_008, MIGRATION_009, MIGRATION_010, MIGRATION_011, MIGRATION_012, MIGRATION_013, MIGRATION_014, MIGRATION_015];
+// The J;DE connection (Gradeflow source J;DE). The API key is encrypted by the application (Electron safeStorage), like
+// plugin_secrets: a backup restored on another machine keeps the rows but needs the key entered again. The links are
+// confirmed by the teacher and removed together with the course or student they belong to.
+const MIGRATION_016: Migration = {
+  id: '016',
+  description: 'Add the J;DE connection and the links between Grader and J;DE courses and students',
+  sql: `
+    CREATE TABLE IF NOT EXISTS jide_connection (
+      id INTEGER PRIMARY KEY CHECK (id = 1),
+      base_url TEXT NOT NULL,
+      api_key BLOB NOT NULL,
+      updated_at TEXT NOT NULL
+    );
+
+    CREATE TABLE IF NOT EXISTS jide_course_links (
+      course_id TEXT PRIMARY KEY REFERENCES courses(id) ON DELETE CASCADE,
+      jide_course_id TEXT NOT NULL
+    );
+
+    CREATE TABLE IF NOT EXISTS jide_student_links (
+      student_id TEXT PRIMARY KEY REFERENCES students(id) ON DELETE CASCADE,
+      jide_student_id TEXT NOT NULL
+    );
+  `,
+};
+
+const ALL_MIGRATIONS: Migration[] = [MIGRATION_001, MIGRATION_002, MIGRATION_003, MIGRATION_004, MIGRATION_005, MIGRATION_006, MIGRATION_007, MIGRATION_008, MIGRATION_009, MIGRATION_010, MIGRATION_011, MIGRATION_012, MIGRATION_013, MIGRATION_014, MIGRATION_015, MIGRATION_016];
 
 export const KNOWN_MIGRATION_IDS: readonly string[] = ALL_MIGRATIONS.map((m) => m.id);
 

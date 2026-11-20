@@ -105,6 +105,15 @@ export const IPC = {
   PLUGIN_HOST_SECRETS_SET: 'pluginHost:secretsSet',
   PLUGIN_HOST_SECRETS_DELETE: 'pluginHost:secretsDelete',
 
+  // J;DE: the connection (settings, test) and the links to J;DE courses and students.
+  JIDE_GET_SETTINGS: 'jide:getSettings',
+  JIDE_SET_SETTINGS: 'jide:setSettings',
+  JIDE_CLEAR_SETTINGS: 'jide:clearSettings',
+  JIDE_TEST: 'jide:test',
+  JIDE_LINK_OVERVIEW: 'jide:linkOverview',
+  JIDE_SAVE_LINKS: 'jide:saveLinks',
+  JIDE_LIST_EXERCISES: 'jide:listExercises',
+
   // Gradeflow: AI-assisted grading of hand-ins (Grader UI -> main, and one push channel back).
   GRADEFLOW_LIST_SKILLS: 'gradeflow:listSkills',
   GRADEFLOW_PREPARE: 'gradeflow:prepare',

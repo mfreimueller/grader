@@ -12,6 +12,15 @@ import type {
   SaveRow,
   SkillListDto,
 } from './gradeflow-api';
+import type {
+  JideExerciseDto,
+  JideLinkOverviewDto,
+  JideResultDto,
+  JideSaveLinksInput,
+  JideSettingsDto,
+  JideSettingsInput,
+  JideTestResultDto,
+} from './jide-api';
 import type { PluginInfo } from './plugin-catalog';
 
 export type ResultDto<T, E = { name: string; message: string }> =
@@ -462,6 +471,18 @@ export interface IpcApi {
     openFolder: () => Promise<void>;
     /** Called after a plugin created or deleted data of a course. */
     onDataChanged: (callback: (event: { courseId: string }) => void) => () => void;
+  };
+  /** The connection to J;DE (address, API key) and the links between Grader and J;DE courses and students. */
+  jide: {
+    getSettings: () => Promise<JideResultDto<JideSettingsDto>>;
+    setSettings: (input: JideSettingsInput) => Promise<JideResultDto<JideSettingsDto>>;
+    clearSettings: () => Promise<JideResultDto<JideSettingsDto>>;
+    /** Tries the given address and key (an empty key means the stored one); saves nothing. */
+    test: (input: JideSettingsInput) => Promise<JideResultDto<JideTestResultDto>>;
+    /** `jideCourseId` undefined: the stored link or a proposal; null: no J;DE course. */
+    linkOverview: (courseId: string, jideCourseId?: string | null) => Promise<JideResultDto<JideLinkOverviewDto>>;
+    saveLinks: (input: JideSaveLinksInput) => Promise<JideResultDto<void>>;
+    listExercises: (courseId: string) => Promise<JideResultDto<JideExerciseDto[]>>;
   };
   /** AI-assisted grading of hand-ins; one run at a time, kept in memory until saved or discarded. */
   gradeflow: {

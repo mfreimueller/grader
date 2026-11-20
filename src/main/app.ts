@@ -64,6 +64,11 @@ import { createPluginWindow } from './plugins/pluginWindow';
 import { registerPluginHandlers } from './ipc/plugin.ipc';
 import { registerPluginHostHandlers } from './ipc/pluginHost.ipc';
 import { registerGradeflowHandlers } from './ipc/gradeflow.ipc';
+import { registerJideHandlers } from './ipc/jide.ipc';
+import { JideConnectionService } from '../application/JideConnectionService';
+import { HttpJideApi } from '../infrastructure/jide/HttpJideApi';
+import { SqliteJideConnectionRepository } from '../infrastructure/persistence/SqliteJideConnectionRepository';
+import { SqliteJideLinkRepository } from '../infrastructure/persistence/SqliteJideLinkRepository';
 import { GradeflowService } from '../application/GradeflowService';
 import { ClaudeAgentSdkRunner } from '../infrastructure/gradeflow/ClaudeAgentSdkRunner';
 import { FakeAgentRunner } from '../infrastructure/gradeflow/FakeAgentRunner';
@@ -198,6 +203,17 @@ app.on('ready', () => {
     },
     logError: (message, error) => console.error(message, error),
   });
+
+  const jideService = new JideConnectionService({
+    connectionRepo: new SqliteJideConnectionRepository(db),
+    linkRepo: new SqliteJideLinkRepository(db),
+    cipher: new SafeStorageSecretCipher(safeStorage),
+    courseRepo,
+    rosterService,
+    createApi: (baseUrl, apiKey) => new HttpJideApi(baseUrl, apiKey),
+    now: () => new Date(),
+  });
+  registerJideHandlers(ipcMain, { service: jideService, logError: (message) => console.error(message) });
 
   const skillRoots = resolveGradeflowSkillRoots();
   const gradeflowService = new GradeflowService({

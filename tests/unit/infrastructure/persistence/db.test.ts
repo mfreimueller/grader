@@ -326,3 +326,39 @@ describe('migration 015 (plugin secrets)', () => {
     db.close();
   });
 });
+
+describe('migration 016 (J;DE connection and links)', () => {
+  it('is a known migration', () => {
+    expect(KNOWN_MIGRATION_IDS).toContain('016');
+  });
+
+  it('creates the three tables', () => {
+    const db = createInMemoryDb();
+    runMigrations(db);
+    const names = (db.prepare("SELECT name FROM sqlite_master WHERE type='table'").all() as { name: string }[]).map((t) => t.name);
+    expect(names).toEqual(expect.arrayContaining(['jide_connection', 'jide_course_links', 'jide_student_links']));
+    db.close();
+  });
+
+  it('keeps a single connection row', () => {
+    const db = createInMemoryDb();
+    runMigrations(db);
+    const insert = db.prepare("INSERT INTO jide_connection (id, base_url, api_key, updated_at) VALUES (?, 'u', ?, 'x')");
+    insert.run(1, Buffer.from([1]));
+    expect(() => insert.run(2, Buffer.from([1]))).toThrow(/CHECK/i);
+    db.close();
+  });
+
+  it('upgrades a database at migration 015 without touching plugin secrets', () => {
+    const db = createInMemoryDb();
+    runMigrations(db);
+    db.exec("INSERT INTO plugin_secrets (plugin_id, key, value, updated_at) VALUES ('p', 'k', x'01', 'x')");
+    db.exec("DROP TABLE jide_connection; DROP TABLE jide_course_links; DROP TABLE jide_student_links; DELETE FROM _migrations WHERE id = '016'");
+
+    runMigrations(db);
+
+    expect(db.prepare('SELECT COUNT(*) AS cnt FROM plugin_secrets').get()).toEqual({ cnt: 1 });
+    expect(db.prepare('SELECT COUNT(*) AS cnt FROM jide_course_links').get()).toEqual({ cnt: 0 });
+    db.close();
+  });
+});

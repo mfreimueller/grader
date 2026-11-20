@@ -92,6 +92,15 @@ const IPC = {
   PLUGIN_OPEN_FOLDER: 'plugin:openFolder',
   PLUGIN_DATA_CHANGED: 'plugin:dataChanged',
 
+  // J;DE: the connection (settings, test) and the links to J;DE courses and students.
+  JIDE_GET_SETTINGS: 'jide:getSettings',
+  JIDE_SET_SETTINGS: 'jide:setSettings',
+  JIDE_CLEAR_SETTINGS: 'jide:clearSettings',
+  JIDE_TEST: 'jide:test',
+  JIDE_LINK_OVERVIEW: 'jide:linkOverview',
+  JIDE_SAVE_LINKS: 'jide:saveLinks',
+  JIDE_LIST_EXERCISES: 'jide:listExercises',
+
   GRADEFLOW_LIST_SKILLS: 'gradeflow:listSkills',
   GRADEFLOW_PREPARE: 'gradeflow:prepare',
   GRADEFLOW_CONFIRM: 'gradeflow:confirm',
@@ -225,6 +234,15 @@ const api: IpcApi = {
       ipcRenderer.on(IPC.PLUGIN_DATA_CHANGED, listener);
       return () => ipcRenderer.removeListener(IPC.PLUGIN_DATA_CHANGED, listener);
     },
+  },
+  jide: {
+    getSettings: () => ipcRenderer.invoke(IPC.JIDE_GET_SETTINGS),
+    setSettings: (input) => ipcRenderer.invoke(IPC.JIDE_SET_SETTINGS, input),
+    clearSettings: () => ipcRenderer.invoke(IPC.JIDE_CLEAR_SETTINGS),
+    test: (input) => ipcRenderer.invoke(IPC.JIDE_TEST, input),
+    linkOverview: (courseId, jideCourseId) => ipcRenderer.invoke(IPC.JIDE_LINK_OVERVIEW, { courseId, jideCourseId }),
+    saveLinks: (input) => ipcRenderer.invoke(IPC.JIDE_SAVE_LINKS, input),
+    listExercises: (courseId) => ipcRenderer.invoke(IPC.JIDE_LIST_EXERCISES, { courseId }),
   },
   gradeflow: {
     listSkills: () => ipcRenderer.invoke(IPC.GRADEFLOW_LIST_SKILLS),
