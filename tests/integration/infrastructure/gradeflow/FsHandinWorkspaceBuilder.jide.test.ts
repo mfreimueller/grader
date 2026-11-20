@@ -147,12 +147,22 @@ describe("FsHandinWorkspaceBuilder: J;DE runs", () => {
   });
 
   it("fails without leaving a workspace when the package is not a zip", async () => {
-    const before = (await fs.readdir(path.dirname(h.src))).filter((n) => n.startsWith("gradeflow-")).length;
-    const result = await builder.buildJide(input({ packageZip: new Uint8Array([1, 2, 3]) }));
-    expect(result.ok).toBe(false);
-    expect(!result.ok && result.error.message).toBe("Das Aufgabenpaket ist ungültig.");
-    const after = (await fs.readdir(path.dirname(h.src))).filter((n) => n.startsWith("gradeflow-")).length;
-    expect(after).toBe(before);
+    const created: string[] = [];
+    const real = fs.mkdtemp.bind(fs);
+    const spy = jest.spyOn(fs, "mkdtemp").mockImplementation(async (prefix: string) => {
+      const dir = await real(prefix);
+      created.push(dir);
+      return dir;
+    });
+    try {
+      const result = await builder.buildJide(input({ packageZip: new Uint8Array([1, 2, 3]) }));
+      expect(result.ok).toBe(false);
+      expect(!result.ok && result.error.message).toBe("Das Aufgabenpaket ist ungültig.");
+    } finally {
+      spy.mockRestore();
+    }
+    expect(created.length).toBeGreaterThan(0);
+    for (const dir of created) await expect(fs.stat(dir)).rejects.toThrow();
   });
 
   it("can exclude a file afterwards and clean up", async () => {

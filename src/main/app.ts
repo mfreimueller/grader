@@ -216,13 +216,16 @@ app.on('ready', () => {
   registerJideHandlers(ipcMain, { service: jideService, logError: (message) => console.error(message) });
 
   const skillRoots = resolveGradeflowSkillRoots();
+  const workspaceBuilder = new FsHandinWorkspaceBuilder();
   const gradeflowService = new GradeflowService({
     rosterService,
     sessionService,
     assessmentService,
     gradingService,
     findingService,
-    workspaceBuilder: new FsHandinWorkspaceBuilder(),
+    workspaceBuilder,
+    jideWorkspaceBuilder: workspaceBuilder,
+    jide: jideService,
     handinDirectory: new FsHandinDirectory(),
     skillCatalog: new FsSkillCatalog(skillRoots.bundled, skillRoots.user),
     agentRunner: gradeflowFakeRunnerEnabled()

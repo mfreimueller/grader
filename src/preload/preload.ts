@@ -103,6 +103,7 @@ const IPC = {
 
   GRADEFLOW_LIST_SKILLS: 'gradeflow:listSkills',
   GRADEFLOW_PREPARE: 'gradeflow:prepare',
+  GRADEFLOW_PREPARE_JIDE: 'gradeflow:prepareJide',
   GRADEFLOW_CONFIRM: 'gradeflow:confirm',
   GRADEFLOW_EXCLUDE_FILES: 'gradeflow:excludeFiles',
   GRADEFLOW_START: 'gradeflow:start',
@@ -247,6 +248,7 @@ const api: IpcApi = {
   gradeflow: {
     listSkills: () => ipcRenderer.invoke(IPC.GRADEFLOW_LIST_SKILLS),
     prepare: (input) => ipcRenderer.invoke(IPC.GRADEFLOW_PREPARE, input),
+    prepareJide: (input) => ipcRenderer.invoke(IPC.GRADEFLOW_PREPARE_JIDE, input),
     confirm: (runId, overrides) => ipcRenderer.invoke(IPC.GRADEFLOW_CONFIRM, { runId, overrides }),
     excludeFiles: (runId, files) => ipcRenderer.invoke(IPC.GRADEFLOW_EXCLUDE_FILES, { runId, files }),
     start: (runId) => ipcRenderer.invoke(IPC.GRADEFLOW_START, { runId }),

@@ -20,6 +20,13 @@ export const prepareSchema = z.object({
   skillId: id,
 });
 
+export const prepareJideSchema = z.object({
+  courseId: id,
+  assessmentId: id,
+  jideExerciseId: id,
+  skillId: id,
+});
+
 export const runIdSchema = z.object({ runId: id });
 
 export const confirmSchema = z.object({
@@ -42,6 +49,12 @@ export const saveSchema = z.object({
         score: z.number().optional(),
         comment: z.string().max(20000),
         include: z.boolean(),
+        lineComments: z
+          .array(z.object({ path: z.string().min(1).max(500), line: z.number().int(), text: z.string().max(5000) }))
+          .max(1000)
+          .optional(),
+        skipGrader: z.boolean().optional(),
+        skipJide: z.boolean().optional(),
       }),
     )
     .max(5000),

@@ -606,6 +606,7 @@ describe('GradeflowService', () => {
       const result = valueOf(await service.start(runId, () => undefined));
 
       expect(result).toEqual({
+        source: 'moodle',
         rows: [
           {
             studentId: 's-max',

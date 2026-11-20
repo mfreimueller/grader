@@ -36,7 +36,7 @@ const fail = <T>(error: Error): Promise<Result<T>> => Promise.resolve(Result.fai
 
 describe('registerGradeflowHandlers', () => {
   let ipc: FakeIpcMain;
-  let service: jest.Mocked<Pick<GradeflowService, 'listSkills' | 'prepare' | 'confirm' | 'excludeFiles' | 'start' | 'cancel' | 'save' | 'discard'>>;
+  let service: jest.Mocked<Pick<GradeflowService, 'listSkills' | 'prepare' | 'prepareJide' | 'confirm' | 'excludeFiles' | 'start' | 'cancel' | 'save' | 'discard'>>;
   let stored: GradeflowSettingsDto;
   let picks: [number, PickPathRequest][];
   let pickResult: string | null;
@@ -49,6 +49,7 @@ describe('registerGradeflowHandlers', () => {
     service = {
       listSkills: jest.fn(),
       prepare: jest.fn(),
+      prepareJide: jest.fn(),
       confirm: jest.fn(),
       excludeFiles: jest.fn(),
       start: jest.fn(),
@@ -110,6 +111,18 @@ describe('registerGradeflowHandlers', () => {
 
       expect(result).toEqual({ ok: true, value: { runId: 'r' } });
       expect(service.prepare).toHaveBeenCalledWith(prepare);
+    });
+
+    it('passes a J;DE run on and drops unknown fields', async () => {
+      service.prepareJide.mockReturnValue(ok({ runId: 'r' } as never));
+      const jide = { courseId: 'c', assessmentId: 'a', jideExerciseId: '3', skillId: 's' };
+
+      const result = await ipc.invoke(IPC.GRADEFLOW_PREPARE_JIDE, { ...jide, handinsDir: '/x' });
+
+      expect(result).toEqual({ ok: true, value: { runId: 'r' } });
+      expect(service.prepareJide).toHaveBeenCalledWith(jide);
+      const invalid = (await ipc.invoke(IPC.GRADEFLOW_PREPARE_JIDE, { ...jide, jideExerciseId: '' })) as { ok: boolean };
+      expect(invalid.ok).toBe(false);
     });
 
     it('answers invalid payloads without calling the service', async () => {
@@ -206,6 +219,23 @@ describe('registerGradeflowHandlers', () => {
 
       expect(await ipc.invoke(IPC.GRADEFLOW_SAVE, payload)).toEqual({ ok: true, value: { saved: 1, failed: [] } });
       expect(service.save).toHaveBeenCalledWith('r', payload.rows, false);
+    });
+
+    it('keeps line comments and the retry flags of a J;DE row', async () => {
+      service.save.mockReturnValue(ok({ saved: 0, failed: [] }));
+      const row = {
+        studentId: 's',
+        symbol: 'PLUS',
+        comment: 'x',
+        include: true,
+        lineComments: [{ path: 'Main.java', line: 3, text: 'Gut.' }],
+        skipGrader: true,
+        skipJide: false,
+      };
+
+      await ipc.invoke(IPC.GRADEFLOW_SAVE, { runId: 'r', rows: [{ ...row, extra: 1 }], overwriteConfirmed: false });
+
+      expect(service.save).toHaveBeenCalledWith('r', [row], false);
     });
 
     it('tells how many results need a confirmation', async () => {

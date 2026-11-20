@@ -51,9 +51,10 @@ export interface HandinEntryDto {
 
 export interface PreparedRunDto {
   runId: string;
-  source: 'moodle' | 'jide';
+  /** Absent means 'moodle'. */
+  source?: 'moodle' | 'jide';
   /** The J;DE exercise of a J;DE run. */
-  exercise: { title: string; slug: string } | null;
+  exercise?: { title: string; slug: string } | null;
   entries: HandinEntryDto[];
   unrecognised: string[];
   studentsWithoutHandin: string[];
@@ -126,7 +127,8 @@ export interface ReviewRowDto {
 }
 
 export interface ProposalsDto {
-  source: 'moodle' | 'jide';
+  /** Absent means 'moodle'. */
+  source?: 'moodle' | 'jide';
   rows: ReviewRowDto[];
   missingStudentIds: string[];
   costUsd: number | null;

@@ -2,7 +2,7 @@ import { extname } from 'node:path';
 import { AgentProgress, AgentRunError, DEFAULT_MODEL } from '../domain/gradeflow/AgentRunner';
 import { buildGradingPrompt } from '../domain/gradeflow/GradingPrompt';
 import { parseGradingProposal } from '../domain/gradeflow/GradingProposal';
-import { confirmMatches, matchHandins } from '../domain/gradeflow/HandinMatcher';
+import { ConfirmedHandin, confirmMatches, HandinMatchResult, matchHandins } from '../domain/gradeflow/HandinMatcher';
 import { BuiltWorkspace } from '../domain/gradeflow/HandinWorkspaceBuilder';
 import { groupHandins } from '../domain/gradeflow/MoodleHandinFolder';
 import { outputJsonSchema, renderOutputInstructions } from '../domain/gradeflow/OutputInstructions';
@@ -11,7 +11,8 @@ import { workspaceMaterialName } from '../domain/gradeflow/WorkspaceMaterial';
 import { generateId } from '../domain/shared/IdGenerator';
 import { Result } from '../domain/shared/Result';
 import { NotFoundError, ValidationError } from '../shared/errors';
-import { checkInput, currentResults } from './GradeflowPrepare';
+import { buildJideWorkspace, forgetExcludedFiles, JIDE_NOT_AVAILABLE, loadJideRun, reviewOf, sendToJide } from './GradeflowJide';
+import { checkInput, checkJideInput, currentResults } from './GradeflowPrepare';
 import type { RunState } from './GradeflowRunState';
 import { saveRows } from './GradeflowSaver';
 import type {
@@ -20,6 +21,7 @@ import type {
   GradeflowProgressDto,
   MatchOverride,
   PrepareInput,
+  PrepareJideInput,
   PreparedRunDto,
   ProposalsDto,
   SaveResultDto,
@@ -71,23 +73,43 @@ export class GradeflowService {
       pseudonyms: null,
       workspace: null,
       abort: null,
+      jide: null,
     });
     this.deps.debug?.(`prepare handins=${grouped.handins.length} unrecognised=${grouped.unrecognised.length}`);
-    return Result.ok({
-      runId,
-      entries: match.entries.map(({ handin, match: m }) => ({
-        moodleId: handin.moodleId,
-        fullName: handin.fullName,
-        alternativeNames: handin.alternativeNames,
-        status: m.status,
-        studentId: m.status === 'matched' ? m.studentId : null,
-        candidateIds: m.status === 'ambiguous' ? m.candidateIds : [],
-      })),
-      unrecognised: grouped.unrecognised,
-      studentsWithoutHandin: match.studentsWithoutHandin,
-      conflicts: match.conflicts,
-      students: students.map(({ id, firstName, lastName }) => ({ id, firstName, lastName })),
+    return Result.ok(
+      this.preparedDto(runId, match, students, { source: 'moodle', exercise: null, unrecognised: grouped.unrecognised }),
+    );
+  }
+
+  /** Prepares a run on the latest J;DE hand-ins of one exercise; hand-ins are matched through the stored links. */
+  async prepareJide(input: PrepareJideInput): Promise<Result<PreparedRunDto>> {
+    if (this.runs.size > 0) return invalid('Another Gradeflow run is still open');
+    if (!this.deps.jide) return invalid(JIDE_NOT_AVAILABLE);
+    const checked = await checkJideInput(this.deps, input);
+    if (!checked.ok) return Result.fail(checked.error);
+    const { assessment, skill, students } = checked.value;
+    const loaded = await loadJideRun(this.deps, input, students);
+    if (!loaded.ok) return Result.fail(loaded.error);
+    const { jide, match } = loaded.value;
+
+    const runId = generateId();
+    this.runs.set(runId, {
+      phase: 'prepared',
+      // No paths: the material is the J;DE package, the hand-ins come from J;DE.
+      input: { courseId: input.courseId, assessmentId: input.assessmentId, handinsDir: '', assignmentPath: '', solutionPath: null, skillId: input.skillId },
+      assignmentKind: 'directory',
+      solutionKind: null,
+      assessment,
+      skill,
+      students,
+      match,
+      pseudonyms: null,
+      workspace: null,
+      abort: null,
+      jide,
     });
+    this.deps.debug?.(`prepareJide handins=${match.entries.length}`);
+    return Result.ok(this.preparedDto(runId, match, students, { source: 'jide', exercise: { title: jide.exercise.title, slug: jide.exercise.slug }, unrecognised: [] }));
   }
 
   async confirm(runId: string, overrides: MatchOverride[]): Promise<Result<ConfirmedRunDto>> {
@@ -95,6 +117,8 @@ export class GradeflowService {
     if (!state.ok) return Result.fail(state.error);
     const run = state.value;
 
+    // J;DE hand-ins are matched through the stored links only; fixing a link is done in the link panel.
+    if (run.jide && overrides.length > 0) return invalid('J;DE hand-ins cannot be assigned by hand');
     const confirmed = confirmMatches(run.match, new Map(overrides.map((o) => [o.moodleId, o.studentId])));
     if (!confirmed.ok) return Result.fail(confirmed.error);
     if (confirmed.value.length === 0) return invalid('No hand-in is assigned to a student');
@@ -107,22 +131,14 @@ export class GradeflowService {
       gradingType: run.assessment.gradingType,
       maxPoints: run.assessment.maxPoints,
       tokens: pseudonyms.value.tokens(),
+      source: run.jide ? 'jide' : 'moodle',
     });
     if (!instructions.ok) return Result.fail(instructions.error);
 
     await this.dropWorkspace(run);
-    const built = await this.deps.workspaceBuilder.build({
-      handinsDir: run.input.handinsDir,
-      assignmentPath: run.input.assignmentPath,
-      assignmentKind: run.assignmentKind,
-      solutionPath: run.input.solutionPath,
-      solutionKind: run.solutionKind,
-      handins: confirmed.value,
-      pseudonyms: pseudonyms.value,
-      students: run.students.map(({ firstName, lastName }) => ({ firstName, lastName })),
-      outputInstructions: instructions.value,
-      skill: { id: run.input.skillId, dir: run.skill.dir },
-    });
+    const built = run.jide
+      ? await buildJideWorkspace(this.deps, run, run.jide, confirmed.value, pseudonyms.value, instructions.value)
+      : await this.buildMoodleWorkspace(run, confirmed.value, pseudonyms.value, instructions.value);
     if (!built.ok) return Result.fail(built.error);
 
     run.pseudonyms = pseudonyms.value;
@@ -160,6 +176,8 @@ export class GradeflowService {
     for (const [token, paths] of byToken) {
       const removed = await this.deps.workspaceBuilder.removeFiles(workspace.root, token, paths);
       if (!removed.ok) return Result.fail(removed.error);
+      const studentId = pseudonyms.studentOf(token);
+      if (state.value.run.jide && studentId !== null) forgetExcludedFiles(state.value.run.jide, studentId, paths);
     }
     return Result.ok(undefined as void);
   }
@@ -175,6 +193,7 @@ export class GradeflowService {
       gradingType: run.assessment.gradingType,
       maxPoints: run.assessment.maxPoints,
       tokens: pseudonyms.tokens(),
+      source: run.jide ? 'jide' : 'moodle',
     });
     if (!schema.ok) return Result.fail(schema.error);
 
@@ -199,6 +218,7 @@ export class GradeflowService {
                   kind: run.solutionKind,
                 },
           tokenCount: pseudonyms.size,
+          source: run.jide ? 'jide' : 'moodle',
         }),
         jsonSchema: schema.value,
         model: run.skill.model ?? DEFAULT_MODEL,
@@ -219,6 +239,7 @@ export class GradeflowService {
       gradingType: run.assessment.gradingType,
       maxPoints: run.assessment.maxPoints,
       pseudonyms,
+      ...(run.jide ? { jideFiles: run.jide.files } : {}),
     });
     if (!parsed.ok) return Result.fail(parsed.error);
 
@@ -228,15 +249,19 @@ export class GradeflowService {
     this.deps.debug?.(
       `run costUsd=${outcome.value.costUsd ?? 0} durationMs=${outcome.value.durationMs} rows=${pseudonyms.size} missing=${parsed.value.missingStudentIds.length}`,
     );
+    const { jide } = run;
     return Result.ok({
+      source: jide ? 'jide' : 'moodle',
       rows: pseudonyms.studentIds().map((studentId) => {
         const proposal = proposals.get(studentId);
+        const review = jide ? reviewOf(jide, studentId, proposal?.lineComments ?? []) : undefined;
         return {
           studentId,
           proposal: proposal ? { symbol: proposal.symbol, score: proposal.score } : null,
           comment: proposal?.comment ?? '',
           flags: proposal?.flags ?? [],
           current: current.get(studentId) ?? null,
+          ...(review ? { jide: review } : {}),
         };
       }),
       missingStudentIds: parsed.value.missingStudentIds,
@@ -257,17 +282,23 @@ export class GradeflowService {
     if (!run) return Result.fail(new NotFoundError('Gradeflow run', runId));
     if (run.phase !== 'proposed' || run.pseudonyms === null) return invalid('There is no result to save yet');
 
+    // A J;DE retry of a row that is saved in Grader already must not ask about replacing it again.
+    const graderRows = run.jide ? rows.map((row) => (row.skipGrader ? { ...row, include: false } : row)) : rows;
     const saved = await saveRows(
       this.deps,
       { assessmentId: run.assessment.id, gradingType: run.assessment.gradingType, studentIds: run.pseudonyms.studentIds() },
-      rows,
+      graderRows,
       overwriteConfirmed,
     );
     if (!saved.ok) return Result.fail(saved.error);
+    // Saving in Grader and sending to J;DE are independent: each is reported on its own, nothing is dropped silently.
+    const sent = run.jide ? await sendToJide(this.deps, run.jide, rows) : null;
+    const result: SaveResultDto = sent ? { ...saved.value, jide: sent } : saved.value;
     // The hand-ins must not linger; the rows stay so the teacher can retry the failed ones.
     await this.dropWorkspace(run);
-    if (saved.value.failed.length === 0) this.runs.delete(runId);
-    return saved;
+    const retryable = result.failed.length > 0 || (sent ?? []).some((s) => s.status === 'error');
+    if (!retryable) this.runs.delete(runId);
+    return Result.ok(result);
   }
 
   async discard(runId: string): Promise<Result<void>> {
@@ -279,6 +310,49 @@ export class GradeflowService {
   /** App quit: stops the agent and removes the workspace of the open run. */
   async disposeAll(): Promise<void> {
     for (const [runId, run] of [...this.runs]) await this.dropRun(runId, run);
+  }
+
+  private buildMoodleWorkspace(
+    run: RunState,
+    handins: ConfirmedHandin[],
+    pseudonyms: PseudonymMap,
+    outputInstructions: string,
+  ): Promise<Result<BuiltWorkspace>> {
+    return this.deps.workspaceBuilder.build({
+      handinsDir: run.input.handinsDir,
+      assignmentPath: run.input.assignmentPath,
+      assignmentKind: run.assignmentKind,
+      solutionPath: run.input.solutionPath,
+      solutionKind: run.solutionKind,
+      handins,
+      pseudonyms,
+      students: run.students.map(({ firstName, lastName }) => ({ firstName, lastName })),
+      outputInstructions,
+      skill: { id: run.input.skillId, dir: run.skill.dir },
+    });
+  }
+
+  private preparedDto(
+    runId: string,
+    match: HandinMatchResult,
+    students: RunState['students'],
+    extra: Pick<PreparedRunDto, 'source' | 'exercise' | 'unrecognised'>,
+  ): PreparedRunDto {
+    return {
+      runId,
+      ...extra,
+      entries: match.entries.map(({ handin, match: m }) => ({
+        moodleId: handin.moodleId,
+        fullName: handin.fullName,
+        alternativeNames: handin.alternativeNames,
+        status: m.status,
+        studentId: m.status === 'matched' ? m.studentId : null,
+        candidateIds: m.status === 'ambiguous' ? m.candidateIds : [],
+      })),
+      studentsWithoutHandin: match.studentsWithoutHandin,
+      conflicts: match.conflicts,
+      students: students.map(({ id, firstName, lastName }) => ({ id, firstName, lastName })),
+    };
   }
 
   private async dropRun(runId: string, run: RunState): Promise<void> {

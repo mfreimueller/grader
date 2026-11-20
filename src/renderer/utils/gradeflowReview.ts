@@ -1,6 +1,6 @@
 // Fifth wizard step: the proposals the teacher checks, edits and saves.
 
-import type { CurrentResultDto, ProposalsDto, SaveResultDto, SaveRow } from '../../shared/gradeflow-api';
+import type { CurrentResultDto, ProposalsDto, ReviewFlag, SaveResultDto, SaveRow } from '../../shared/gradeflow-api';
 import { participationGlyph } from './sessionGridLabels';
 
 export type ReviewGradingType = 'TERTIARY' | 'NUMERIC';
@@ -12,7 +12,7 @@ export interface ReviewRow {
   symbol: string | null;
   score: number | null;
   comment: string;
-  flags: ('TOKEN_IN_COMMENT' | 'COMMENT_TRUNCATED')[];
+  flags: ReviewFlag[];
   current: CurrentResultDto | null;
   /** Saving replaces a result that exists already. */
   replaces: boolean;

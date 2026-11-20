@@ -16,6 +16,7 @@ import {
   excludeFilesSchema,
   gradeflowSettingsSchema,
   pickPathSchema,
+  prepareJideSchema,
   prepareSchema,
   runIdSchema,
   saveSchema,
@@ -37,7 +38,7 @@ export interface GradeflowIpcMain {
 export interface GradeflowIpcDeps {
   service: Pick<
     GradeflowService,
-    'listSkills' | 'prepare' | 'confirm' | 'excludeFiles' | 'start' | 'cancel' | 'save' | 'discard'
+    'listSkills' | 'prepare' | 'prepareJide' | 'confirm' | 'excludeFiles' | 'start' | 'cancel' | 'save' | 'discard'
   >;
   /** Shows a dialog on the window of the sender; null when the teacher cancelled. */
   pickPath(senderId: number, request: PickPathRequest): Promise<string | null>;
@@ -94,6 +95,7 @@ export function registerGradeflowHandlers(ipc: GradeflowIpcMain, deps: Gradeflow
 
   route(IPC.GRADEFLOW_LIST_SKILLS, null, async () => ({ ok: true, value: await service.listSkills() }));
   route(IPC.GRADEFLOW_PREPARE, prepareSchema, async (i) => toResultDto(await service.prepare(i)));
+  route(IPC.GRADEFLOW_PREPARE_JIDE, prepareJideSchema, async (i) => toResultDto(await service.prepareJide(i)));
   route(IPC.GRADEFLOW_CONFIRM, confirmSchema, async (i) => toResultDto(await service.confirm(i.runId, i.overrides)));
   route(IPC.GRADEFLOW_EXCLUDE_FILES, excludeFilesSchema, async (i) =>
     toResultDto(await service.excludeFiles(i.runId, i.files)),

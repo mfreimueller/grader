@@ -6,6 +6,7 @@ import type {
   MatchOverride,
   PickPathRequest,
   PrepareInput,
+  PrepareJideInput,
   PreparedRunDto,
   ProposalsDto,
   SaveResultDto,
@@ -488,6 +489,8 @@ export interface IpcApi {
   gradeflow: {
     listSkills: () => Promise<GradeflowResultDto<SkillListDto>>;
     prepare: (input: PrepareInput) => Promise<GradeflowResultDto<PreparedRunDto>>;
+    /** A run on the latest J;DE hand-ins of one exercise of the linked J;DE course. */
+    prepareJide: (input: PrepareJideInput) => Promise<GradeflowResultDto<PreparedRunDto>>;
     confirm: (runId: string, overrides: MatchOverride[]) => Promise<GradeflowResultDto<ConfirmedRunDto>>;
     excludeFiles: (runId: string, files: { studentId: string; path: string }[]) => Promise<GradeflowResultDto<void>>;
     /** Resolves when the run ends; progress arrives through onProgress meanwhile. */

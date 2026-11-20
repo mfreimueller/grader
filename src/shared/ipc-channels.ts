@@ -117,6 +117,7 @@ export const IPC = {
   // Gradeflow: AI-assisted grading of hand-ins (Grader UI -> main, and one push channel back).
   GRADEFLOW_LIST_SKILLS: 'gradeflow:listSkills',
   GRADEFLOW_PREPARE: 'gradeflow:prepare',
+  GRADEFLOW_PREPARE_JIDE: 'gradeflow:prepareJide',
   GRADEFLOW_CONFIRM: 'gradeflow:confirm',
   GRADEFLOW_EXCLUDE_FILES: 'gradeflow:excludeFiles',
   GRADEFLOW_START: 'gradeflow:start',
