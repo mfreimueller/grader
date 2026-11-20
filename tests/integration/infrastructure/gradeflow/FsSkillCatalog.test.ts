@@ -143,6 +143,8 @@ describe("FsSkillCatalog with the bundled starter skills", () => {
     ["sql-postgresql", null],
   ];
 
+  const all: Array<[string, "opus" | null]> = [...expected, ["java-jide", null]];
+
   it("ships seven valid skills with the specified ids and models", async () => {
     const { skills, invalid } = await new FsSkillCatalog(
       bundledDir,
@@ -151,9 +153,9 @@ describe("FsSkillCatalog with the bundled starter skills", () => {
 
     expect(invalid).toEqual([]);
     expect(skills.map((s) => s.id).sort()).toEqual(
-      expected.map(([id]) => id).sort(),
+      all.map(([id]) => id).sort(),
     );
-    for (const [id, model] of expected) {
+    for (const [id, model] of all) {
       const skill = skills.find((s) => s.id === id);
       expect(skill?.model).toBe(model);
       expect(skill?.source).toBe("bundled");
@@ -195,5 +197,28 @@ describe("FsSkillCatalog with the bundled starter skills", () => {
       for (const symbol of ["PLUS_WELLE", "WELLE", "MINUS_WELLE", "MINUS"])
         expect(text).toContain(symbol);
     }
+  });
+
+  describe("java-jide", () => {
+    const read = (): Promise<string> =>
+      fs.readFile(path.join(bundledDir, "java-jide", "SKILL.md"), "utf8");
+
+    it("is a beginner skill for J;DE that defers to OUTPUT_SCHEMA.md and never runs code", async () => {
+      const text = await read();
+      expect(text).toContain("Einsteiger");
+      expect(text).toContain("assignment/");
+      expect(text).toContain("aufgabe.md");
+      expect(text).toContain("OUTPUT_SCHEMA.md");
+      expect(text).toMatch(/nie ausgeführt/);
+      for (const symbol of ["PLUS", "PLUS_WELLE", "WELLE", "MINUS_WELLE", "MINUS"])
+        expect(text).toContain(symbol);
+    });
+
+    it("asks for \"du\" and line comments, and still forbids names, tokens and the placeholder", async () => {
+      const text = await read();
+      expect(text).toContain('mit "du" angesprochen (nie "Sie")');
+      expect(text).toContain("Zeilenkommentare");
+      expect(text).toMatch(/Nie Namen, Kürzel oder den Platzhalter STUDENT/);
+    });
   });
 });
