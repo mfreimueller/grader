@@ -43,6 +43,10 @@
 
         <hr class="separator" />
 
+        <JideSettings :visible="visible" />
+
+        <hr class="separator" />
+
         <GradeflowSettings :visible="visible" />
 
         <p v-if="saveSuccess" class="success-msg">{{ saveSuccess }}</p>
@@ -60,6 +64,7 @@
 import { ref, watch } from 'vue';
 import PluginSettings from './PluginSettings.vue';
 import GradeflowSettings from './GradeflowSettings.vue';
+import JideSettings from './JideSettings.vue';
 
 const props = defineProps<{ visible: boolean }>();
 const emit = defineEmits<{ (e: 'close'): void }>();
