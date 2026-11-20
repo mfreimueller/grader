@@ -1,5 +1,13 @@
 import http from 'node:http';
 import type { AddressInfo } from 'node:net';
+import { buildZip } from '../gradeflow/zipFixture';
+
+/** A small valid exercise package. */
+export const PACKAGE_ZIP = buildZip([
+  { name: 'exercise.yaml', data: 'id: summe\ntitle: Summe zweier Zahlen\n' },
+  { name: 'aufgabe.md', data: '# Summe\nBerechne die Summe.\n' },
+  { name: 'files/Summe.java', data: 'class Summe {\n}\n' },
+]);
 
 export interface RecordedRequest {
   method: string;
@@ -15,6 +23,30 @@ export class FakeJideServer {
   static readonly KEY = 'jide_0123456789abcdef0123456789abcdef';
   readonly requests: RecordedRequest[] = [];
   override: Handler = () => undefined;
+  /** The answers of the list endpoints; tests may replace them. */
+  coursesBody: unknown = [
+    {
+      id: 7,
+      subject: 'Programmieren',
+      className: '3AHIF',
+      students: [
+        { id: 11, name: 'Max Mustermann' },
+        { id: 12, name: 'Anna Bauer' },
+      ],
+    },
+  ];
+  handinsBody: unknown = [
+    {
+      handinId: 501,
+      studentId: 11,
+      submittedAt: '2026-11-10T09:00:00Z',
+      late: false,
+      testsPassed: 2,
+      testsTotal: 3,
+      graded: false,
+      files: [{ path: 'Summe.java', content: 'class Summe {\n}\n' }],
+    },
+  ];
   private server: http.Server | null = null;
 
   get url(): string {
@@ -58,48 +90,18 @@ export class FakeJideServer {
     const custom = this.override(request);
     if (custom) return custom;
     const { method, path } = request;
-    if (method === 'GET' && path === '/api/v1/courses') {
-      return {
-        status: 200,
-        body: [
-          {
-            id: 7,
-            subject: 'Programmieren',
-            className: '3AHIF',
-            students: [
-              { id: 11, name: 'Max Mustermann' },
-              { id: 12, name: 'Anna Bauer' },
-            ],
-          },
-        ],
-      };
-    }
+    if (method === 'GET' && path === '/api/v1/courses') return { status: 200, body: this.coursesBody };
     if (method === 'GET' && path === '/api/v1/courses/7/exercises') {
       return {
         status: 200,
         body: [
           { id: 3, slug: 'summe', title: 'Summe zweier Zahlen', difficulty: 'newbie', unlockedAt: '2026-11-01T08:00:00Z', deadline: null },
+          { id: 4, slug: 'fakultaet', title: 'Fakultät berechnen', difficulty: null, unlockedAt: null, deadline: null },
         ],
       };
     }
-    if (method === 'GET' && path === '/api/v1/exercises/3/package') return { status: 200, raw: Buffer.from('PK-fake-zip') };
-    if (method === 'GET' && path === '/api/v1/courses/7/exercises/3/handins') {
-      return {
-        status: 200,
-        body: [
-          {
-            handinId: 501,
-            studentId: 11,
-            submittedAt: '2026-11-10T09:00:00Z',
-            late: false,
-            testsPassed: 2,
-            testsTotal: 3,
-            graded: false,
-            files: [{ path: 'Summe.java', content: 'class Summe {\n}\n' }],
-          },
-        ],
-      };
-    }
+    if (method === 'GET' && path === '/api/v1/exercises/3/package') return { status: 200, raw: PACKAGE_ZIP };
+    if (method === 'GET' && path === '/api/v1/courses/7/exercises/3/handins') return { status: 200, body: this.handinsBody };
     if (method === 'PUT' && path === '/api/v1/handins/501/grade') {
       return { status: 200, body: { gradedAt: '2026-11-20T10:00:00Z' } };
     }

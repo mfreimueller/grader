@@ -1,6 +1,6 @@
 import { JideApiError } from '../../../../src/domain/jide/JideApi';
 import { HttpJideApi } from '../../../../src/infrastructure/jide/HttpJideApi';
-import { FakeJideServer } from './FakeJideServer';
+import { FakeJideServer, PACKAGE_ZIP } from './FakeJideServer';
 
 describe('HttpJideApi', () => {
   const server = new FakeJideServer();
@@ -36,12 +36,13 @@ describe('HttpJideApi', () => {
     const result = await api().listExercises('7');
     expect(result.ok && result.value).toEqual([
       { id: '3', slug: 'summe', title: 'Summe zweier Zahlen', difficulty: 'newbie', unlockedAt: '2026-11-01T08:00:00Z', deadline: null },
+      { id: '4', slug: 'fakultaet', title: 'Fakultät berechnen', difficulty: null, unlockedAt: null, deadline: null },
     ]);
   });
 
   it('downloads the package as bytes', async () => {
     const result = await api().fetchPackage('3');
-    expect(result.ok && Buffer.from(result.value).toString()).toBe('PK-fake-zip');
+    expect(result.ok && Buffer.from(result.value).equals(PACKAGE_ZIP)).toBe(true);
   });
 
   it('lists the latest hand-ins with their files', async () => {

@@ -7,6 +7,9 @@ Gradeflow trifft keine Entscheidung allein (DSGVO Art. 22).
 Gestartet wird im Kurs über „Werkzeuge“ → „Gradeflow“. Die Leistung, die beurteilt wird, ist eine Spalte des Kurses
 (Symbole oder Punkte).
 
+Die Abgaben kommen aus einer von zwei Quellen: aus einem **Moodle**-Abgabenordner (Standard, siehe unten) oder aus
+**J;DE**, dem Java-Lernprogramm der Schule (siehe „Quelle J;DE“).
+
 ## Ablauf
 
 1. **Einrichten:** Leistung, Aufgabenstellung (Datei **oder Ordner**), Ordner mit den Abgaben, optional eine
@@ -48,6 +51,10 @@ Gestartet wird im Kurs über „Werkzeuge“ → „Gradeflow“. Die Leistung, 
 - **Kommentare ohne Namen:** Anweisungen und Ausgabeformat verbieten Namen und Kürzel in Kommentaren; kommt trotzdem
   eines vor, wird es entfernt und die Zeile markiert.
 
+Bei der Quelle J;DE kommen die Abgaben vom J;DE-Server (verschlüsselte Verbindung, Authentifizierung mit dem API-Schlüssel)
+und werden nur im Speicher gehalten, bis sie in den temporären Arbeitsbereich geschrieben werden; die Bewertung wird erst nach
+der Prüfung an J;DE gesendet.
+
 Zur Beurteilung werden die (von Namen befreiten) Abgaben an Anthropic übertragen. Ob das an der eigenen Schule zulässig
 ist, ist vorab zu klären.
 
@@ -55,7 +62,8 @@ ist, ist vorab zu klären.
 
 - Eine Anmeldung bei Claude Code auf dem Rechner (`claude` einmal im Terminal starten und anmelden). OAuth-Anmeldungen
   laufen ab; schlägt ein Lauf wegen der Anmeldung fehl, ist sie zu erneuern.
-- Moodle-Abgabeordner (siehe unten).
+- Quelle Moodle: ein Moodle-Abgabenordner (siehe unten).
+- Quelle J;DE: ein API-Schlüssel und die Adresse des J;DE-Servers (siehe „Quelle J;DE“).
 
 ## Grenzen und Einstellungen
 
@@ -87,6 +95,88 @@ Erwartet wird der Ordner, den Moodle beim Herunterladen aller Abgaben erzeugt, m
 - Nicht kopiert werden: `.git`, `.svn`, `.idea`, `.vscode`, `.vs`, `__MACOSX`, `.DS_Store`, `node_modules`, `target`,
   `bin`, `obj`, `build`, `out`, `.gradle`, `__pycache__`, `*.class`, `*.pyc`.
 
+## Quelle J;DE
+
+J;DE-Abgaben werden direkt vom J;DE-Server geholt. Der Ablauf ist derselbe wie bei Moodle (Pseudonyme, Namen ersetzen,
+Prüfung vor dem Start, ein Lauf, Prüfen, Speichern), mit diesen Unterschieden:
+
+### Verbindung (Einstellungen)
+
+In den Einstellungen unter „J;DE“ stehen **Adresse** des Servers (muss mit `https://` beginnen; nur für den eigenen
+Rechner ist `http://localhost` erlaubt) und der **API-Schlüssel** (`jide_…`). Den Schlüssel erstellt die Lehrperson in der
+J;DE-Lehrer-Webapp unter „API-Schlüssel“; er wird dort nur einmal angezeigt und gilt für alle Kurse der Lehrperson.
+
+- „Verbindung testen“ probiert die eingegebenen Werte aus (ohne zu speichern) und nennt die Zahl der sichtbaren Kurse.
+  Bleibt das Schlüsselfeld leer, wird der gespeicherte Schlüssel verwendet.
+- Der Schlüssel wird mit dem Schlüsselbund des Betriebssystems verschlüsselt in der Datenbank gespeichert (wie die
+  Zugangsdaten der Plugins), nie angezeigt und nie protokolliert. Bietet das System keine sichere Ablage, wird er nicht
+  gespeichert. Nach einer Wiederherstellung der Datenbank auf einem anderen Rechner ist der Schlüssel neu einzugeben.
+- „Verbindung entfernen“ löscht Adresse und Schlüssel; die Verknüpfungen bleiben erhalten.
+
+### Verknüpfungen
+
+Grader-Kurs und J;DE-Kurs sowie Schüler/innen und J;DE-Personen werden **einmal** verknüpft und danach bei jedem Lauf
+wiederverwendet. Die Verknüpfung steht in der Einrichtung von Gradeflow, sobald die Quelle „J;DE“ gewählt ist
+(„J;DE-Verknüpfung“):
+
+- Vorgeschlagen wird anhand der Namen (Groß-/Kleinschreibung, Umlaute und Reihenfolge von Vor- und Nachname spielen keine
+  Rolle) und für den Kurs anhand der Klasse. Es wird nur vorgeschlagen, wenn der Treffer eindeutig ist.
+- Vorschläge gelten erst nach „Verknüpfung speichern“. Jede Zuordnung lässt sich ändern oder entfernen; dieselbe
+  J;DE-Person kann nicht zwei Schüler/innen zugeordnet werden.
+- Die Verknüpfungen liegen in der Datenbank von Grader (Migration 016) und werden mit dem Kurs bzw. der Schülerin oder dem
+  Schüler gelöscht.
+
+### Einrichtung und Zuordnung
+
+- **Leistung:** Zur Wahl stehen nur Spalten mit Symbolen, denn J;DE bewertet mit `+`, `+~`, `~`, `−~`, `−`.
+- **J;DE-Aufgabe:** Eine durchsuchbare Liste der freigeschalteten Aufgaben des verknüpften J;DE-Kurses (Titel und Kennung).
+- Es gibt keine Aufgabenstellung, keinen Abgabenordner und keine Musterlösung zu wählen: Grader holt das **Aufgabenpaket** von
+  J;DE (`aufgabe.md`, Vorlagedateien, `tests.yaml`, `exercise.yaml`) und legt es als `assignment/` in den Arbeitsbereich,
+  wie einen Aufgabenordner (also unverändert und nicht anonymisiert; `.claude/`, `CLAUDE.md` und Build-Ordner werden nicht
+  übernommen).
+- Geholt wird die **letzte Abgabe jeder Person**. Wer nicht abgegeben hat, fehlt einfach.
+- Die **Zuordnung** läuft über die gespeicherten Verknüpfungen, nicht über Namen. Abgaben von J;DE-Personen ohne
+  Verknüpfung stehen als „nicht verknüpft“ in der Liste und werden übersprungen (wie nicht erkannte Moodle-Ordner). Die
+  Zuordnung lässt sich hier nicht von Hand ändern; sie wird in der Verknüpfung korrigiert.
+- Pseudonyme, Namen ersetzen (auch in Dateinamen), Dateiregeln (übersprungene Ordner, Größen) und die Prüfung vor dem
+  Start gelten wie bei Moodle.
+
+### Prüfen
+
+Das Skill `java-jide` liefert pro Abgabe die Beurteilung, einen **Gesamtkommentar** und **Zeilenkommentare** (Datei, Zeile,
+Text). Die Kommentare sprechen die Schülerin bzw. den Schüler mit „du“ an, denn sie lesen sie direkt in J;DE; Namen und
+Kürzel bleiben verboten und werden entfernt (die Zeile wird markiert).
+
+- Pro Schüler/in zeigt die Tabelle wie bisher Vorschlag, bisheriges Ergebnis und Gesamtkommentar. Unter „Code und
+  Zeilenkommentare“ steht der Code der Abgabe (im Original, nicht anonymisiert; die Namen werden nur für die KI ersetzt)
+  mit den Zeilenkommentaren an ihrer Zeile. Sie sind **editierbar und löschbar**; neue Zeilenkommentare lassen sich nicht
+  hinzufügen.
+- Zeilenkommentare auf Dateien oder Zeilen, die es nicht gibt, sowie leere werden verworfen; die Zeile ist dann markiert.
+  Höchstens 200 Zeilenkommentare je Abgabe, je höchstens 1000 Zeichen; der Gesamtkommentar höchstens 2000 Zeichen.
+- Angezeigt werden außerdem Abgabedatum, Verspätung, Testergebnis und ob J;DE die Abgabe schon bewertet hat (die Bewertung
+  wird dann ersetzt).
+
+### Speichern
+
+Speichern führt zwei voneinander unabhängige Schritte aus, die getrennt gemeldet werden:
+
+1. **In Grader:** Symbol in die gewählte Spalte, Gesamtkommentar als Notiz (ein erneuter Lauf ersetzt die Notiz). Vorher fragt
+   Grader einmal, wie viele Ergebnisse ersetzt werden; solange nicht bestätigt ist, wird nichts gespeichert und nichts
+   gesendet.
+2. **An J;DE:** Symbol, Gesamtkommentar und Zeilenkommentare gehen je Abgabe an J;DE. Die Schüler/innen sehen die Bewertung
+   sofort; eine erneute Bewertung ersetzt Beurteilung und Kommentare. Die Aufgabe ist für die Person danach gesperrt.
+
+Schlägt ein Schritt fehl, geht nichts still verloren: Gespeichertes bleibt in Grader, und die Zeile zeigt, was nicht
+gesendet wurde.
+
+- **„neue Abgabe seit dem Laden“:** Hat die Person nach dem Laden erneut abgegeben, lehnt J;DE die Bewertung ab
+  (`NEWER_HANDIN`). Die Zeile wird markiert und **nicht** an J;DE gesendet; das Ergebnis steht trotzdem in Grader. Um die neue
+  Abgabe zu bewerten, ist Gradeflow erneut zu starten.
+- **Andere Fehler** (Server nicht erreichbar, Aufgabe gesperrt …) zeigt die Zeile mit der Meldung von J;DE. Solche Zeilen
+  bleiben angehakt; „Erneut speichern und senden“ sendet nur, was noch offen ist (ohne Rückfrage zum Ersetzen).
+- Der Arbeitsbereich mit den Abgaben wird schon nach dem ersten Speichern gelöscht. „Fertig“ beendet die Prüfung, wenn nichts
+  mehr zu wiederholen ist.
+
 ## Mitgelieferte Skills
 
 | Skill | Inhalt |
@@ -94,6 +184,7 @@ Erwartet wird der Ordner, den Moodle beim Herunterladen aller Abgaben erzeugt, m
 | `java-einsteiger` | Java, milde Beurteilung: Lauffähigkeit, erfüllte Anforderungen, Kontrollstrukturen; Stil zählt nicht |
 | `java-fortgeschritten` | Java: zusätzlich Struktur, Namenskonventionen, Randfälle, Ausnahmen, Collections |
 | `java-profi` | Java, hoher Qualitätsanspruch: Clean Code, OOP-Design, Ausnahmebehandlung, try-with-resources; läuft mit Opus |
+| `java-jide` | Java in J;DE, Einsteigerniveau wie `java-einsteiger`; Gesamtkommentar und Zeilenkommentare an die Schülerin bzw. den Schüler mit „du“, mit Hinweisen statt fertiger Lösungen |
 | `sql-mysql` | SQL (mittleres Niveau), beurteilt gegen MySQL |
 | `sql-mssql` | SQL (mittleres Niveau), beurteilt gegen Microsoft SQL Server (T-SQL) |
 | `sql-postgresql` | SQL (mittleres Niveau), beurteilt gegen PostgreSQL |
@@ -137,8 +228,12 @@ Kopien der Musterlösung).
   `OUTPUT_SCHEMA.md` im Arbeitsbereich und wird als strukturierte Ausgabe erzwungen.
 - Der Kommentarstil: Deutsch, unpersönlich (keine direkte Anrede wie „du“ oder „Sie“), kurze sachliche Aussagen über
   die Arbeit, zum Beispiel „Eingabeprüfung fehlt; Schleife endet einen Schritt zu früh.“ Namen und Kürzel sind
-  verboten.
-- Der Arbeitsbereich: Aufgabenstellung, optional Musterlösung, `handins/<Kürzel>/`; der Agent darf nur dort lesen.
+  verboten. **Bei Läufen mit der Quelle J;DE gilt stattdessen die Anrede mit „du“** (die Schüler/innen lesen die Kommentare
+  selbst) samt Zeilenkommentaren; Namen und Kürzel bleiben auch dort verboten. Ein Skill darf bei J;DE-Läufen nichts anderes
+  verlangen als `OUTPUT_SCHEMA.md`; `java-jide` verweist darauf.
+- Der Arbeitsbereich: Aufgabenstellung, optional Musterlösung, `handins/<Kürzel>/`; der Agent darf nur dort lesen. Bei J;DE
+  steht das Aufgabenpaket in `assignment/`, es gibt keine Musterlösung, und die Pfade der Zeilenkommentare sind relativ zu
+  `handins/<Kürzel>/`.
   Eine Datei liegt als `ASSIGNMENT.<Endung>` bzw. `SOLUTION.<Endung>` im Arbeitsbereich, ein Ordner als
   `assignment/` bzw. `solution/`. Aus Ordnern werden `.claude/`, `CLAUDE.md` und `CLAUDE.local.md` (damit keine
   Einstellungen oder Anweisungen eingeschleust werden), Build- und Versionsverwaltungsordner (`.git`, `node_modules`,
