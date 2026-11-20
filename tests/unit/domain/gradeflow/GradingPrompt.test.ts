@@ -101,3 +101,29 @@ describe("GradingPrompt", () => {
     });
   });
 });
+
+describe("GradingPrompt for J;DE", () => {
+  const jide = buildGradingPrompt({
+    skillId: "java-jide",
+    assignment: DIR_ASSIGNMENT,
+    solution: null,
+    tokenCount: 5,
+    source: "jide",
+  });
+
+  it("asks for du-comments and line comments instead of impersonal ones", () => {
+    expect(jide).toContain('address the student directly with "du"');
+    expect(jide).toContain("line comments");
+    expect(jide).not.toContain("impersonal");
+  });
+
+  it("still forbids tokens and names", () => {
+    expect(jide).toContain("Never mention tokens or names in comments.");
+  });
+
+  it("stays impersonal by default", () => {
+    const moodle = buildGradingPrompt({ skillId: "x", assignment: FILE_ASSIGNMENT, solution: null, tokenCount: 1 });
+    expect(moodle).toContain("impersonal");
+    expect(moodle).not.toContain("line comments");
+  });
+});

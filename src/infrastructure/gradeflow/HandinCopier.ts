@@ -10,6 +10,8 @@ import {
   ContentEncoding,
   isSkippedPath,
 } from "../../domain/gradeflow/handinFileRules";
+import { countLines } from "../../domain/gradeflow/LineComments";
+import type { JideHandinFile } from "../../domain/jide/JideApi";
 import {
   LoneNameHit,
   scrubNames,
@@ -49,6 +51,15 @@ function decodeText(data: Buffer, encoding: Exclude<ContentEncoding, "binary">):
 
 const lower = (segments: string[]): string => segments.join("/").toLowerCase();
 
+/** A file of a J;DE hand-in as written into the workspace. */
+export interface CopiedFile {
+  /** Name-scrubbed path below `handins/<token>/`. */
+  path: string;
+  originalPath: string;
+  /** 0 when line numbers cannot be trusted: not text, or scrubbing changed the number of lines. */
+  lineCount: number;
+}
+
 /** Copies the folders of one hand-in into `handins/<token>/`, scrubbing names on the way. */
 export class HandinCopier {
   private readonly taken = new Map<string, "file" | "dir">();
@@ -63,6 +74,45 @@ export class HandinCopier {
 
   async copyFolder(folder: string): Promise<void> {
     await this.walk(folder, ROOT);
+  }
+
+  /**
+   * Writes the files of a J;DE hand-in (in memory, as the API delivers them) with the same rules as a folder:
+   * names scrubbed, skipped paths and oversize files reported instead of written.
+   */
+  async copyFiles(files: JideHandinFile[]): Promise<CopiedFile[]> {
+    const copied: CopiedFile[] = [];
+    for (const file of files) {
+      const names = file.path.replace(/\\/g, "/").split("/").filter((s) => s !== "" && s !== ".");
+      const unsafe =
+        names.length === 0 ||
+        names.includes("..") ||
+        file.path.includes("\0") ||
+        /^([/\\]|[A-Za-z]:)/.test(file.path);
+      if (unsafe) {
+        this.add(this.plain(file.path, ROOT), "archive-error", { detail: "unsafe path" });
+        continue;
+      }
+      if (isSkippedPath(names.join("/"))) {
+        this.add(this.plain(names, ROOT), "skipped");
+        continue;
+      }
+      const data = Buffer.from(file.content, "utf8");
+      if (data.length > this.limits.maxFileBytes) {
+        this.add(this.plain(names, ROOT), "too-large");
+        continue;
+      }
+      let parent = ROOT;
+      for (const dirName of names.slice(0, -1)) parent = await this.enterDir(dirName, parent);
+      const stored = await this.store(names[names.length - 1] ?? "", data, parent, "regular");
+      const trusted = stored.text !== null && countLines(stored.text) === countLines(file.content);
+      copied.push({
+        path: stored.segments.join("/"),
+        originalPath: file.path,
+        lineCount: trusted ? countLines(file.content) : 0,
+      });
+    }
+    return copied;
   }
 
   // ---- scrubbed names and collisions --------------------------------------------------------
@@ -177,7 +227,7 @@ export class HandinCopier {
     data: Buffer,
     base: PathState,
     as: "regular" | "nested-archive",
-  ): Promise<void> {
+  ): Promise<{ segments: string[]; text: string | null }> {
     const { segment, state } = this.scrub(name, base);
     const segments = [...base.segments, this.claim(base.segments, segment, "file")];
     const target = this.absolute(segments);
@@ -191,10 +241,11 @@ export class HandinCopier {
         loneNameHits: mergeHits(state.hits, content.loneNameHits),
         ...(encoding === "utf8" ? {} : { detail: `converted from ${encoding}` }),
       });
-      return;
+      return { segments, text: content.text };
     }
     await fs.writeFile(target, data);
     this.add(segments, as === "regular" ? "binary" : "nested-archive", this.hitsOf(state));
+    return { segments, text: null };
   }
 
   // ---- zip ----------------------------------------------------------------------------------

@@ -11,6 +11,8 @@ export interface GradingPromptInput {
   assignment: PromptMaterial;
   solution: PromptMaterial | null;
   tokenCount: number;
+  /** `jide`: comments address the student with "du" and include line comments. Default `moodle`. */
+  source?: "moodle" | "jide";
 }
 
 /** The user prompt of the single grading run. Deterministic; contains no student data. */
@@ -38,7 +40,13 @@ export function buildGradingPrompt(input: GradingPromptInput): string {
     `Grade every folder under handins/ (exactly ${input.tokenCount} folders).`,
     "Work only inside the current directory.",
     "Never mention tokens or names in comments.",
-    "Write all comments in German and impersonal: no direct address (no du/Sie/dein/Ihr), short factual statements about the work.",
+    ...(input.source === "jide"
+      ? [
+          'Write all comments in German and address the student directly with "du" (never "Sie"). Add line comments on the lines they are about, as OUTPUT_SCHEMA.md describes.',
+        ]
+      : [
+          "Write all comments in German and impersonal: no direct address (no du/Sie/dein/Ihr), short factual statements about the work.",
+        ]),
     "Return the result as your structured output.",
   );
   return lines.join("\n");

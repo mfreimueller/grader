@@ -12,9 +12,17 @@ import {
   MaterialRole,
   workspaceMaterialName,
 } from "../../domain/gradeflow/WorkspaceMaterial";
+import type {
+  BuildJideWorkspaceInput,
+  BuiltJideWorkspace,
+  JideWorkspaceBuilder,
+  JideWorkspaceFile,
+} from "../../domain/gradeflow/JideWorkspaceBuilder";
+import { isSkippedMaterialPath } from "../../domain/gradeflow/handinFileRules";
 import { Result } from "../../domain/shared/Result";
 import { ValidationError } from "../../shared/errors";
 import { HandinCopier } from "./HandinCopier";
+import { readZip } from "./ZipReader";
 import { copyMaterialDir } from "./MaterialCopier";
 import { DEFAULT_WORKSPACE_LIMITS, WorkspaceLimits } from "./WorkspaceLimits";
 import { errorCode, isStrictlyInside } from "./workspacePaths";
@@ -61,7 +69,7 @@ async function assertHandinFolder(handinsDir: string, folder: string): Promise<s
   return abs;
 }
 
-export class FsHandinWorkspaceBuilder implements HandinWorkspaceBuilder {
+export class FsHandinWorkspaceBuilder implements HandinWorkspaceBuilder, JideWorkspaceBuilder {
   private readonly limits: WorkspaceLimits;
 
   constructor(limits: Partial<WorkspaceLimits> = {}) {
@@ -69,16 +77,73 @@ export class FsHandinWorkspaceBuilder implements HandinWorkspaceBuilder {
   }
 
   async build(input: BuildWorkspaceInput): Promise<Result<BuiltWorkspace>> {
+    return this.inNewRoot(async (root) => ({ root, report: await this.populate(root, input) }));
+  }
+
+  /** The workspace of a J;DE run: the package as `assignment/`, hand-in files from memory. */
+  async buildJide(input: BuildJideWorkspaceInput): Promise<Result<BuiltJideWorkspace>> {
+    return this.inNewRoot(async (root) => {
+      await this.writePackage(root, input.packageZip);
+      await this.writeSchemaAndSkill(root, input.outputInstructions, input.skill);
+      const report: WorkspaceReportEntry[] = [];
+      const files: JideWorkspaceFile[] = [];
+      for (const handin of input.handins) {
+        const token = input.pseudonyms.tokenOf(handin.studentId);
+        if (token === null) throw new ValidationError("Hand-in without a pseudonym");
+        const tokenDir = path.join(root, "handins", token);
+        await fs.mkdir(tokenDir, { recursive: true });
+        const copier = new HandinCopier(token, tokenDir, input.students, this.limits, report);
+        for (const copied of await copier.copyFiles(handin.files)) files.push({ token, ...copied });
+      }
+      return { root, report, files };
+    });
+  }
+
+  /** Creates the workspace directory, runs `fill`, and removes the directory again when that fails. */
+  private async inNewRoot<T>(fill: (root: string) => Promise<T>): Promise<Result<T>> {
     let root: string | null = null;
     try {
       // realpath: the runner's permission rules match literally (macOS /tmp is /private/tmp).
       root = await fs.realpath(await fs.mkdtemp(path.join(os.tmpdir(), WORKSPACE_PREFIX)));
       await fs.chmod(root, 0o700);
-      const report = await this.populate(root, input);
-      return Result.ok({ root, report });
+      return Result.ok(await fill(root));
     } catch (error) {
       if (root !== null) await fs.rm(root, { recursive: true, force: true });
       return failed(error);
+    }
+  }
+
+  private async writeSchemaAndSkill(
+    root: string,
+    outputInstructions: string,
+    skill: { id: string; dir: string },
+  ): Promise<void> {
+    await fs.writeFile(path.join(root, "OUTPUT_SCHEMA.md"), outputInstructions, "utf8");
+    await fs.cp(skill.dir, path.join(root, ".claude", "skills", skill.id), {
+      recursive: true,
+      filter: async (source) => !(await fs.lstat(source)).isSymbolicLink(),
+    });
+  }
+
+  /** Unpacks the exercise zip into `assignment/` (the teacher's own material: not scrubbed, not reported). */
+  private async writePackage(root: string, packageZip: Uint8Array): Promise<void> {
+    const staging = await fs.mkdtemp(path.join(os.tmpdir(), "jide-package-"));
+    try {
+      const zipFile = path.join(staging, "package.zip");
+      await fs.writeFile(zipFile, packageZip);
+      const archive = await readZip(zipFile, this.limits, isSkippedMaterialPath);
+      if (!archive.ok) throw new ValidationError("Das Aufgabenpaket ist ungültig.");
+      const target = path.join(root, "assignment");
+      await fs.mkdir(target, { recursive: true });
+      for (const item of archive.value) {
+        if (item.kind !== "file") continue;
+        const destination = path.join(target, ...item.name.split("/").filter((s) => s !== "" && s !== "."));
+        if (!isStrictlyInside(target, destination)) continue;
+        await fs.mkdir(path.dirname(destination), { recursive: true });
+        await fs.writeFile(destination, item.data);
+      }
+    } finally {
+      await fs.rm(staging, { recursive: true, force: true });
     }
   }
 
@@ -102,11 +167,7 @@ export class FsHandinWorkspaceBuilder implements HandinWorkspaceBuilder {
     if (input.solutionPath !== null && input.solutionKind !== null) {
       await this.copyMaterial(root, "solution", input.solutionPath, input.solutionKind);
     }
-    await fs.writeFile(path.join(root, "OUTPUT_SCHEMA.md"), input.outputInstructions, "utf8");
-    await fs.cp(input.skill.dir, path.join(root, ".claude", "skills", input.skill.id), {
-      recursive: true,
-      filter: async (source) => !(await fs.lstat(source)).isSymbolicLink(),
-    });
+    await this.writeSchemaAndSkill(root, input.outputInstructions, input.skill);
 
     const report: WorkspaceReportEntry[] = [];
     const copiers = new Map<string, HandinCopier>();

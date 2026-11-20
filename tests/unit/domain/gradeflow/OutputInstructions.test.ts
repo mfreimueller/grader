@@ -179,3 +179,54 @@ describe("OutputInstructions", () => {
     });
   });
 });
+
+describe("OutputInstructions for J;DE", () => {
+  const contract = { gradingType: GradingType.TERTIARY, maxPoints: null, tokens, source: "jide" as const };
+
+  it("describes symbol, overall comment and line comments for every token", () => {
+    const text = ok(renderOutputInstructions(contract));
+    expect(text).toContain('"lineComments"');
+    expect(text).toContain("1-based");
+    expect(text).toContain("handins/<token>/");
+    for (const symbol of ["PLUS", "PLUS_WELLE", "WELLE", "MINUS_WELLE", "MINUS"]) expect(text).toContain(symbol);
+    for (const token of tokens) expect(text).toContain(token);
+  });
+
+  it("asks for \"du\" and still forbids names, tokens and the placeholder", () => {
+    const text = ok(renderOutputInstructions(contract));
+    expect(text).toContain('address the student directly with "du"');
+    expect(text).toContain("never with \"Sie\"");
+    expect(text).toContain("must never contain a token, a person's name");
+    expect(text).toContain("STUDENT");
+    expect(text).not.toContain("unpersönlich");
+  });
+
+  it("leaves the Moodle instructions impersonal and without line comments", () => {
+    const text = ok(renderOutputInstructions({ ...contract, source: "moodle" }));
+    expect(text).toContain("unpersönlich");
+    expect(text).not.toContain("lineComments");
+  });
+
+  it("refuses points: J;DE grades are symbols", () => {
+    const result = renderOutputInstructions({ ...contract, gradingType: GradingType.NUMERIC, maxPoints: 10 });
+    expect(result.ok).toBe(false);
+    expect(outputJsonSchema({ ...contract, gradingType: GradingType.NUMERIC, maxPoints: 10 }).ok).toBe(false);
+  });
+
+  it("requires lineComments in the schema, within the limits", () => {
+    const schema = ok(outputJsonSchema(contract)) as {
+      properties: { results: { items: { required: string[]; properties: Record<string, { maxItems?: number; items?: { properties: Record<string, unknown>; required: string[] } }> } } };
+    };
+    const item = schema.properties.results.items;
+    expect(item.required).toEqual(["token", "symbol", "comment", "lineComments"]);
+    expect(item.properties.lineComments?.maxItems).toBe(200);
+    expect(item.properties.lineComments?.items?.required).toEqual(["path", "line", "text"]);
+    expect(item.properties.lineComments?.items?.properties.text).toMatchObject({ maxLength: 1000 });
+    expect(item.properties.lineComments?.items?.properties.line).toMatchObject({ type: "integer", minimum: 1 });
+  });
+
+  it("keeps the Moodle schema free of lineComments", () => {
+    const schema = ok(outputJsonSchema({ ...contract, source: "moodle" }));
+    expect(JSON.stringify(schema)).not.toContain("lineComments");
+  });
+});

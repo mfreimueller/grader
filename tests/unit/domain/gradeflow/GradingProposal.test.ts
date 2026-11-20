@@ -307,3 +307,101 @@ describe("GradingProposal", () => {
     });
   });
 });
+
+describe("GradingProposal for J;DE runs", () => {
+  const withFiles = (): GradingProposalContext => {
+    const context = aContext();
+    return {
+      ...context,
+      jideFiles: new Map([
+        ["s-1", new Map([["Main.java", { path: "Main.java", lineCount: 5 }]])],
+        ["s-2", new Map([["Main.java", { path: "Main.java", lineCount: 2 }]])],
+      ]),
+    };
+  };
+  const entry = (context: GradingProposalContext, id: string, extra: object = {}) => ({
+    token: tokenOf(context, id),
+    symbol: "WELLE",
+    comment: "Du hast es fast geschafft.",
+    lineComments: [],
+    ...extra,
+  });
+
+  it("returns the validated line comments with the proposal", () => {
+    const context = withFiles();
+    const result = parseGradingProposal(
+      {
+        version: 1,
+        results: [
+          entry(context, "s-1", { lineComments: [{ path: "Main.java", line: 5, text: "Hier fehlt etwas." }] }),
+          entry(context, "s-2"),
+        ],
+      },
+      context,
+    );
+    expect(result.ok && result.value.proposals[0]).toMatchObject({
+      studentId: "s-1",
+      symbol: "WELLE",
+      lineComments: [{ path: "Main.java", line: 5, text: "Hier fehlt etwas." }],
+      flags: [],
+    });
+    expect(result.ok && result.value.proposals[1]?.lineComments).toEqual([]);
+  });
+
+  it("checks the line against the file of that very student", () => {
+    const context = withFiles();
+    const result = parseGradingProposal(
+      {
+        version: 1,
+        results: [
+          entry(context, "s-1"),
+          entry(context, "s-2", { lineComments: [{ path: "Main.java", line: 5, text: "Zeile gibt es hier nicht." }] }),
+        ],
+      },
+      context,
+    );
+    expect(result.ok && result.value.proposals[1]).toMatchObject({ lineComments: [], flags: ["LINE_COMMENT_DROPPED"] });
+  });
+
+  it("flags tokens in line comments", () => {
+    const context = withFiles();
+    const token = tokenOf(context, "s-1");
+    const result = parseGradingProposal(
+      {
+        version: 1,
+        results: [
+          entry(context, "s-1", { lineComments: [{ path: "Main.java", line: 1, text: `${token} gut` }] }),
+          entry(context, "s-2"),
+        ],
+      },
+      context,
+    );
+    expect(result.ok && result.value.proposals[0]).toMatchObject({
+      lineComments: [{ path: "Main.java", line: 1, text: "gut" }],
+      flags: ["TOKEN_IN_COMMENT"],
+    });
+  });
+
+  it("takes a missing lineComments as none and rejects a non-list", () => {
+    const context = withFiles();
+    const missing = parseGradingProposal(
+      { version: 1, results: [{ token: tokenOf(context, "s-1"), symbol: "PLUS", comment: "x" }, entry(context, "s-2")] },
+      context,
+    );
+    expect(missing.ok && missing.value.proposals[0]?.lineComments).toEqual([]);
+    expectFailure(
+      { version: 1, results: [entry(context, "s-1", { lineComments: "viele" }), entry(context, "s-2")] },
+      context,
+      "lineComments",
+    );
+  });
+
+  it("does not look at lineComments in a Moodle run", () => {
+    const context = aContext();
+    const result = parseGradingProposal(
+      { version: 1, results: [entry(context, "s-1"), entry(context, "s-2")] },
+      context,
+    );
+    expect(result.ok && result.value.proposals[0]).not.toHaveProperty("lineComments");
+  });
+});

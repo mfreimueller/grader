@@ -2,17 +2,22 @@ import { GradingType } from "../grade/GradingType";
 import { ParticipationSymbol } from "../grade/ParticipationSymbol";
 import { Result } from "../shared/Result";
 import { ValidationError } from "../../shared/errors";
+import { cleanComment, MAX_COMMENT_LENGTH, ProposalFlag } from "./CommentCleaning";
+import { JideFileLines, LineComment, readLineComments } from "./LineComments";
 import { PseudonymMap } from "./PseudonymMap";
 
-/** Same limit as Grader's other notes (SessionService.STUDENT_NOTE_MAX_LENGTH, plugin notes). */
-export const MAX_COMMENT_LENGTH = 2000;
-
-export type ProposalFlag = "TOKEN_IN_COMMENT" | "COMMENT_TRUNCATED";
+export { MAX_COMMENT_LENGTH };
+export type { ProposalFlag };
 
 export interface GradingProposalContext {
   gradingType: GradingType;
   maxPoints: number | null;
   pseudonyms: PseudonymMap;
+  /**
+   * J;DE runs: the files of each hand-in (by student id). When set, every result may carry `lineComments`, which
+   * are checked against these files.
+   */
+  jideFiles?: ReadonlyMap<string, JideFileLines>;
 }
 
 export interface Proposal {
@@ -21,6 +26,8 @@ export interface Proposal {
   score: number | null;
   comment: string;
   flags: ProposalFlag[];
+  /** Only for J;DE runs (`jideFiles` given). */
+  lineComments?: LineComment[];
 }
 
 export interface ParsedGradingProposal {
@@ -33,33 +40,6 @@ const fail = (message: string): Result<never> =>
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === "object" && value !== null && !Array.isArray(value);
-
-function cleanComment(
-  raw: string,
-  tokens: string[],
-): { comment: string; flags: ProposalFlag[] } {
-  const flags: ProposalFlag[] = [];
-  let comment = raw.trim();
-  if (tokens.length > 0) {
-    let found = false;
-    comment = comment
-      .replace(new RegExp(tokens.join("|"), "gi"), () => {
-        found = true;
-        return "";
-      })
-      .replace(/[ \t]{2,}/g, " ")
-      .trim();
-    if (found) flags.push("TOKEN_IN_COMMENT");
-  }
-  if (comment.length > MAX_COMMENT_LENGTH) {
-    let end = MAX_COMMENT_LENGTH;
-    const last = comment.charCodeAt(end - 1);
-    if (last >= 0xd800 && last <= 0xdbff) end--; // do not cut a surrogate pair in half
-    comment = comment.slice(0, end).trimEnd();
-    flags.push("COMMENT_TRUNCATED");
-  }
-  return { comment, flags };
-}
 
 type Rule = { kind: "tertiary" } | { kind: "numeric"; maxPoints: number };
 
@@ -131,7 +111,20 @@ export function parseGradingProposal(
     const outcome = readResult(entry, where, rule.value);
     if (!outcome.ok) return Result.fail(outcome.error);
     const { comment, flags } = cleanComment(entry.comment, tokens);
-    proposals.push({ studentId, ...outcome.value, comment, flags });
+    if (context.jideFiles === undefined) {
+      proposals.push({ studentId, ...outcome.value, comment, flags });
+      continue;
+    }
+    const files = context.jideFiles.get(studentId) ?? new Map();
+    const lines = readLineComments(entry.lineComments, files, entry.token, tokens);
+    if (lines === null) return fail(`${where}: lineComments must be an array`);
+    proposals.push({
+      studentId,
+      ...outcome.value,
+      comment,
+      flags: [...new Set([...flags, ...lines.flags])],
+      lineComments: lines.comments,
+    });
   }
 
   const answered = new Set(proposals.map((proposal) => proposal.studentId));
