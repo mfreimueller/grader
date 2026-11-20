@@ -49,18 +49,23 @@ export interface ConfirmedHandin {
 
 function matchesIn(
   variant: NameVariant,
-  handin: Handin,
+  fullName: string,
   student: StudentName,
 ): boolean {
   const first = normaliseNameTokens(student.firstName, variant)[0];
   const last = normaliseNameTokens(student.lastName, variant);
   if (first === undefined || last.length === 0) return false;
-  const tokens = new Set(normaliseNameTokens(handin.fullName, variant));
+  const tokens = new Set(normaliseNameTokens(fullName, variant));
   return tokens.has(first) && last.every((token) => tokens.has(token));
 }
 
+/** True when `fullName` (in any order) contains the student's first name and every part of the last name. */
+export function fullNameMatches(fullName: string, student: StudentName): boolean {
+  return NAME_VARIANTS.some((variant) => matchesIn(variant, fullName, student));
+}
+
 function isCandidate(handin: Handin, student: StudentName): boolean {
-  return NAME_VARIANTS.some((variant) => matchesIn(variant, handin, student));
+  return fullNameMatches(handin.fullName, student);
 }
 
 export function matchHandins(
