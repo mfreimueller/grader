@@ -75,9 +75,16 @@ export class SqliteSessionRepository implements SessionRepository {
     for (const assessment of session.assessments) {
       this.db
         .prepare(
-          `INSERT OR REPLACE INTO assessments
+          `INSERT INTO assessments
            (id, title, category_id, course_id, is_impromptu, max_points, session_id)
-           VALUES (?, ?, ?, ?, ?, ?, ?)`,
+           VALUES (?, ?, ?, ?, ?, ?, ?)
+           ON CONFLICT(id) DO UPDATE SET
+             title = excluded.title,
+             category_id = excluded.category_id,
+             course_id = excluded.course_id,
+             is_impromptu = excluded.is_impromptu,
+             max_points = excluded.max_points,
+             session_id = excluded.session_id`,
         )
         .run(
           assessment.id,

@@ -180,6 +180,11 @@ export interface AssessmentDto {
   maxPoints: number | null;
 }
 
+export interface ChangeAssessmentCategoryInput {
+  assessmentId: string;
+  categoryId: string;
+}
+
 export interface CreateAssessmentInput {
   sessionId: string;
   title: string;
@@ -413,6 +418,7 @@ export interface IpcApi {
     create: (data: CreateAssessmentInput) => Promise<ResultDto<AssessmentDto>>;
     createImpromptu: (data: CreateAssessmentInput) => Promise<ResultDto<AssessmentDto>>;
     delete: (id: string) => Promise<ResultDto<void>>;
+    changeCategory: (data: ChangeAssessmentCategoryInput) => Promise<ResultDto<AssessmentDto>>;
   };
   grade: {
     deletePerformance: (performanceId: string) => Promise<ResultDto<void>>;

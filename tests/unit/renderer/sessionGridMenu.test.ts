@@ -1,6 +1,7 @@
 import type { GridColumn } from '../../../src/renderer/utils/sessionGridModel';
-import { cellMenu, columnMenu, type MenuEntry } from '../../../src/renderer/utils/sessionGridMenu';
+import { categoryChoices, cellMenu, columnMenu, type MenuEntry } from '../../../src/renderer/utils/sessionGridMenu';
 import type { GridCell } from '../../../src/renderer/utils/sessionGridModel';
+import type { AssessmentCategoryDto } from '../../../src/shared/types';
 
 const aCell = (o: Partial<GridCell> = {}): GridCell => ({
   key: 's-1:a-1',
@@ -81,23 +82,63 @@ describe('cellMenu', () => {
   });
 });
 
-describe('columnMenu', () => {
-  const aColumn = (gradingType: 'TERTIARY' | 'NUMERIC' = 'NUMERIC'): GridColumn => ({
-    assessmentId: 'a1',
-    title: 'Test',
-    categoryTitle: 'Tests',
-    gradingType,
-    maxPoints: gradingType === 'NUMERIC' ? 10 : null,
+const aCategory = (id: string, gradingType: 'TERTIARY' | 'NUMERIC', title = id): AssessmentCategoryDto => ({
+  id,
+  title,
+  gradingType,
+  displayAsGrade: false,
+  courseId: 'course-1',
+});
+
+const aColumn = (gradingType: 'TERTIARY' | 'NUMERIC' = 'NUMERIC', categoryId = 'c-num'): GridColumn => ({
+  assessmentId: 'a1',
+  title: 'Test',
+  categoryId,
+  categoryTitle: 'Tests',
+  gradingType,
+  maxPoints: gradingType === 'NUMERIC' ? 10 : null,
+});
+
+describe('categoryChoices', () => {
+  const categories = [
+    aCategory('c-num', 'NUMERIC'),
+    aCategory('c-num-2', 'NUMERIC'),
+    aCategory('c-ter', 'TERTIARY'),
+  ];
+
+  it('offers the categories with the grading type of the column, the current one included', () => {
+    expect(categoryChoices(aColumn('NUMERIC', 'c-num'), categories).map((c) => c.id)).toEqual(['c-num', 'c-num-2']);
   });
 
-  it('offers grading with Gradeflow before deleting the assessment for everybody', () => {
-    const entries = columnMenu(aColumn());
+  it('never offers a category of the other grading type', () => {
+    expect(categoryChoices(aColumn('TERTIARY', 'c-ter'), categories).map((c) => c.id)).toEqual(['c-ter']);
+  });
 
-    expect(summary(entries)).toEqual(['gradeflow', 'delete-column:danger:sep']);
-    expect(entries.map((e) => e.label)).toEqual(['Mit Gradeflow bewerten…', 'Leistung für alle löschen']);
+  it('offers nothing when there are no categories', () => {
+    expect(categoryChoices(aColumn(), [])).toEqual([]);
+  });
+});
+
+describe('columnMenu', () => {
+  const categories = [aCategory('c-num', 'NUMERIC'), aCategory('c-num-2', 'NUMERIC'), aCategory('c-ter', 'TERTIARY')];
+
+  it('offers Gradeflow and changing the category before deleting the assessment for everybody', () => {
+    const entries = columnMenu(aColumn(), categories);
+
+    expect(summary(entries)).toEqual(['gradeflow', 'change-category', 'delete-column:danger:sep']);
+    expect(entries.map((e) => e.label)).toEqual(['Mit Gradeflow bewerten…', 'Art ändern…', 'Leistung für alle löschen']);
   });
 
   it('offers Gradeflow for symbol columns as well', () => {
-    expect(columnMenu(aColumn('TERTIARY')).map((e) => e.action)).toEqual(['gradeflow', 'delete-column']);
+    const entries = columnMenu(aColumn('TERTIARY', 'c-ter'), categories);
+    expect(entries.map((e) => e.action)).toEqual(['gradeflow', 'change-category', 'delete-column']);
+  });
+
+  it('disables changing the category when no other category has the grading type', () => {
+    expect(summary(columnMenu(aColumn('TERTIARY', 'c-ter'), categories))).toEqual([
+      'gradeflow',
+      'change-category:disabled',
+      'delete-column:danger:sep',
+    ]);
   });
 });

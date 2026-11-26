@@ -225,7 +225,7 @@ describe('model based lookup', () => {
     noteText: null,
     locked: false,
   });
-  const column = (id: string): GridColumn => ({ assessmentId: id, title: id, categoryTitle: 'Mitarbeit', gradingType: 'TERTIARY', maxPoints: null });
+  const column = (id: string): GridColumn => ({ assessmentId: id, title: id, categoryId: 'cat-1', categoryTitle: 'Mitarbeit', gradingType: 'TERTIARY', maxPoints: null });
   const row = (studentId: string, mitarbeit: string[], impromptu: string[]): GridRow => ({
     studentId,
     displayName: studentId,

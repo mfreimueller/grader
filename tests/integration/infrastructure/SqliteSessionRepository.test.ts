@@ -93,6 +93,50 @@ describe('SqliteSessionRepository', () => {
       const found = await repo.findById('session-1');
       expect(found!.assessments.map((a) => a.title)).toEqual(['Extra Test']);
     });
+
+    it('updates assessments in place instead of deleting and re-inserting them', async () => {
+      const session = Session.create('session-1', new Date('2025-10-01'), '', course);
+      await repo.save(session);
+      db.prepare(
+        "INSERT INTO assessment_categories (id, title, grading_type, display_as_grade, course_id) VALUES ('cat-1', 'Test', 'NUMERIC', 1, 'course-1')",
+      ).run();
+      db.prepare(
+        "INSERT INTO assessments (id, title, category_id, course_id, session_id) VALUES ('extra-001', 'Extra Test', 'cat-1', 'course-1', 'session-1')",
+      ).run();
+      const rowidOf = (): number =>
+        (db.prepare("SELECT rowid AS r FROM assessments WHERE id = 'extra-001'").get() as { r: number }).r;
+      db.prepare(
+        "INSERT INTO assessments (id, title, category_id, course_id, session_id) VALUES ('extra-002', 'Zwei', 'cat-1', 'course-1', 'session-1')",
+      ).run();
+      const before = rowidOf();
+
+      const loaded = await repo.findById('session-1');
+      await repo.save(loaded!);
+
+      expect(rowidOf()).toBe(before);
+    });
+
+    it('keeps the student performances when a session with results is saved again', async () => {
+      const session = Session.create('session-1', new Date('2025-10-01'), '', course);
+      await repo.save(session);
+      db.prepare(
+        "INSERT INTO assessment_categories (id, title, grading_type, display_as_grade, course_id) VALUES ('cat-1', 'Test', 'NUMERIC', 1, 'course-1')",
+      ).run();
+      db.prepare(
+        "INSERT INTO assessments (id, title, category_id, course_id, session_id) VALUES ('extra-001', 'Extra Test', 'cat-1', 'course-1', 'session-1')",
+      ).run();
+      db.prepare(
+        "INSERT INTO student_performances (id, student_id, assessment_id, score, type) VALUES ('p-001', 's-001', 'extra-001', 12, 'graded')",
+      ).run();
+
+      const loaded = await repo.findById('session-1');
+      await repo.save(loaded!);
+
+      const rows = db
+        .prepare("SELECT id FROM student_performances WHERE assessment_id = 'extra-001'")
+        .all();
+      expect(rows).toHaveLength(1);
+    });
   });
 
   describe('students', () => {

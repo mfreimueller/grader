@@ -105,6 +105,11 @@ export const createAssessmentSchema = z.object({
   maxPoints: z.number().int().positive().optional(),
 });
 
+export const changeAssessmentCategorySchema = z.object({
+  assessmentId: z.string().min(1),
+  categoryId: z.string().min(1),
+});
+
 export const recordPerformanceSchema = z.object({
   studentId: z.string().min(1),
   assessmentId: z.string().min(1),

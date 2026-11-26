@@ -60,6 +60,7 @@
       @pick="ui.pick"
       @close="ui.closeOverlay"
       @create-assessment="ui.createAssessment"
+      @change-category="ui.changeCategory"
       @select-cell-action="ui.selectCellAction"
       @select-column-action="ui.selectColumnAction"
       @save-note="ui.saveNote"

@@ -8,7 +8,7 @@ import { GradeCalculationAppService } from '../../application/GradeCalculationAp
 import { ImpromptuAssessmentService } from '../../application/ImpromptuAssessmentService';
 import { GradeImportService } from '../../application/GradeImportService';
 import {
-  createAssessmentSchema, recordPerformanceSchema, saveGradeSchema,
+  createAssessmentSchema, changeAssessmentCategorySchema, recordPerformanceSchema, saveGradeSchema,
   impromptuSchema, addNoteSchema, setNoteSchema, addDocumentSchema, addRemoteDocumentSchema,
   studentIdParam,
 } from './schemas';
@@ -39,6 +39,11 @@ export function registerGradeHandlers(
   ipcMain.handle(IPC.ASSESSMENT_DELETE, async (_event, id: string) => {
     studentIdParam.parse({ id });
     return await assessmentService.delete(id);
+  });
+
+  ipcMain.handle(IPC.ASSESSMENT_CHANGE_CATEGORY, async (_event, data: unknown) => {
+    const input = changeAssessmentCategorySchema.parse(data);
+    return await assessmentService.changeCategory(input);
   });
 
   ipcMain.handle(IPC.GRADE_RECORD_PERFORMANCE, async (_event, data: unknown) => {

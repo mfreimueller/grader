@@ -45,6 +45,7 @@ const IPC = {
   ASSESSMENT_CREATE: 'assessment:create',
   ASSESSMENT_CREATE_IMPROMPTU: 'assessment:createImpromptu',
   ASSESSMENT_DELETE: 'assessment:delete',
+  ASSESSMENT_CHANGE_CATEGORY: 'assessment:changeCategory',
 
   GRADE_DELETE_PERFORMANCE: 'grade:deletePerformance',
   GRADE_RECORD_PERFORMANCE: 'grade:recordPerformance',
@@ -173,6 +174,7 @@ const api: IpcApi = {
     create: (data) => ipcRenderer.invoke(IPC.ASSESSMENT_CREATE, data),
     createImpromptu: (data) => ipcRenderer.invoke(IPC.ASSESSMENT_CREATE_IMPROMPTU, data),
     delete: (id) => ipcRenderer.invoke(IPC.ASSESSMENT_DELETE, id),
+    changeCategory: (data) => ipcRenderer.invoke(IPC.ASSESSMENT_CHANGE_CATEGORY, data),
   },
   grade: {
     deletePerformance: (performanceId) => ipcRenderer.invoke(IPC.GRADE_DELETE_PERFORMANCE, performanceId),

@@ -16,6 +16,16 @@
     @submit="(input) => emit('createAssessment', input)"
     @close="emit('close')"
   />
+  <ChangeCategoryPopover
+    v-if="overlay?.type === 'change-category'"
+    :column="overlay.column"
+    :categories="categoryChoices(overlay.column, categories)"
+    :anchor="overlay.anchor"
+    :error="errorMessage"
+    :busy="creating"
+    @submit="(categoryId) => emit('changeCategory', categoryId)"
+    @close="emit('close')"
+  />
   <GridMenu
     v-if="overlay?.type === 'menu'"
     :entries="cellMenu(overlay.cell)"
@@ -27,7 +37,7 @@
   />
   <GridMenu
     v-if="overlay?.type === 'column-menu'"
-    :entries="columnMenu(overlay.column)"
+    :entries="columnMenu(overlay.column, categories)"
     :anchor="overlay.anchor"
     :gap="overlay.gap"
     label="Spaltenmenü"
@@ -85,9 +95,10 @@ import type { Confirmation, Overlay } from '../../../controllers/useSessionGridI
 import type { NewAssessmentInput, PendingImpromptu } from '../../../controllers/useSessionGrid';
 import type { GridCell, GridSymbol } from '../../../utils/sessionGridModel';
 import type { PanelAnchor } from '../../../utils/panelAnchor';
-import { cellMenu, columnMenu, type CellMenuAction, type ColumnMenuAction } from '../../../utils/sessionGridMenu';
+import { categoryChoices, cellMenu, columnMenu, type CellMenuAction, type ColumnMenuAction } from '../../../utils/sessionGridMenu';
 import TertiaryPicker from './TertiaryPicker.vue';
 import NewAssessmentPopover from './NewAssessmentPopover.vue';
+import ChangeCategoryPopover from './ChangeCategoryPopover.vue';
 import GridMenu from './GridMenu.vue';
 import NoteEditor from './NoteEditor.vue';
 import NoteTooltip from './NoteTooltip.vue';
@@ -114,6 +125,7 @@ const emit = defineEmits<{
   pick: [symbol: GridSymbol];
   close: [];
   createAssessment: [input: NewAssessmentInput];
+  changeCategory: [categoryId: string];
   selectCellAction: [action: CellMenuAction];
   selectColumnAction: [action: ColumnMenuAction];
   saveNote: [text: string];

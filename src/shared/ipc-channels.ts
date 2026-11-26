@@ -42,6 +42,7 @@ export const IPC = {
   ASSESSMENT_CREATE: 'assessment:create',
   ASSESSMENT_CREATE_IMPROMPTU: 'assessment:createImpromptu',
   ASSESSMENT_DELETE: 'assessment:delete',
+  ASSESSMENT_CHANGE_CATEGORY: 'assessment:changeCategory',
 
   GRADE_DELETE_PERFORMANCE: 'grade:deletePerformance',
   GRADE_RECORD_PERFORMANCE: 'grade:recordPerformance',

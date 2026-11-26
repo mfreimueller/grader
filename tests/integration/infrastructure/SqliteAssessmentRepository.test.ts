@@ -162,4 +162,49 @@ describe('SqliteAssessmentRepository', () => {
       expect(found!.course.id).toBe('course-1');
     });
   });
+
+  describe('re-saving an assessment that has results', () => {
+    it('updates the row in place instead of deleting and re-inserting it', async () => {
+      seedSession();
+      const assessment = new Assessment('a-001', 'Mündlich', category, course, 'session-1');
+      await repo.save(assessment);
+      const rowidOf = (): number =>
+        (db.prepare("SELECT rowid AS r FROM assessments WHERE id = 'a-001'").get() as { r: number }).r;
+      db.prepare(
+        "INSERT INTO assessments (id, title, category_id, course_id, session_id) VALUES ('a-002', 'Anderes', 'cat-1', 'course-1', 'session-1')",
+      ).run();
+      const before = rowidOf();
+
+      await repo.save(assessment);
+
+      expect(rowidOf()).toBe(before);
+    });
+
+    it('keeps the student performances when the category changes', async () => {
+      seedSession();
+      db.prepare(
+        "INSERT INTO assessment_categories (id, title, grading_type, display_as_grade, course_id) VALUES ('cat-3', 'Test', 'NUMERIC', 1, 'course-1')",
+      ).run();
+      db.prepare(
+        "INSERT INTO students (id, first_name, last_name, school_class_id) VALUES ('s-001', 'Max', 'Mustermann', 'class-1')",
+      ).run();
+      const assessment = new Assessment('a-001', 'Mündlich', category, course, 'session-1');
+      await repo.save(assessment);
+      db.prepare(
+        "INSERT INTO student_performances (id, student_id, assessment_id, score, type) VALUES ('p-001', 's-001', 'a-001', 12, 'graded')",
+      ).run();
+
+      const other = new AssessmentCategory('cat-3', 'Test', GradingType.NUMERIC, true);
+      const result = assessment.changeCategory(other);
+      expect(result.ok).toBe(true);
+      await repo.save(assessment);
+
+      const found = await repo.findById('a-001');
+      expect(found!.category.id).toBe('cat-3');
+      const rows = db
+        .prepare("SELECT id FROM student_performances WHERE assessment_id = 'a-001'")
+        .all();
+      expect(rows).toHaveLength(1);
+    });
+  });
 });

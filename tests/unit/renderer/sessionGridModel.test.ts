@@ -72,6 +72,7 @@ describe('buildSessionGrid', () => {
       expect(grid.columns[0]).toEqual({
         assessmentId: 'a-1',
         title: 'Schularbeit 1',
+        categoryId: 'cat-num',
         categoryTitle: 'Schularbeit',
         gradingType: 'NUMERIC',
         maxPoints: 30,

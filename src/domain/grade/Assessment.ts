@@ -1,6 +1,8 @@
 import { Entity } from '../shared/Entity';
 import { AssessmentCategory } from './AssessmentCategory';
 import { Course } from './Course';
+import { Result } from '../shared/Result';
+import { ValidationError } from '../../shared/errors';
 
 export class Assessment extends Entity<string> {
   private _title: string;
@@ -43,5 +45,15 @@ export class Assessment extends Entity<string> {
 
   get isImpromptu(): boolean {
     return this._isImpromptu;
+  }
+
+  changeCategory(category: AssessmentCategory): Result<void> {
+    if (category.gradingType !== this._category.gradingType) {
+      return Result.fail(
+        new ValidationError('Assessment category must have the same grading type'),
+      );
+    }
+    this._category = category;
+    return Result.ok(undefined as void);
   }
 }

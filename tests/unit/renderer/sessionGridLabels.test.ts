@@ -110,6 +110,7 @@ describe('columnAriaLabel', () => {
   const column = (o: Partial<GridColumn> = {}): GridColumn => ({
     assessmentId: 'a-1',
     title: 'Schularbeit 1',
+    categoryId: 'cat-1',
     categoryTitle: 'Schularbeit',
     gradingType: 'NUMERIC',
     maxPoints: 30,

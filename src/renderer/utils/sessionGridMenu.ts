@@ -1,10 +1,11 @@
 // Which entries the context menus of the session grid offer, as pure functions.
 
 import { gradeflowColumnEligible } from './gradeflowRoute';
+import type { AssessmentCategoryDto } from '../../shared/types';
 import type { GridCell, GridColumn } from './sessionGridModel';
 
 export type CellMenuAction = 'note-add' | 'note-edit' | 'note-delete' | 'reset-result' | 'delete-impromptu';
-export type ColumnMenuAction = 'gradeflow' | 'delete-column';
+export type ColumnMenuAction = 'gradeflow' | 'change-category' | 'delete-column';
 
 export interface MenuEntry<A extends string> {
   action: A;
@@ -39,11 +40,24 @@ export function cellMenu(cell: GridCell): MenuEntry<CellMenuAction>[] {
   return [...note, remove];
 }
 
-/** Gradeflow proposes symbols or points for a whole assessment, so it is offered on shared columns of those types. */
-export function columnMenu(column: GridColumn): MenuEntry<ColumnMenuAction>[] {
+/**
+ * The categories a column can be moved to: those with its grading type, the current one included so a picker can
+ * preselect it. Results of the other type would be meaningless (symbols versus points).
+ */
+export function categoryChoices(column: GridColumn, categories: readonly AssessmentCategoryDto[]): AssessmentCategoryDto[] {
+  return categories.filter((c) => c.gradingType === column.gradingType);
+}
+
+/**
+ * Gradeflow proposes symbols or points for a whole assessment, so it is offered on shared columns of those types.
+ * Changing the category needs another category of the same grading type to move to.
+ */
+export function columnMenu(column: GridColumn, categories: readonly AssessmentCategoryDto[]): MenuEntry<ColumnMenuAction>[] {
   const gradeflow = gradeflowColumnEligible(column.gradingType) ? [entry('gradeflow', 'Mit Gradeflow bewerten…')] : [];
+  const canMove = categoryChoices(column, categories).some((c) => c.id !== column.categoryId);
   return [
     ...gradeflow,
-    entry('delete-column', 'Leistung für alle löschen', { danger: true, separatorBefore: gradeflow.length > 0 }),
+    entry('change-category', 'Art ändern…', { disabled: !canMove }),
+    entry('delete-column', 'Leistung für alle löschen', { danger: true, separatorBefore: true }),
   ];
 }

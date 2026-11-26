@@ -24,6 +24,7 @@ export type Overlay =
   | { type: 'column-menu'; column: GridColumn; anchor: PanelAnchor; gap: number }
   | { type: 'note'; cell: GridCell; studentName: string; anchor: PanelAnchor }
   | { type: 'student-note'; studentId: string; studentName: string; text: string; anchor: PanelAnchor }
+  | { type: 'change-category'; column: GridColumn; anchor: PanelAnchor }
   | { type: 'new-assessment'; anchor: PanelAnchor };
 
 const DIRECTION_KEYS: Readonly<Record<Exclude<CommitDirection, 'stay'>, string>> = { down: 'ArrowDown', left: 'ArrowLeft', right: 'ArrowRight' };
@@ -68,7 +69,7 @@ export function useSessionGridInteractions(
   onBeforeUnmount(() => window.clearTimeout(hoverTimer));
 
   function closeOverlay(): void {
-    if (overlay.value?.type === 'new-assessment') errorMessage.value = '';
+    if (overlay.value?.type === 'new-assessment' || overlay.value?.type === 'change-category') errorMessage.value = '';
     overlay.value = null;
     focus.focusPosition();
   }
@@ -209,7 +210,25 @@ export function useSessionGridInteractions(
     overlay.value = null;
     if (current?.type !== 'column-menu') return;
     if (action === 'gradeflow') hooks.gradeflow(current.column.assessmentId);
-    else requestDeleteColumn(current.column);
+    else if (action === 'change-category') {
+      errorMessage.value = '';
+      overlay.value = { type: 'change-category', column: current.column, anchor: focus.anchorOfColumn(current.column) };
+    } else requestDeleteColumn(current.column);
+  }
+
+  async function changeCategory(categoryId: string): Promise<void> {
+    const current = overlay.value;
+    if (current?.type !== 'change-category') return;
+    if (categoryId !== current.column.categoryId) {
+      creating.value = true;
+      try {
+        if (!(await grid.changeCategory(current.column.assessmentId, categoryId))) return;
+      } finally {
+        creating.value = false;
+      }
+    }
+    overlay.value = null;
+    focus.focusPosition();
   }
 
   function requestDeleteColumn(column: GridColumn): void {
@@ -359,6 +378,7 @@ export function useSessionGridInteractions(
     onStudentNote,
     saveStudentNote,
     selectColumnAction,
+    changeCategory,
     onHover,
     onHeaderAdd,
     createAssessment,

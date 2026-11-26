@@ -14,6 +14,7 @@ export type GridCellKind = 'empty' | 'symbol' | 'points';
 export interface GridColumn {
   assessmentId: string;
   title: string;
+  categoryId: string;
   categoryTitle: string;
   gradingType: GridGradingType;
   maxPoints: number | null;
@@ -94,6 +95,7 @@ export function buildSessionGrid(input: BuildSessionGridInput): SessionGridModel
   const columns: GridColumn[] = shared.map((a) => ({
     assessmentId: a.id,
     title: a.title,
+    categoryId: a.category.id,
     categoryTitle: a.category.title,
     gradingType: gradingTypeOf(a),
     maxPoints: a.maxPoints,

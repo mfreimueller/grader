@@ -172,6 +172,13 @@ export function useSessionGrid(courseId: string, sessionId: string) {
     return ok;
   }
 
+  /** Moves a shared assessment to another category of the same grading type; its results stay. */
+  async function changeCategory(assessmentId: string, categoryId: string): Promise<boolean> {
+    const ok = await attempt(() => window.grdr.assessment.changeCategory({ assessmentId, categoryId }));
+    if (ok) await loadAssessments();
+    return ok;
+  }
+
   async function deleteShared(assessmentId: string): Promise<void> {
     const ok = await attempt(() => window.grdr.assessment.delete(assessmentId));
     if (ok) await loadAssessments();
@@ -224,6 +231,7 @@ export function useSessionGrid(courseId: string, sessionId: string) {
     clearResult,
     setNote,
     createShared,
+    changeCategory,
     deleteShared,
     scheduleImpromptuDelete,
     undoDelete,

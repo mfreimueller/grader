@@ -34,6 +34,11 @@ export interface CreateAssessmentInput {
   maxPoints?: number;
 }
 
+export interface ChangeAssessmentCategoryInput {
+  assessmentId: string;
+  categoryId: string;
+}
+
 export class AssessmentService {
   constructor(
     private readonly assessmentRepo: AssessmentRepository,
@@ -97,6 +102,26 @@ export class AssessmentService {
 
     await this.sessionRepo.save(reconstituted);
 
+    return Result.ok(toDto(assessment, session.date));
+  }
+
+  async changeCategory(input: ChangeAssessmentCategoryInput): Promise<Result<AssessmentDto>> {
+    const assessment = await this.assessmentRepo.findById(input.assessmentId);
+    if (!assessment) return Result.fail(new NotFoundError('Assessment', input.assessmentId));
+
+    const course = await this.courseRepo.findById(assessment.course.id);
+    if (!course) return Result.fail(new NotFoundError('Course', assessment.course.id));
+
+    const category = course.assessmentCategories.find(c => c.id === input.categoryId);
+    if (!category) return Result.fail(new NotFoundError('AssessmentCategory', input.categoryId));
+
+    const session = await this.sessionRepo.findById(assessment.sessionId);
+    if (!session) return Result.fail(new NotFoundError('Session', assessment.sessionId));
+
+    const changed = assessment.changeCategory(category);
+    if (!changed.ok) return Result.fail(changed.error);
+
+    await this.assessmentRepo.save(assessment);
     return Result.ok(toDto(assessment, session.date));
   }
 
