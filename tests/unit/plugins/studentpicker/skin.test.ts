@@ -2,7 +2,7 @@ import { DEFAULT_SKIN, parseSkin, SKINS } from '../../../../plugins/studentpicke
 
 describe('parseSkin', () => {
   it('reads every known skin', () => {
-    expect(SKINS.map((skin) => parseSkin(skin))).toEqual(['slotmachine', 'wheel', 'casino']);
+    expect(SKINS.map((skin) => parseSkin(skin))).toEqual(['slotmachine', 'wheel', 'casino', 'advent']);
   });
 
   it('falls back to the slot machine when nothing or something unknown is stored', () => {

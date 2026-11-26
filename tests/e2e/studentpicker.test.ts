@@ -333,3 +333,76 @@ test('spins the wheel all the way and lets confetti rain on the winner', async (
   await expect(page.getByTestId('grade-saved')).toBeVisible();
   await expect(page.getByTestId('confetti')).toHaveCount(0, { timeout: 10_000 });
 });
+
+const DOORS = '[data-testid^="advent-door-"]';
+
+test('the Adventkalender opens a door with a student, keeps the name in the door and remembers it', async () => {
+  const first = await openMachine();
+  await first.getByTestId('skin-select').selectOption('advent');
+  await expect(first.getByTestId('snow')).toBeAttached();
+  await expect(first.locator(DOORS)).toHaveCount(24);
+  await expect(first.getByTestId('advent-door-7')).toHaveAttribute('aria-label', 'Türchen 7');
+
+  await first.getByTestId('advent-door-7').click();
+  await expect(first.getByTestId('result-name')).toBeVisible();
+  const name = (await first.getByTestId('result-name').textContent()) ?? '';
+  await expect(first.getByTestId('result-count')).toHaveText('Aufruf Nr. 1');
+  // No door can be opened while the dialog is up.
+  await expect(first.getByTestId('advent-door-8')).toBeDisabled();
+  await first.getByTestId('result-close').click();
+
+  await expect(first.getByTestId('advent-door-7')).toContainText(name);
+  await expect(first.getByTestId('advent-door-7')).toHaveAttribute('aria-label', `Türchen 7: ${name}`);
+  await expect(first.getByTestId('advent-door-7')).toBeDisabled();
+  await expect(first.getByTestId('advent-door-8')).toBeEnabled();
+  await first.close();
+
+  const second = await openMachine();
+  await expect(second.getByTestId('skin-select')).toHaveValue('advent');
+  await expect(second.getByTestId('advent-door-7')).toContainText(name);
+  await expect(second.getByTestId('advent-door-8')).toBeEnabled();
+});
+
+test('the Adventkalender snows over the window without being in the way, and plays the door animation', async () => {
+  test.setTimeout(60_000);
+  const page = await openMachine({ animated: true });
+  await page.getByTestId('skin-select').selectOption('advent');
+
+  await expect(page.getByTestId('snowflake')).toHaveCount(70);
+  await expect(page.getByTestId('snow')).toHaveCSS('pointer-events', 'none');
+  await page.getByTestId('advent-door-3').click();
+  await expect(page.getByTestId('advent-door-3')).toHaveClass(/wobbling/);
+  await expect(page.getByTestId('result-name')).toBeVisible({ timeout: 10_000 });
+  await expect(page.getByTestId('confetti')).toBeVisible();
+  await page.getByTestId('result-close').click(); // not blocked by the snow
+  await expect(page.getByTestId('result-name')).toHaveCount(0);
+});
+
+test('a student picked from the table does not open a door', async () => {
+  const page = await openMachine();
+  await page.getByTestId('skin-select').selectOption('advent');
+
+  await page.getByTestId(`pick-${byName('Max Muster').id}`).click();
+  await expect(page.getByTestId('result-name')).toBeVisible();
+  await page.getByTestId('result-close').click();
+
+  await expect(page.locator(`${DOORS}:disabled`)).toHaveCount(0);
+});
+
+test('a door never spins again, even with a special that nearly always would', async () => {
+  const page = await openMachine();
+  await page.getByTestId('edit-specials').click();
+  await page.getByTestId('special-add').click();
+  await page.getByTestId('special-label-0').fill('Nochmal drehen');
+  await page.getByTestId('special-prob-0').fill('95');
+  await page.getByTestId('specials-save').click();
+  await page.getByTestId('skin-select').selectOption('advent');
+
+  for (const door of [1, 2, 3, 4, 5]) {
+    await page.getByTestId(`advent-door-${door}`).click();
+    await expect(page.getByTestId('result-name')).toBeVisible();
+    await page.getByTestId('result-close').click();
+    await expect(page.getByTestId(`advent-door-${door}`)).not.toContainText('Nochmal drehen');
+  }
+  await expect(page.locator(`${DOORS}:disabled`)).toHaveCount(5);
+});

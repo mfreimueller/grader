@@ -14,6 +14,13 @@ describe('t', () => {
     expect(t('table.countFor', { name: 'X' })).toBe('Aufrufe für X');
   });
 
+  it('names the Adventkalender the Austrian way and its doors', () => {
+    expect(t('skin.advent')).toBe('Adventkalender');
+    expect(t('advent.door', { n: 7 })).toBe('Türchen 7');
+    expect(t('advent.doorOpen', { n: 7, name: 'Anna Bauer' })).toBe('Türchen 7: Anna Bauer');
+    expect(t('advent.hint')).toContain('Türchen anklicken');
+  });
+
   it('shows the key itself for a text that does not exist, so the gap is visible', () => {
     expect(t('does.not.exist')).toBe('does.not.exist');
     expect(t('app')).toBe('app'); // a group is not a text

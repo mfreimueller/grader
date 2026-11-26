@@ -32,6 +32,13 @@ const de = {
     slotmachine: 'Spielautomat',
     wheel: 'Glücksrad',
     casino: 'Casino',
+    advent: 'Adventkalender',
+  },
+  advent: {
+    label: 'Adventkalender',
+    door: 'Türchen {n}',
+    doorOpen: 'Türchen {n}: {name}',
+    hint: 'Ein Türchen anklicken, um es zu öffnen. Fair-Modus: nur Schüler/innen mit den wenigsten Aufrufen.',
   },
   casino: {
     disclaimerTitle: 'Hinweis',

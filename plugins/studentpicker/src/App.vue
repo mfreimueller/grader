@@ -21,7 +21,7 @@
           </label>
           <button type="button" data-testid="edit-specials" :disabled="picking" @click="editingSpecials = true">{{ t('machine.specials') }}</button>
           <button type="button" data-testid="reset-counts" :disabled="picking" @click="confirmingReset = true">{{ t('machine.reset') }}</button>
-          <span v-if="skin !== 'casino'" class="hint">{{ skin === 'wheel' ? t('wheel.hint') : t('machine.hint') }}</span>
+          <span v-if="skin !== 'casino'" class="hint">{{ t(HINTS[skin]) }}</span>
         </div>
         <p v-if="error" class="error" role="alert" data-testid="error">{{ error }}</p>
 
@@ -40,6 +40,13 @@
             @error="error = $event"
           />
           <SpinningWheel v-else-if="skin === 'wheel'" ref="machine" :items="items" :disabled="picking" @spin="spin" />
+          <AdventCalendar
+            v-else-if="skin === 'advent'"
+            ref="adventStage"
+            :calendar="adventCalendar"
+            :disabled="picking || dialogOpen"
+            @open="openAdventDoor"
+          />
           <SlotMachine v-else ref="machine" :items="items" :disabled="picking" @spin="spin" />
           <StudentTable
             v-if="!atCasinoTable"
@@ -56,6 +63,7 @@
     <PickResultDialog v-if="result" :student="result" :all-categories="context?.categories ?? []" @close="result = null" />
     <SpecialsEditor v-if="editingSpecials" :specials="specials" :persist="saveSpecials" @close="editingSpecials = false" />
     <SpecialDialog v-if="special" :special="special" @close="special = null" />
+    <SnowFall v-if="skin === 'advent'" />
     <ConfettiRain v-if="confetti" :key="confetti" @done="confetti = 0" />
     <CasinoDisclaimer v-if="disclaimer" @close="disclaimer = false" />
 
@@ -75,6 +83,8 @@
 import { computed, onBeforeUnmount, onMounted, ref, shallowRef } from 'vue';
 import SlotMachine from './components/SlotMachine.vue';
 import SpinningWheel from './components/SpinningWheel.vue';
+import AdventCalendar from './components/AdventCalendar.vue';
+import SnowFall from './components/SnowFall.vue';
 import ConfettiRain from './components/ConfettiRain.vue';
 import StudentTable from './components/StudentTable.vue';
 import PickResultDialog from './components/PickResultDialog.vue';
@@ -82,6 +92,8 @@ import SpecialDialog from './components/SpecialDialog.vue';
 import SpecialsEditor from './components/SpecialsEditor.vue';
 import CasinoStage from './components/casino/CasinoStage.vue';
 import CasinoDisclaimer from './components/casino/CasinoDisclaimer.vue';
+import { useAdventCalendar } from './composables/useAdventCalendar';
+import { adventSpecials } from './core/advent';
 import { errorText, toPlain, unwrap } from './core/bridgeError';
 import { activeSpecials, draw, fairPool, type DrawResult } from './core/draw';
 import { layoutItems } from './core/layout';
@@ -97,12 +109,14 @@ const AGAIN_SPIN_MS = 3000;
 const COUNTS_KEY = 'pickCounts';
 const SPECIALS_KEY = 'specials';
 const SKIN_KEY = 'skin';
+const HINTS: Record<Exclude<Skin, 'casino'>, string> = { slotmachine: 'machine.hint', wheel: 'wheel.hint', advent: 'advent.hint' };
 
 // shallowRef: this data is replaced, never changed in place, and a reactive Proxy cannot cross the bridge.
 const context = shallowRef<PluginContext | null>(null);
 const counts = shallowRef<PickCounts>({});
 const specials = shallowRef<Special[]>([]);
 const skin = ref<Skin>(DEFAULT_SKIN);
+const { calendar: adventCalendar, stage: adventStage, load: loadAdvent, isOpen, playback: doorPlayback } = useAdventCalendar();
 const loading = ref(true);
 const loadError = ref('');
 
@@ -139,6 +153,7 @@ async function load(): Promise<void> {
     counts.value = parsePickCounts(unwrap(await window.grader.storage.get(COUNTS_KEY)));
     specials.value = parseSpecials(unwrap(await window.grader.storage.get(SPECIALS_KEY)));
     skin.value = parseSkin(unwrap(await window.grader.storage.get(SKIN_KEY)));
+    await loadAdvent();
   } catch (e: unknown) {
     loadError.value = errorText(e);
   } finally {
@@ -178,35 +193,43 @@ async function saveCounts(next: PickCounts): Promise<void> {
   unwrap(await window.grader.storage.set(COUNTS_KEY, toPlain(next)));
 }
 
+type Playback = (step: DrawResult, index: number) => Promise<void>;
+const spinMachine: Playback = async (step, index) => {
+  await machine.value?.spinTo(step.kind === 'student' ? step.studentId : step.special.id, index === 0 ? FIRST_SPIN_MS : AGAIN_SPIN_MS);
+};
+
 async function spin(): Promise<void> {
+  await pick(specials.value, spinMachine);
+}
+
+/** A door gives exactly one result: a student or a message, never "spin again". */
+async function openAdventDoor(door: number): Promise<void> {
+  if (isOpen(door)) return;
+  await pick(adventSpecials(specials.value), doorPlayback(door, students.value));
+}
+
+/** The winner is decided and saved up front; the machine or door only plays the result back. */
+async function pick(from: Special[], playback: Playback): Promise<void> {
   await run(async () => {
-    const outcome = draw({ students: students.value, specials: specials.value, fair: fair.value, random: Math.random });
+    const outcome = draw({ students: students.value, specials: from, fair: fair.value, random: Math.random });
     if (!outcome.ok) {
       error.value = t('machine.noStudentToPick');
       return;
     }
-    await play(outcome.spins);
+    const last = outcome.spins.at(-1);
+    const next = last?.kind === 'student' ? incrementCount(counts.value, last.studentId) : null;
+    if (next) await saveCounts(next);
+
+    for (const [index, step] of outcome.spins.entries()) await playback(step, index);
+
+    // Only now: the pick shrinks the fair pool, which would change the reels while they are still turning.
+    if (next) counts.value = next;
+    if (last?.kind === 'special') special.value = last.special;
+    else if (last) {
+      confetti.value += 1;
+      showResult(last.studentId);
+    }
   });
-}
-
-/** The winner is decided and saved up front; the machine only plays the result back. */
-async function play(spins: DrawResult[]): Promise<void> {
-  const last = spins.at(-1);
-  const next = last?.kind === 'student' ? incrementCount(counts.value, last.studentId) : null;
-  if (next) await saveCounts(next);
-
-  for (const [index, step] of spins.entries()) {
-    const id = step.kind === 'student' ? step.studentId : step.special.id;
-    await machine.value?.spinTo(id, index === 0 ? FIRST_SPIN_MS : AGAIN_SPIN_MS);
-  }
-
-  // Only now: the pick shrinks the fair pool, which would change the reels while they are still turning.
-  if (next) counts.value = next;
-  if (last?.kind === 'special') special.value = last.special;
-  else if (last) {
-    confetti.value += 1;
-    showResult(last.studentId);
-  }
 }
 
 async function pickDirect(studentId: string): Promise<void> {
